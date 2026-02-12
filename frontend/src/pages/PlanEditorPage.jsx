@@ -94,10 +94,10 @@ function MonthPage({
       <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#FAFAFA]"
         style={{
           gridTemplateColumns: patientView
-            ? '2.2fr 1.2fr 1.8fr 1.8fr'
+            ? '1.6fr 1.4fr 2fr 2fr'
             : showCosts
-              ? '2.2fr 0.6fr 0.6fr 1.2fr 1.8fr 0.6fr 0.8fr 0.3fr'
-              : '2.2fr 0.6fr 0.6fr 1.2fr 1.8fr 0.3fr'
+              ? '1.6fr 0.7fr 0.7fr 1.4fr 2fr 0.6fr 0.8fr 0.3fr'
+              : '1.6fr 0.7fr 0.7fr 1.4fr 2fr 0.3fr'
         }}>
         <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">Supplement</span>
         {!patientView && (<>
