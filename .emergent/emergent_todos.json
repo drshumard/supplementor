@@ -1,18 +1,22 @@
 [
   {
-    "content": "Redesign PlanEditor MonthPage table: ultra-spacious rows, centered columns, generous padding matching inspo",
-    "status": "completed"
+    "content": "Plan Editor: bigger centered patient name, left-aligned columns, colorful buttons (teal/black/amber/red), warm tinted month headers",
+    "status": "in_progress"
   },
   {
-    "content": "Screenshot verify all Plan Editor views (HC view, patient view, finalized)",
-    "status": "completed"
+    "content": "Dashboard: warm stat cards, colorful New Plan button, improved visual hierarchy",
+    "status": "pending"
   },
   {
-    "content": "Apply same spacious style to Dashboard and Supplements tables",
-    "status": "completed"
+    "content": "Supplements & Templates pages: warm backgrounds, colorful accents",
+    "status": "pending"
   },
   {
-    "content": "Run testing agent for regression testing",
-    "status": "completed"
+    "content": "AppShell & global: warm section tints, button color variety",
+    "status": "pending"
+  },
+  {
+    "content": "Screenshot verify + testing",
+    "status": "pending"
   }
 ]

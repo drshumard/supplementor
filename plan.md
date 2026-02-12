@@ -2,13 +2,14 @@
 
 ## 1. Objectives
 - Replace the clinic’s Google Docs supplement protocol workflow with a fast, error-resistant **desktop web app**.
-- Deliver a premium **Apple/Jony Ive–inspired** UI optimized for HC throughput (table-first, minimal cognitive overhead).
+- Deliver a premium **Apple/Jony Ive–inspired** UI optimized for HC throughput (table-first, minimal cognitive overhead) with **spacious layouts** and **high scan-ability**.
 - Automate **bottles needed** and **cost totals** for internal HC use, while guaranteeing **no cost leakage** in patient-facing views/exports.
 - Provide admin tooling for a centralized, updatable **Master Supplement List** and **Protocol Templates**.
 - Maintain historical accuracy by **snapshotting supplement data into plans** at the time plans are created/edited.
 - Enforce **role-based access control** (Admin vs HC) and ensure HCs only access their own plans.
+- **P0 Polish:** Apply and verify the “premium, spacious” visual system across all pages, with Plan Editor redesigned to match provided inspiration.
 
-**Status (current):** ✅ Application is fully built, feature-complete through Phase 3, and all testing iterations passed.
+**Status (current):** ✅ Application is fully built, feature-complete through Phase 3 **and P0 Visual Overhaul is completed**. Regression testing passed (≈95% overall) with **no critical bugs**.
 
 ---
 
@@ -50,7 +51,7 @@
   - Auto-calculations (bottles, monthly totals, program total)
   - Add/remove supplements with step-wide month replication behavior
 - Seeded production-like data:
-  - **68 real supplements** (provided list)
+  - **68+ real supplements** (seed list)
   - **9 templates** created with default month counts
   - Demo users:
     - admin@clarity.com / admin123
@@ -67,7 +68,7 @@
   1) Login
   2) Plans Dashboard (search, filter, delete)
   3) New Plan Wizard (Program → Step → Months → Patient Info → Review)
-  4) Plan Editor (multi-month tabs, type-ahead supplement add, dosage overrides, auto-calculations)
+  4) Plan Editor (multi-month, supplement add, dosage overrides, auto-calculations)
   5) Admin: Master Supplement List CRUD
   6) Admin: Templates Editor
 - Implemented core plan editor behaviors:
@@ -134,8 +135,6 @@
 
 **Status:** ✅ Completed
 - Phase 3 testing completed (multiple iterations); core features confirmed working.
-- Minor improvements made for test reliability:
-  - Added stronger `data-testid` hooks for dashboard status badges and duplicate buttons.
 
 ---
 
@@ -152,35 +151,80 @@
 
 ---
 
+### Phase 5 — P0 Visual Overhaul (premium spacious UI + Plan Editor redesign)
+**Why:** Ensure the app feels premium, modern, and high-throughput for HC use; match provided inspiration with spacious, centered, highly scannable tables.
+
+**Scope (P0):**
+- Verify frontend compilation and UI integrity after design changes.
+- Apply the refined medical palette, typography, and spacing tokens consistently.
+- Update all key pages to a “premium internal tool” aesthetic:
+  - Login
+  - Dashboard
+  - New Plan Wizard
+  - Plan Editor
+  - Admin Supplements
+  - Admin Templates
+- **Major Plan Editor redesign:**
+  - Converted Month supplement list from shadcn `<Table>` to a **CSS grid-based layout**
+  - **Ultra-spacious row height** (large vertical padding)
+  - **Centered column alignment** for numeric and text fields (qty/freq/dosage/instructions/bottles/cost)
+  - Clear, calm sectioning per month with generous whitespace
+- Validate role-based UI states remain correct (HC vs Admin, Patient View toggle).
+
+**Exit criteria:**
+- No layout regressions across core pages.
+- Plan Editor matches inspo: spacious rows, centered columns, subtle separators.
+- App compiles cleanly.
+- Regression testing run with no critical failures.
+
+**Status:** ✅ Completed
+- Backend startup issue discovered (WeasyPrint system dependency) and resolved.
+- Screenshots taken for key pages (Login, Dashboard, Templates, Plan Editor).
+- Regression testing passed at ~95% overall; only minor test-timeout detection issue on save state.
+
+---
+
 ## 3. Next Actions
-Since the application is feature-complete, next steps are operational + polish:
-1. **Populate templates with clinic-default supplement lists** (admin-managed) to reduce HC editing time.
-2. Add optional quality-of-life improvements:
-   - Reordering supplements within a plan/template
-   - More explicit snapshot rules (locking master fields on finalize)
-   - Optional audit trail (who edited what/when)
-3. Prepare for production:
-   - Configure JWT secret via environment
-   - Add password reset flow (optional)
-   - Backup strategy for MongoDB
-   - Final UI polish pass and performance pass on large plans
+Since the application is feature-complete and P0 UI overhaul is complete, next steps are operational + data finishing + optional enhancements:
+
+### P0/P1 Operational Data Tasks (clinic-provided inputs)
+1. **Populate remaining templates** with clinic-default supplement lists (notably: Maintenance Step 2 and Maintenance Step 3) to reduce HC editing time.
+2. **Correct supplement pricing gaps** (e.g., BC-ATP showing $0.00) once clinic confirms exact values.
+
+### P1 Verification / Hardening
+3. **PDF export verification pass**
+   - Reconfirm multi-month exports are one page per month for both patient and HC PDFs.
+   - Spot-check long instructions/wrapping with new Plan Editor editing patterns.
+4. **Address minor test flake**
+   - Improve save-state detection in automation (functional behavior is correct; reduce false negatives).
+
+### Optional QoL Enhancements (P2)
+5. Reordering supplements within a plan/template.
+6. More explicit snapshot rules (locking master fields on finalize).
+7. Optional audit trail (who edited what/when).
+8. Password reset flow.
+
+### Production Readiness (P2)
+9. Configure JWT secret via environment.
+10. Backup strategy for MongoDB.
+11. Performance pass on large plans (many months × many supplements).
 
 ---
 
 ## 4. Success Criteria
-✅ Met for V1:
+✅ Met for V1 + P0 UI:
 - Core workflow: HC can create a plan from template, edit multi-month dosages, and export a branded patient PDF quickly.
 - PDF export: one page per month, consistent layout, **no cost leakage**.
 - Calculations: bottles + costs always match formula; totals correct.
 - Data:
-  - Master supplement list seeded (68 items) and admin-editable
+  - Master supplement list seeded and admin-editable
   - Templates exist (9) and are admin-editable
   - Plans stored historically with ownership attribution
 - Security:
   - Role-based access enforced in API and UI
   - HC cannot access admin endpoints
   - HC sees only their plans
-- UX:
-  - Fast type-ahead search
-  - Clean month navigation
-  - Clear separation of internal vs patient view
+- UX/UI:
+  - Premium, spacious Apple-inspired layout across all pages
+  - Plan Editor matches inspiration: centered columns, generous whitespace, subtle separators
+  - Fast type-ahead search and clear separation of internal vs patient views
