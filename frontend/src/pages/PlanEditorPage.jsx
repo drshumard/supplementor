@@ -22,7 +22,7 @@ import {
 } from '../components/ui/alert-dialog';
 import {
   ArrowLeft, Plus, Trash2, Download, FileText, Eye, EyeOff, Save,
-  Snowflake, ChevronsUpDown, Lock, Unlock, Copy, User, CopyPlus,
+  Snowflake, ChevronsUpDown, Lock, Unlock, Copy, User, CopyPlus, Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -48,19 +48,27 @@ function MonthPage({
       data-testid={`month-page-${month.month_number}`}
     >
       {/* Month header */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border/50 bg-[#FAFBFB] rounded-t-xl">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-[#FAFBFB] rounded-t-xl">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-[#0B0D10]">
-            Month {month.month_number}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {(month.supplements || []).length} supplement{(month.supplements || []).length !== 1 ? 's' : ''}
-          </span>
+          <div className="w-9 h-9 rounded-lg bg-[hsl(187,79%,23%)] flex items-center justify-center">
+            <Calendar size={16} className="text-white" />
+          </div>
+          <div>
+            <span className="text-sm font-bold text-[#0B0D10]">
+              Month {month.month_number}
+            </span>
+            <span className="text-xs text-muted-foreground ml-2">
+              {(month.supplements || []).length} supplement{(month.supplements || []).length !== 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
         {showCosts && !patientView && (
-          <span className="font-mono tabular-nums text-sm font-semibold text-[#147D5A]">
-            {formatCurrency(month.monthly_total_cost)}
-          </span>
+          <div className="flex items-center gap-2 bg-[hsl(147,60%,95%)] px-4 py-2 rounded-lg border border-[hsl(147,60%,85%)]">
+            <span className="text-xs text-muted-foreground font-medium">Monthly Total</span>
+            <span className="font-mono tabular-nums text-sm font-bold text-[#147D5A]">
+              {formatCurrency(month.monthly_total_cost)}
+            </span>
+          </div>
         )}
       </div>
 
@@ -68,88 +76,88 @@ function MonthPage({
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[260px]">Supplement</TableHead>
+            <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground w-[260px] py-3.5 px-5">Supplement</TableHead>
             {!patientView && (
               <>
-                <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[65px] text-center">Qty</TableHead>
-                <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[65px] text-center">x/Day</TableHead>
+                <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground w-[65px] text-center py-3.5">Qty</TableHead>
+                <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground w-[65px] text-center py-3.5">x/Day</TableHead>
               </>
             )}
-            <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[160px]">Dosage</TableHead>
-            <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground">Instructions</TableHead>
+            <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground w-[160px] py-3.5">Dosage</TableHead>
+            <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-3.5">Instructions</TableHead>
             {showCosts && !patientView && (
               <>
-                <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[60px] text-center">Btls</TableHead>
-                <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[85px] text-right">Cost</TableHead>
+                <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground w-[60px] text-center py-3.5">Btls</TableHead>
+                <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground w-[90px] text-right py-3.5">Cost</TableHead>
               </>
             )}
             {!isFinalized && !patientView && (
-              <TableHead className="w-[40px]"></TableHead>
+              <TableHead className="w-[44px]"></TableHead>
             )}
           </TableRow>
         </TableHeader>
         <TableBody>
           {(month.supplements || []).length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="h-16 text-center text-muted-foreground text-sm">
+              <TableCell colSpan={8} className="h-20 text-center text-muted-foreground text-sm">
                 No supplements. {!isFinalized ? 'Add below.' : ''}
               </TableCell>
             </TableRow>
           ) : (
             (month.supplements || []).map((supp, idx) => (
               <TableRow key={idx} className="hover:bg-[var(--table-zebra)] group">
-                <TableCell className="py-2">
+                <TableCell className="py-3 px-5">
                   <div className="flex items-center gap-2">
                     <div>
-                      <div className="text-sm font-medium text-[#0B0D10] leading-tight">{supp.supplement_name}</div>
-                      <div className="text-[10px] text-muted-foreground">{supp.company}</div>
+                      <div className="text-sm font-semibold text-[#0B0D10] leading-tight">{supp.supplement_name}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{supp.company}</div>
                     </div>
-                    {supp.refrigerate && <Snowflake size={12} className="text-blue-500 shrink-0" />}
+                    {supp.refrigerate && <Snowflake size={13} className="text-blue-500 shrink-0" />}
                   </div>
                 </TableCell>
                 {!patientView && (
                   <>
-                    <TableCell className="py-2">
+                    <TableCell className="py-3">
                       <Input
                         type="number" min={0}
                         value={supp.quantity_per_dose ?? ''}
                         onChange={(e) => onUpdateField(month.month_number, idx, 'quantity_per_dose', e.target.value ? parseInt(e.target.value) : null)}
-                        className="h-7 text-center font-mono text-xs w-full border-border/50"
+                        className="h-8 text-center font-mono text-xs w-full border-border/50"
                         disabled={isFinalized}
                       />
                     </TableCell>
-                    <TableCell className="py-2">
+                    <TableCell className="py-3">
                       <Input
                         type="number" min={0}
                         value={supp.frequency_per_day ?? ''}
                         onChange={(e) => onUpdateField(month.month_number, idx, 'frequency_per_day', e.target.value ? parseInt(e.target.value) : null)}
-                        className="h-7 text-center font-mono text-xs w-full border-border/50"
+                        className="h-8 text-center font-mono text-xs w-full border-border/50"
                         disabled={isFinalized}
                       />
                     </TableCell>
                   </>
                 )}
-                <TableCell className="py-2">
+                <TableCell className="py-3">
                   {patientView ? (
                     <span className="text-sm">{supp.dosage_display || '-'}</span>
                   ) : (
                     <Input
                       value={supp.dosage_display || ''}
                       onChange={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.value)}
-                      className="h-7 text-xs w-full border-border/50"
+                      className="h-8 text-xs w-full border-border/50"
                       placeholder="e.g., 2 caps 3x/day"
                       disabled={isFinalized}
                     />
                   )}
                 </TableCell>
-                <TableCell className="py-2">
+                <TableCell className="py-3">
                   {patientView ? (
                     <span className="text-sm text-muted-foreground italic">{supp.instructions || '-'}</span>
                   ) : (
                     <Input
                       value={supp.instructions || ''}
                       onChange={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.value)}
-                      className="h-7 text-xs w-full border-border/50"
+                      className="h-8 text-xs w-full border-border/50"
                       placeholder="With food"
                       disabled={isFinalized}
                     />
@@ -157,22 +165,22 @@ function MonthPage({
                 </TableCell>
                 {showCosts && !patientView && (
                   <>
-                    <TableCell className="py-2 text-center font-mono tabular-nums text-xs">
+                    <TableCell className="py-3 text-center font-mono tabular-nums text-xs font-medium">
                       {supp.bottles_needed || '-'}
                     </TableCell>
-                    <TableCell className="py-2 text-right font-mono tabular-nums text-xs font-medium text-[#147D5A]">
+                    <TableCell className="py-3 text-right font-mono tabular-nums text-xs font-semibold text-[#147D5A]">
                       {formatCurrency(supp.calculated_cost)}
                     </TableCell>
                   </>
                 )}
                 {!isFinalized && !patientView && (
-                  <TableCell className="py-2">
+                  <TableCell className="py-3">
                     <Button
                       variant="ghost" size="sm"
-                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg"
                       onClick={() => setDeleteRow(idx)}
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={13} />
                     </Button>
                   </TableCell>
                 )}
@@ -184,16 +192,16 @@ function MonthPage({
 
       {/* Add supplement */}
       {!isFinalized && !patientView && (
-        <div className="p-3 border-t border-border/50">
+        <div className="p-4 border-t border-border/50">
           <Popover open={searchOpen} onOpenChange={setSearchOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 text-xs text-muted-foreground w-full justify-start"
+              <Button variant="outline" size="sm" className="gap-2.5 text-sm text-muted-foreground w-full justify-start h-10 rounded-lg"
                 data-testid={`month-${month.month_number}-add-supplement`}>
-                <Plus size={14} /> Add supplement to Month {month.month_number}...
+                <Plus size={15} /> Add supplement to Month {month.month_number}...
                 <ChevronsUpDown size={12} className="ml-auto" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[400px] p-0" align="start">
+            <PopoverContent className="w-[440px] p-0" align="start">
               <Command>
                 <CommandInput placeholder="Search supplements..." value={searchQuery} onValueChange={setSearchQuery} />
                 <CommandList>
@@ -202,7 +210,7 @@ function MonthPage({
                     {filtered.slice(0, 30).map(supp => (
                       <CommandItem key={supp._id} value={supp.supplement_name}
                         onSelect={() => { onAddSupplement(month.month_number, supp); setSearchOpen(false); setSearchQuery(''); }}
-                        className="flex items-center justify-between cursor-pointer">
+                        className="flex items-center justify-between cursor-pointer py-2.5">
                         <div>
                           <div className="text-sm font-medium">{supp.supplement_name}</div>
                           <div className="text-xs text-muted-foreground">{supp.company}</div>
@@ -220,16 +228,16 @@ function MonthPage({
 
       {/* Delete Row Dialog */}
       <AlertDialog open={deleteRow !== null} onOpenChange={() => setDeleteRow(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="p-7">
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove supplement from Month {month.month_number}?</AlertDialogTitle>
-            <AlertDialogDescription>This only removes it from this month.</AlertDialogDescription>
+            <AlertDialogTitle className="text-lg">Remove supplement from Month {month.month_number}?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm mt-2">This only removes it from this month.</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="mt-6 gap-3">
+            <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => { onRemoveRow(month.month_number, deleteRow); setDeleteRow(null); }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              className="bg-red-600 text-white hover:bg-red-700 h-10 px-5 font-semibold">
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -482,105 +490,122 @@ export default function PlanEditorPage() {
   const programTotal = plan.total_program_cost || 0;
 
   return (
-    <div className="p-6 max-w-[1560px] mx-auto">
+    <div className="p-8 max-w-[1560px] mx-auto">
       {/* Finalized Banner */}
       {isFinalized && (
-        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-center gap-3">
-          <Lock size={16} className="text-amber-600" />
-          <span className="text-sm text-amber-800 font-medium">This plan is finalized and locked.</span>
+        <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+            <Lock size={16} className="text-amber-600" />
+          </div>
+          <span className="text-sm text-amber-800 font-semibold">This plan is finalized and locked for editing.</span>
           <div className="ml-auto flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleReopen} className="text-xs gap-1"><Unlock size={12} /> Reopen</Button>
-            <Button variant="outline" size="sm" onClick={handleDuplicate} className="text-xs gap-1"><Copy size={12} /> Duplicate</Button>
+            <Button variant="outline" size="sm" onClick={handleReopen} className="gap-2 h-10 px-4 text-sm font-medium border-amber-300 hover:bg-amber-50"><Unlock size={14} /> Reopen</Button>
+            <Button variant="outline" size="sm" onClick={handleDuplicate} className="gap-2 h-10 px-4 text-sm font-medium"><Copy size={14} /> Duplicate</Button>
           </div>
         </div>
       )}
 
       {/* Patient View Banner */}
       {patientViewMode && (
-        <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 p-3 flex items-center gap-3">
-          <User size={16} className="text-blue-600" />
-          <span className="text-sm text-blue-800 font-medium">Patient View — Costs hidden. This is what the patient sees.</span>
-          <Button variant="outline" size="sm" onClick={() => setPatientViewMode(false)} className="ml-auto text-xs">Exit Patient View</Button>
+        <div className="mb-6 rounded-xl bg-blue-50 border border-blue-200 p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center">
+            <User size={16} className="text-blue-600" />
+          </div>
+          <span className="text-sm text-blue-800 font-semibold">Patient View — Costs and internal data are hidden.</span>
+          <Button variant="outline" size="sm" onClick={() => setPatientViewMode(false)} className="ml-auto h-10 px-4 text-sm font-medium">Exit Patient View</Button>
         </div>
       )}
 
       {/* Top bar */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="gap-2 text-muted-foreground">
-            <ArrowLeft size={16} />
+          <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="gap-2 text-muted-foreground h-10 w-10 p-0 rounded-lg hover:bg-[#EEF1F1]">
+            <ArrowLeft size={18} />
           </Button>
           <div>
             <div className="flex items-center gap-3">
               <Input
                 value={plan.patient_name || ''}
                 onChange={(e) => updatePatientName(e.target.value)}
-                className="text-lg font-semibold border-none bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.01em] max-w-[300px]"
+                className="text-xl font-bold border-none bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.02em] max-w-[340px]"
                 placeholder="Patient name"
                 data-testid="plan-editor-patient-name"
                 disabled={isFinalized}
               />
               <Badge variant={isFinalized ? 'default' : 'secondary'}
-                className={isFinalized ? 'bg-[hsl(147,70%,30%)] text-white' : 'bg-[#EEF1F1] text-[#61746E]'}>
+                className={`px-3 py-1.5 text-xs font-bold ${isFinalized ? 'bg-emerald-600 text-white hover:bg-emerald-600' : 'bg-[#EEF1F1] text-[#61746E] hover:bg-[#EEF1F1]'}`}>
                 {plan.status || 'draft'}
               </Badge>
               {saving && <span className="text-xs text-muted-foreground animate-pulse">Saving...</span>}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5 pl-0.5">
+            <p className="text-xs text-muted-foreground mt-1 pl-0.5">
               {plan.program_name} / {plan.step_label || `Step ${plan.step_number}`} / {plan.date}
               {plan.created_by_name ? ` / by ${plan.created_by_name}` : ''}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        <div className="flex items-center gap-2.5 flex-wrap justify-end">
           {!patientViewMode && (
             <>
-              <Button variant="outline" size="sm" onClick={() => setPatientViewMode(true)} className="gap-2 text-xs" data-testid="plan-editor-patient-view-toggle">
-                <User size={14} /> Patient View
+              <Button variant="outline" size="sm" onClick={() => setPatientViewMode(true)}
+                className="gap-2 h-10 px-4 text-sm font-medium border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
+                data-testid="plan-editor-patient-view-toggle">
+                <User size={15} /> Patient View
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowCosts(!showCosts)} className="gap-2 text-xs" data-testid="plan-editor-toggle-costs">
-                {showCosts ? <EyeOff size={14} /> : <Eye size={14} />}
+              <Button variant="outline" size="sm" onClick={() => setShowCosts(!showCosts)}
+                className="gap-2 h-10 px-4 text-sm font-medium"
+                data-testid="plan-editor-toggle-costs">
+                {showCosts ? <EyeOff size={15} /> : <Eye size={15} />}
                 {showCosts ? 'Hide Costs' : 'Show Costs'}
               </Button>
             </>
           )}
-          <Button variant="outline" size="sm" onClick={handleExportPatient} disabled={exporting} className="gap-2 text-xs" data-testid="plan-editor-export-patient-pdf">
-            <Download size={14} /> Patient PDF
+          <Button variant="outline" size="sm" onClick={handleExportPatient} disabled={exporting}
+            className="gap-2 h-10 px-4 text-sm font-medium border-[hsl(187,79%,23%)]/30 text-[hsl(187,79%,23%)] hover:bg-[hsl(174,35%,93%)]"
+            data-testid="plan-editor-export-patient-pdf">
+            <Download size={15} /> Patient PDF
           </Button>
           {!patientViewMode && (
-            <Button variant="outline" size="sm" onClick={handleExportHC} disabled={exporting} className="gap-2 text-xs" data-testid="plan-editor-export-hc-pdf">
-              <FileText size={14} /> HC PDF
+            <Button variant="outline" size="sm" onClick={handleExportHC} disabled={exporting}
+              className="gap-2 h-10 px-4 text-sm font-medium border-[hsl(187,79%,23%)]/30 text-[hsl(187,79%,23%)] hover:bg-[hsl(174,35%,93%)]"
+              data-testid="plan-editor-export-hc-pdf">
+              <FileText size={15} /> HC PDF
             </Button>
           )}
           {!isFinalized && !patientViewMode && (
             <>
-              <Button variant="outline" size="sm" onClick={handleDuplicate} className="gap-2 text-xs"><Copy size={14} /> Duplicate</Button>
+              <Button variant="outline" size="sm" onClick={handleDuplicate} className="gap-2 h-10 px-4 text-sm font-medium"><Copy size={15} /> Duplicate</Button>
               <Button variant="outline" size="sm" onClick={() => setConfirmFinalize(true)}
-                className="gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50" data-testid="plan-editor-finalize-button">
-                <Lock size={14} /> Finalize
+                className="gap-2 h-10 px-4 text-sm font-semibold border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400"
+                data-testid="plan-editor-finalize-button">
+                <Lock size={15} /> Finalize
               </Button>
-              <Button size="sm" onClick={() => savePlan(plan)} disabled={saving} className="gap-2 text-xs" data-testid="plan-editor-save-button">
-                <Save size={14} /> {saving ? 'Saving...' : 'Save'}
+              <Button size="sm" onClick={() => savePlan(plan)} disabled={saving}
+                className="gap-2 h-10 px-5 text-sm font-semibold bg-[hsl(187,79%,23%)] hover:bg-[hsl(187,79%,28%)] text-white shadow-sm"
+                data-testid="plan-editor-save-button">
+                <Save size={15} /> {saving ? 'Saving...' : 'Save'}
               </Button>
             </>
           )}
         </div>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-7">
         {/* Main content — all months stacked vertically */}
         <div className="flex-1 min-w-0">
           {/* Quick actions */}
           {!isFinalized && !patientViewMode && (
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-6 p-4 rounded-xl bg-[#F9FAFA] border border-border/40">
               {/* Add to all months */}
               <Popover open={globalSearchOpen} onOpenChange={setGlobalSearchOpen}>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2 text-xs" data-testid="plan-editor-add-all-months">
-                    <CopyPlus size={14} /> Add supplement to all months
+                  <Button variant="outline" size="sm"
+                    className="gap-2.5 h-10 px-4 text-sm font-medium bg-white"
+                    data-testid="plan-editor-add-all-months">
+                    <CopyPlus size={15} /> Add to all months
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[400px] p-0" align="start">
+                <PopoverContent className="w-[440px] p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Search supplements..." value={globalSearchQuery} onValueChange={setGlobalSearchQuery} />
                     <CommandList>
@@ -589,7 +614,7 @@ export default function PlanEditorPage() {
                         {globalFiltered.slice(0, 30).map(supp => (
                           <CommandItem key={supp._id} value={supp.supplement_name}
                             onSelect={() => { addSupplementToAllMonths(supp); setGlobalSearchOpen(false); setGlobalSearchQuery(''); }}
-                            className="flex items-center justify-between cursor-pointer">
+                            className="flex items-center justify-between cursor-pointer py-2.5">
                             <div>
                               <div className="text-sm font-medium">{supp.supplement_name}</div>
                               <div className="text-xs text-muted-foreground">{supp.company}</div>
@@ -602,14 +627,16 @@ export default function PlanEditorPage() {
                   </Command>
                 </PopoverContent>
               </Popover>
-              <Button variant="outline" size="sm" onClick={addMonth} className="gap-2 text-xs" data-testid="plan-editor-add-month">
-                <Plus size={14} /> Add Month
+              <Button variant="outline" size="sm" onClick={addMonth}
+                className="gap-2 h-10 px-4 text-sm font-medium bg-white"
+                data-testid="plan-editor-add-month">
+                <Plus size={15} /> Add Month
               </Button>
               {(plan.months?.length || 0) > 1 && (
                 <Button variant="ghost" size="sm"
                   onClick={() => removeMonth(plan.months[plan.months.length - 1].month_number)}
-                  className="gap-2 text-xs text-muted-foreground hover:text-destructive">
-                  <Trash2 size={14} /> Remove Last Month
+                  className="gap-2 h-10 px-4 text-sm font-medium text-muted-foreground hover:text-red-500 hover:bg-red-50">
+                  <Trash2 size={15} /> Remove Last Month
                 </Button>
               )}
             </div>
@@ -636,28 +663,28 @@ export default function PlanEditorPage() {
 
         {/* Right panel — Cost Summary (sticky) */}
         {effectiveShowCosts && !patientViewMode && (
-          <div className="w-[300px] shrink-0">
-            <div className="sticky top-6">
-              <div className="rounded-xl border bg-card shadow-[var(--shadow-sm)] p-5" data-testid="plan-editor-cost-summary">
-                <h3 className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground mb-4">Cost Summary</h3>
-                <div className="space-y-2">
+          <div className="w-[320px] shrink-0">
+            <div className="sticky top-8">
+              <div className="rounded-xl border bg-card shadow-[var(--shadow-sm)] p-6" data-testid="plan-editor-cost-summary">
+                <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground mb-5">Cost Summary</h3>
+                <div className="space-y-3">
                   {(plan.months || []).map(month => (
                     <div key={month.month_number} className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Month {month.month_number}</span>
-                      <span className="font-mono tabular-nums font-medium">{formatCurrency(month.monthly_total_cost)}</span>
+                      <span className="text-muted-foreground font-medium">Month {month.month_number}</span>
+                      <span className="font-mono tabular-nums font-semibold">{formatCurrency(month.monthly_total_cost)}</span>
                     </div>
                   ))}
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[#0B0D10]">Program Total</span>
-                    <span className="font-mono tabular-nums text-lg font-bold text-[#147D5A]" data-testid="cost-summary-total-value">
+                  <Separator className="my-1" />
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-sm font-bold text-[#0B0D10]">Program Total</span>
+                    <span className="font-mono tabular-nums text-xl font-bold text-[#147D5A]" data-testid="cost-summary-total-value">
                       {formatCurrency(programTotal)}
                     </span>
                   </div>
                 </div>
               </div>
-              <div className="mt-4 p-4 rounded-xl bg-[hsl(174,35%,93%)] border border-[hsl(187,79%,23%)]/10">
-                <p className="text-xs text-[hsl(187,79%,23%)]">
+              <div className="mt-5 p-4 rounded-xl bg-[hsl(174,35%,93%)] border border-[hsl(187,79%,23%)]/10">
+                <p className="text-xs text-[hsl(187,79%,23%)] font-medium">
                   Cost visible to HC only. Patient PDFs exclude all cost info.
                 </p>
               </div>
@@ -668,16 +695,16 @@ export default function PlanEditorPage() {
 
       {/* Finalize Dialog */}
       <AlertDialog open={confirmFinalize} onOpenChange={setConfirmFinalize}>
-        <AlertDialogContent>
+        <AlertDialogContent className="p-7">
           <AlertDialogHeader>
-            <AlertDialogTitle>Finalize this plan?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-lg">Finalize this plan?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm mt-2">
               Finalizing locks the plan from editing. You can reopen it later if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleFinalize} className="bg-amber-600 hover:bg-amber-700">Finalize Plan</AlertDialogAction>
+          <AlertDialogFooter className="mt-6 gap-3">
+            <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinalize} className="bg-amber-600 hover:bg-amber-700 text-white h-10 px-5 font-semibold">Finalize Plan</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
