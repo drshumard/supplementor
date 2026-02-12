@@ -383,11 +383,11 @@ export default function PlanEditorPage() {
             data-testid="plan-editor-patient-name"
             disabled={isFinalized}
           />
-          <div className="flex items-center justify-center gap-2 mt-3">
-            <span className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-3">
               {plan.program_name} / {plan.step_label || `Step ${plan.step_number}`} / {plan.date}
               {plan.created_by_name ? ` / ${plan.created_by_name}` : ''}
-            </span>
+          </p>
+          <div className="flex items-center justify-center gap-2 mt-2">
             <Badge className={`px-3 py-1 text-xs font-bold ${isFinalized ? 'bg-[#147D5A] text-white hover:bg-[#147D5A]' : 'bg-[#EEF1F1] text-[#61746E] hover:bg-[#EEF1F1]'}`}>
               {plan.status || 'draft'}
             </Badge>
