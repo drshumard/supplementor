@@ -1,14 +1,26 @@
 [
   {
-    "content": "Phase 5: Global spacing/padding increase across all components",
+    "content": "Visual overhaul: Templates page — increase padding, bigger controls, prominent Save button",
     "status": "in_progress"
   },
   {
-    "content": "Phase 5: Colorful buttons (brand, black, red delete, yellow finalize)",
-    "status": "in_progress"
+    "content": "Visual overhaul: Plan Editor — enhance top action bar buttons, month headers, cost summary spacing",
+    "status": "pending"
   },
   {
-    "content": "Phase 5: Verify visual polish across all pages",
+    "content": "Visual overhaul: Dashboard — increase table row height, enhance button colors",
+    "status": "pending"
+  },
+  {
+    "content": "Visual overhaul: Supplements page — minor spacing and button color tweaks",
+    "status": "pending"
+  },
+  {
+    "content": "Frontend build verification + screenshot check all pages",
+    "status": "pending"
+  },
+  {
+    "content": "Run testing agent for regression testing",
     "status": "pending"
   }
 ]
