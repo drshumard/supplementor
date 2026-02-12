@@ -65,7 +65,7 @@ function MonthPage({
       </div>
 
       {/* Column headers */}
-      <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#F2F6F6]"
+      <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#F5F5F5]"
         style={{
           gridTemplateColumns: patientView
             ? '2.2fr 1.2fr 1.8fr 1.8fr'
@@ -149,7 +149,7 @@ function MonthPage({
 
       {/* Add supplement */}
       {!isFinalized && !patientView && (
-        <div className="px-8 py-5 border-t border-border/30 bg-[#F2F6F6]">
+        <div className="px-8 py-5 border-t border-border/30 bg-[#F5F5F5]">
           <Popover open={searchOpen} onOpenChange={setSearchOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm"
