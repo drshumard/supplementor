@@ -92,7 +92,7 @@ export default function TemplatesPage() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold text-[#8B7355] uppercase tracking-wider">Step</Label>
+          <Label className="text-xs font-bold text-[#61746E] uppercase tracking-wider">Step</Label>
           <Select value={selectedStep} onValueChange={setSelectedStep}>
             <SelectTrigger className="w-[140px] h-12 text-sm" data-testid="admin-templates-step-select"><SelectValue /></SelectTrigger>
             <SelectContent>{[1,2,3].map(s => <SelectItem key={s} value={String(s)}>Step {s}</SelectItem>)}</SelectContent>
