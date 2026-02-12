@@ -1,23 +1,15 @@
 [
   {
-    "content": "Visual overhaul: Templates page — increase padding, bigger controls, prominent Save button",
-    "status": "completed"
-  },
-  {
-    "content": "Visual overhaul: Plan Editor — enhance top action bar buttons, month headers, cost summary spacing",
-    "status": "completed"
-  },
-  {
-    "content": "Visual overhaul: Dashboard — increase table row height, enhance button colors",
-    "status": "completed"
-  },
-  {
-    "content": "Visual overhaul: Supplements page — minor spacing and button color tweaks",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend build verification + screenshot check all pages",
+    "content": "Redesign PlanEditor MonthPage table: ultra-spacious rows, centered columns, generous padding matching inspo",
     "status": "in_progress"
+  },
+  {
+    "content": "Screenshot verify all Plan Editor views (HC view, patient view, finalized)",
+    "status": "pending"
+  },
+  {
+    "content": "Apply same spacious style to Dashboard and Supplements tables",
+    "status": "pending"
   },
   {
     "content": "Run testing agent for regression testing",
