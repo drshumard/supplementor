@@ -2,14 +2,20 @@
 
 ## 1. Objectives
 - Replace the clinic’s Google Docs supplement protocol workflow with a fast, error-resistant **desktop web app**.
-- Deliver a premium **Apple/Jony Ive–inspired** UI optimized for HC throughput (table-first, minimal cognitive overhead) with **spacious layouts** and **high scan-ability**.
+- Deliver a premium **Apple/Jony Ive–inspired** UI optimized for HC throughput (table-first, minimal cognitive overhead) with **spacious layouts**, **high scan-ability**, and **clear visual hierarchy**.
+- Provide a “burst of color” UI system that makes state/actions instantly legible:
+  - **Orange** for primary creation/export actions
+  - **Black** for secondary actions
+  - **Teal** for Save
+  - **Amber/Yellow** for Finalize / warnings
+  - **Red** for destructive actions
+  - Warm tinted **card/section backgrounds** for grouping and hierarchy
 - Automate **bottles needed** and **cost totals** for internal HC use, while guaranteeing **no cost leakage** in patient-facing views/exports.
 - Provide admin tooling for a centralized, updatable **Master Supplement List** and **Protocol Templates**.
 - Maintain historical accuracy by **snapshotting supplement data into plans** at the time plans are created/edited.
 - Enforce **role-based access control** (Admin vs HC) and ensure HCs only access their own plans.
-- **P0 Polish:** Apply and verify the “premium, spacious” visual system across all pages, with Plan Editor redesigned to match provided inspiration.
 
-**Status (current):** ✅ Application is fully built, feature-complete through Phase 3 **and P0 Visual Overhaul is completed**. Regression testing passed (≈95% overall) with **no critical bugs**.
+**Status (current):** ✅ Application is fully built, feature-complete through Phase 3. ✅ **Phase 5 (P0 Visual Overhaul) is completed** with warm colorful accent treatment across the app. ✅ Regression testing passed at **100%**.
 
 ---
 
@@ -63,7 +69,6 @@
   - Email/password login with JWT
 
 **Frontend (React + shadcn/ui):**
-- Apple-inspired design system applied (refined medical palette, precise typography, table-first layout).
 - Implemented pages:
   1) Login
   2) Plans Dashboard (search, filter, delete)
@@ -129,12 +134,11 @@
 - Backend admin-only protection enforced for:
   - Supplement create/update/delete
   - Template updates
-- UI navigation also reflects role:
+- UI navigation reflects role:
   - HC nav: Dashboard + New Plan only
   - Admin nav: includes Supplements + Templates
 
 **Status:** ✅ Completed
-- Phase 3 testing completed (multiple iterations); core features confirmed working.
 
 ---
 
@@ -151,63 +155,76 @@
 
 ---
 
-### Phase 5 — P0 Visual Overhaul (premium spacious UI + Plan Editor redesign)
-**Why:** Ensure the app feels premium, modern, and high-throughput for HC use; match provided inspiration with spacious, centered, highly scannable tables.
+### Phase 5 — P0 Visual Overhaul (premium spacious UI + color hierarchy + Plan Editor redesign)
+**Why:** Ensure the app feels premium, modern, high-throughput, and visually intuitive; match provided inspiration with warm tinted cards and color-coded actions.
 
 **Scope (P0):**
 - Verify frontend compilation and UI integrity after design changes.
-- Apply the refined medical palette, typography, and spacing tokens consistently.
-- Update all key pages to a “premium internal tool” aesthetic:
+- Apply consistent spacing/typography and introduce strong visual hierarchy via warm tints and action colors.
+- Update all key pages:
   - Login
   - Dashboard
   - New Plan Wizard
   - Plan Editor
   - Admin Supplements
   - Admin Templates
-- **Major Plan Editor redesign:**
-  - Converted Month supplement list from shadcn `<Table>` to a **CSS grid-based layout**
-  - **Ultra-spacious row height** (large vertical padding)
-  - **Centered column alignment** for numeric and text fields (qty/freq/dosage/instructions/bottles/cost)
-  - Clear, calm sectioning per month with generous whitespace
-- Validate role-based UI states remain correct (HC vs Admin, Patient View toggle).
+
+**Major Plan Editor redesign (production-ready):**
+- Converted Month supplement list from shadcn `<Table>` to a **CSS grid-based layout**.
+- Increased row height/whitespace for scan-ability.
+- Adjusted alignment per latest feedback:
+  - **Columns are left-aligned** for readability (matching inspo).
+- Patient header improvements:
+  - **Large centered patient name** with centered metadata line.
+- Warm tinted sectioning:
+  - Month headers use warm amber-tinted background.
+  - Cost summary panel uses warm cream tint + green total.
+
+**Global color/action system implemented:**
+- Orange: primary CTA (New Plan, Patient PDF export, Add-to-all, etc.)
+- Black: secondary actions (e.g., HC PDF, Add Month)
+- Teal: Save
+- Amber: Finalize / locked states
+- Red: delete/destructive confirmations
+- Warm tinted cards/sections used across Dashboard, Templates, Plan Editor, Supplements
+
+**Operational fix included:**
+- Backend startup issue discovered (WeasyPrint dependency) and resolved (installed missing system libs).
 
 **Exit criteria:**
 - No layout regressions across core pages.
-- Plan Editor matches inspo: spacious rows, centered columns, subtle separators.
+- Visual hierarchy is obvious (burst of color) and production-ready.
 - App compiles cleanly.
 - Regression testing run with no critical failures.
 
 **Status:** ✅ Completed
-- Backend startup issue discovered (WeasyPrint system dependency) and resolved.
-- Screenshots taken for key pages (Login, Dashboard, Templates, Plan Editor).
-- Regression testing passed at ~95% overall; only minor test-timeout detection issue on save state.
+- Screenshots captured for key pages (Dashboard, Plan Editor, Supplements, Templates).
+- Regression testing passed at **100% overall** (Iteration 5).
 
 ---
 
 ## 3. Next Actions
-Since the application is feature-complete and P0 UI overhaul is complete, next steps are operational + data finishing + optional enhancements:
+Application is feature-complete and UI polish is complete. Remaining work is primarily **clinic data completion** + **final verification**.
 
 ### P0/P1 Operational Data Tasks (clinic-provided inputs)
-1. **Populate remaining templates** with clinic-default supplement lists (notably: Maintenance Step 2 and Maintenance Step 3) to reduce HC editing time.
+1. **Populate remaining templates** with clinic-default supplement lists (notably: Maintenance Step 2 and Maintenance Step 3).
 2. **Correct supplement pricing gaps** (e.g., BC-ATP showing $0.00) once clinic confirms exact values.
 
 ### P1 Verification / Hardening
 3. **PDF export verification pass**
    - Reconfirm multi-month exports are one page per month for both patient and HC PDFs.
-   - Spot-check long instructions/wrapping with new Plan Editor editing patterns.
-4. **Address minor test flake**
-   - Improve save-state detection in automation (functional behavior is correct; reduce false negatives).
+   - Spot-check long instructions/wrapping and ensure no cost leakage.
 
 ### Optional QoL Enhancements (P2)
-5. Reordering supplements within a plan/template.
-6. More explicit snapshot rules (locking master fields on finalize).
-7. Optional audit trail (who edited what/when).
-8. Password reset flow.
+4. Reordering supplements within a plan/template.
+5. More explicit snapshot rules (locking master fields on finalize).
+6. Optional audit trail (who edited what/when).
+7. Password reset flow.
 
 ### Production Readiness (P2)
-9. Configure JWT secret via environment.
-10. Backup strategy for MongoDB.
-11. Performance pass on large plans (many months × many supplements).
+8. Configure JWT secret via environment.
+9. Backup strategy for MongoDB.
+10. Performance pass on large plans (many months × many supplements).
 
 ---
 
@@ -226,5 +243,5 @@ Since the application is feature-complete and P0 UI overhaul is complete, next s
   - HC sees only their plans
 - UX/UI:
   - Premium, spacious Apple-inspired layout across all pages
-  - Plan Editor matches inspiration: centered columns, generous whitespace, subtle separators
-  - Fast type-ahead search and clear separation of internal vs patient views
+  - Warm tinted cards/sections and colorful action system improves clarity
+  - Plan Editor is production-ready with large centered patient header, left-aligned columns, and clear separation of internal vs patient views
