@@ -173,7 +173,7 @@ export default function DashboardPage() {
                       className={`px-3 py-1.5 text-xs font-bold ${
                         plan.status === 'finalized'
                           ? 'bg-[#147D5A] text-white hover:bg-[#147D5A]'
-                          : 'bg-[#FFF3E0] text-[#E8740C] border border-[#F5D6A8] hover:bg-[#FFF3E0]'
+                          : 'bg-[#EEF1F1] text-[#61746E] border border-[#DCE3E3] hover:bg-[#EEF1F1]'
                       }`}>
                       {plan.status || 'draft'}
                     </Badge>
