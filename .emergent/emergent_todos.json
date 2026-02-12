@@ -1,26 +1,14 @@
 [
   {
-    "content": "Phase 4: Replace month tabs with vertical stacked pages layout",
-    "status": "completed"
+    "content": "Phase 5: Global spacing/padding increase across all components",
+    "status": "in_progress"
   },
   {
-    "content": "Phase 4: Maximize template pre-fill so HC does minimum work",
-    "status": "completed"
+    "content": "Phase 5: Colorful buttons (brand, black, red delete, yellow finalize)",
+    "status": "in_progress"
   },
   {
-    "content": "Phase 4: Add 'Add supplement to all months' global action",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 4: Per-month 'Add supplement' buttons",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 4: Per-month removal (individual, not all months)",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 4: Test the new multi-page layout",
-    "status": "completed"
+    "content": "Phase 5: Verify visual polish across all pages",
+    "status": "pending"
   }
 ]
