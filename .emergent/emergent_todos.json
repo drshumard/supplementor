@@ -1,15 +1,15 @@
 [
   {
     "content": "Redesign PlanEditor MonthPage table: ultra-spacious rows, centered columns, generous padding matching inspo",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Screenshot verify all Plan Editor views (HC view, patient view, finalized)",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Apply same spacious style to Dashboard and Supplements tables",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Run testing agent for regression testing",
