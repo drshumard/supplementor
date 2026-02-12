@@ -132,9 +132,9 @@ export default function DashboardPage() {
                   <TableCell className="font-bold text-[#0B0D10] py-5 px-6 text-sm">{plan.patient_name || 'Untitled'}</TableCell>
                   <TableCell className="text-sm py-5">{plan.program_name}</TableCell>
                   <TableCell className="text-sm py-5">{plan.step_label || `Step ${plan.step_number}`}</TableCell>
-                  <TableCell className="text-sm font-mono tabular-nums py-5">{plan.months?.length || 0}</TableCell>
-                  <TableCell className="text-sm font-mono tabular-nums text-right py-5 text-[#147D5A] font-bold">{formatCurrency(plan.total_program_cost)}</TableCell>
-                  <TableCell className="py-5">
+                  <TableCell className="text-sm font-mono tabular-nums py-5 w-[70px]">{plan.months?.length || 0}</TableCell>
+                  <TableCell className="text-sm font-mono tabular-nums py-5 text-[#147D5A] font-bold w-[130px]">{formatCurrency(plan.total_program_cost)}</TableCell>
+                  <TableCell className="py-5 w-[120px]">
                     <Badge data-testid={`plan-status-${plan._id}`}
                       className={`px-3 py-1.5 text-xs font-bold ${
                         plan.status === 'finalized'
