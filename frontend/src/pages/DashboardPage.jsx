@@ -120,14 +120,14 @@ export default function DashboardPage() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent bg-[#FAFBFB]">
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4 px-5">Patient</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Program</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Step</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Months</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4 text-right">Total Cost</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Status</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Last Updated</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4 w-[100px]"></TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4.5 px-5">Patient</TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4.5">Program</TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4.5">Step</TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4.5">Months</TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4.5 text-right">Total Cost</TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4.5">Status</TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4.5">Last Updated</TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4.5 w-[120px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
