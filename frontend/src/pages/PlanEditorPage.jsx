@@ -207,7 +207,7 @@ export default function PlanEditorPage() {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showCosts, setShowCosts] = useState(true);
+  const [showCosts, setShowCosts] = useState(false);
   const [patientViewMode, setPatientViewMode] = useState(false);
   const [supplements, setSupplements] = useState([]);
   const [exporting, setExporting] = useState(false);
