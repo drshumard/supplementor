@@ -238,7 +238,7 @@ async def get_supplement(supplement_id: str):
 
 
 @app.post("/api/supplements")
-async def create_supplement(data: SupplementCreate):
+async def create_supplement(data: SupplementCreate, user=Depends(require_admin)):
     doc = data.model_dump()
     doc["created_at"] = datetime.utcnow()
     doc["updated_at"] = datetime.utcnow()
