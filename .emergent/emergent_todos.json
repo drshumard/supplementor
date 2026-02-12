@@ -5,19 +5,19 @@
   },
   {
     "content": "Visual overhaul: Plan Editor — enhance top action bar buttons, month headers, cost summary spacing",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Visual overhaul: Dashboard — increase table row height, enhance button colors",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Visual overhaul: Supplements page — minor spacing and button color tweaks",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Frontend build verification + screenshot check all pages",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Run testing agent for regression testing",
