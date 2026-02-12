@@ -450,8 +450,8 @@ export default function PlanEditorPage() {
       )}
 
       {/* ── Patient Header — BIG, centered ── */}
-      <div className="text-center mb-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="absolute left-[290px] top-[24px] text-muted-foreground h-11 w-11 p-0 rounded-xl hover:bg-[#EEF1F1]">
+      <div className="text-center mb-6 relative">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="absolute left-0 top-1 text-muted-foreground h-11 w-11 p-0 rounded-xl hover:bg-[#EEF1F1]">
           <ArrowLeft size={20} />
         </Button>
         <Input
