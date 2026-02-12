@@ -75,6 +75,35 @@ def verify_token(token: str):
         return None
 
 
+async def get_current_user(authorization: str = Header(None)):
+    """Extract and validate user from Authorization header."""
+    if not authorization:
+        return None
+    token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
+    payload = verify_token(token)
+    if not payload:
+        return None
+    return payload
+
+
+async def require_auth(authorization: str = Header(None)):
+    """Require authenticated user."""
+    user = await get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
+
+
+async def require_admin(authorization: str = Header(None)):
+    """Require admin role."""
+    user = await get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
 # ─── Health ──────────────────────────────────────────────────────────────────
 
 @app.get("/api/health")
