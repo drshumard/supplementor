@@ -248,7 +248,7 @@ async def create_supplement(data: SupplementCreate, user=Depends(require_admin))
 
 
 @app.put("/api/supplements/{supplement_id}")
-async def update_supplement(supplement_id: str, data: SupplementUpdate):
+async def update_supplement(supplement_id: str, data: SupplementUpdate, user=Depends(require_admin)):
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
     updates["updated_at"] = datetime.utcnow()
     result = await db.supplements.update_one(
