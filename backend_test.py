@@ -709,6 +709,14 @@ def main():
         tester.test_hc_access_restrictions()
         tester.test_admin_access_permissions()
 
+        # Phase 3 feature tests - Plan lifecycle endpoints
+        print(f"\n{'='*50}")
+        print("🆕 PHASE 3: Testing Plan Lifecycle Features")
+        print("="*50)
+        tester.test_finalize_plan()
+        tester.test_reopen_plan()
+        tester.test_duplicate_plan()
+
         # Cleanup
         tester.cleanup()
 
