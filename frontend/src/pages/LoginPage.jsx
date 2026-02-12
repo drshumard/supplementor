@@ -37,7 +37,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden">
-      {/* Subtle gradient wash */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -46,20 +45,20 @@ export default function LoginPage() {
         }}
       />
 
-      <Card className="w-full max-w-[400px] shadow-[var(--shadow-md)] border-border/50 relative z-10" data-testid="login-card">
-        <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-xl bg-[hsl(187,79%,23%)] flex items-center justify-center">
-              <span className="text-white font-bold text-xl">C</span>
+      <Card className="w-full max-w-[440px] shadow-[var(--shadow-md)] border-border/50 relative z-10" data-testid="login-card">
+        <CardHeader className="text-center pb-4 pt-8 px-8">
+          <div className="flex justify-center mb-5">
+            <div className="w-14 h-14 rounded-2xl bg-[hsl(187,79%,23%)] flex items-center justify-center shadow-md">
+              <span className="text-white font-bold text-2xl">C</span>
             </div>
           </div>
-          <CardTitle className="text-xl font-semibold tracking-[-0.01em]">Welcome back</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">
+          <CardTitle className="text-2xl font-semibold tracking-[-0.02em]">Welcome back</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground mt-1">
             Sign in to Clarity Protocol Manager
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <CardContent className="px-8 pb-8">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input
@@ -71,7 +70,7 @@ export default function LoginPage() {
                 data-testid="login-email-input"
                 required
                 autoFocus
-                className="h-10"
+                className="h-12 text-base px-4"
               />
             </div>
             <div className="space-y-2">
@@ -84,19 +83,19 @@ export default function LoginPage() {
                 placeholder="Enter password"
                 data-testid="login-password-input"
                 required
-                className="h-10"
+                className="h-12 text-base px-4"
               />
             </div>
             <Button
               type="submit"
-              className="w-full h-10"
+              className="w-full h-12 text-base font-semibold bg-[#0B0D10] hover:bg-[#1a1d21] text-white shadow-sm"
               disabled={loading}
               data-testid="login-submit-button"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
-          <div className="mt-4 pt-4 border-t border-border/50 text-center">
+          <div className="mt-6 pt-5 border-t border-border/50 text-center">
             <p className="text-xs text-muted-foreground">
               Demo: admin@clarity.com / admin123 or hc@clarity.com / hc123
             </p>
