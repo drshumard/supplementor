@@ -624,6 +624,88 @@ class SupplementAPITester:
 
         return success1 and success2
 
+    def test_finalize_plan(self):
+        """Test POST /api/plans/{id}/finalize endpoint"""
+        if not self.test_plan_id:
+            return False
+            
+        success, response = self.run_test(
+            "Finalize Plan",
+            "POST",
+            f"/plans/{self.test_plan_id}/finalize",
+            200,
+            token=self.admin_token,
+            description="Finalize plan - should change status to 'finalized'"
+        )
+        
+        if success:
+            status = response.get('status')
+            finalized_at = response.get('finalized_at')
+            print(f"   Plan status: {status}")
+            print(f"   Finalized at: {finalized_at}")
+            return status == 'finalized' and finalized_at is not None
+        return False
+
+    def test_reopen_plan(self):
+        """Test POST /api/plans/{id}/reopen endpoint"""
+        if not self.test_plan_id:
+            return False
+            
+        success, response = self.run_test(
+            "Reopen Plan",
+            "POST", 
+            f"/plans/{self.test_plan_id}/reopen",
+            200,
+            token=self.admin_token,
+            description="Reopen plan - should change status back to 'draft'"
+        )
+        
+        if success:
+            status = response.get('status')
+            finalized_at = response.get('finalized_at')
+            print(f"   Plan status: {status}")
+            print(f"   Finalized at: {finalized_at}")
+            return status == 'draft' and finalized_at is None
+        return False
+
+    def test_duplicate_plan(self):
+        """Test POST /api/plans/{id}/duplicate endpoint"""
+        if not self.test_plan_id:
+            return False
+            
+        success, response = self.run_test(
+            "Duplicate Plan",
+            "POST",
+            f"/plans/{self.test_plan_id}/duplicate",
+            200,
+            token=self.admin_token,
+            description="Duplicate plan - should create new plan with (Copy) suffix"
+        )
+        
+        if success and '_id' in response:
+            new_id = response['_id']
+            patient_name = response.get('patient_name', '')
+            status = response.get('status', '')
+            print(f"   New plan ID: {new_id}")
+            print(f"   New patient name: {patient_name}")
+            print(f"   New plan status: {status}")
+            
+            # Clean up the duplicated plan
+            try:
+                self.run_test(
+                    "Clean Up Duplicated Plan",
+                    "DELETE",
+                    f"/plans/{new_id}",
+                    200,
+                    token=self.admin_token,
+                    description="Clean up duplicated test plan"
+                )
+            except:
+                pass
+                
+            return '(Copy)' in patient_name and status == 'draft'
+        return False
+
     def cleanup(self):
         """Clean up test data"""
         print(f"\n🧹 Cleaning up test data...")
