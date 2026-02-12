@@ -138,9 +138,9 @@ function MonthPage({
                 {supp.refrigerate && <Snowflake size={14} className="text-blue-500 shrink-0" />}
               </div>
               {!patientView && (<>
-                <div><NumberStepper value={supp.quantity_per_dose} disabled={isFinalized}
+                <div className="flex justify-center"><NumberStepper value={supp.quantity_per_dose} disabled={isFinalized}
                   onChange={(v) => onUpdateField(month.month_number, idx, 'quantity_per_dose', v)} /></div>
-                <div><NumberStepper value={supp.frequency_per_day} disabled={isFinalized}
+                <div className="flex justify-center"><NumberStepper value={supp.frequency_per_day} disabled={isFinalized}
                   onChange={(v) => onUpdateField(month.month_number, idx, 'frequency_per_day', v)} /></div>
               </>)}
               <div className="pr-2">
