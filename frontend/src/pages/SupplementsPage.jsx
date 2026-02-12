@@ -117,7 +117,7 @@ export default function SupplementsPage() {
           data-testid="admin-supplements-search-input" className="pl-11 h-12" />
       </div>
 
-      <div className="rounded-2xl border bg-[#F5F5F5] shadow-sm overflow-hidden" data-testid="admin-supplements-table">
+      <div className="rounded-2xl border bg-[#FAFAFA] shadow-sm overflow-hidden" data-testid="admin-supplements-table">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent bg-[#FAFAFA]">

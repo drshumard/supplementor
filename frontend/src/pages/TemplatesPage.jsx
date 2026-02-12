@@ -114,7 +114,7 @@ export default function TemplatesPage() {
       </div>
 
       {currentTemplate ? (
-        <div className="rounded-2xl border bg-[#F5F5F5] shadow-sm overflow-hidden" data-testid="admin-templates-table">
+        <div className="rounded-2xl border bg-[#FAFAFA] shadow-sm overflow-hidden" data-testid="admin-templates-table">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent bg-[#FAFAFA]">

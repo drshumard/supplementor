@@ -38,7 +38,7 @@ function MonthPage({
   );
 
   return (
-    <div className="rounded-2xl border border-border/40 bg-[#F5F5F5] shadow-sm mb-10 overflow-hidden"
+    <div className="rounded-2xl border border-border/40 bg-[#FAFAFA] shadow-sm mb-10 overflow-hidden"
       data-testid={`month-page-${month.month_number}`}>
 
       {/* Month header */}
@@ -55,7 +55,7 @@ function MonthPage({
           </div>
         </div>
         {showCosts && !patientView && (
-          <div className="flex items-center gap-3 bg-[#F5F5F5] px-5 py-2.5 rounded-xl border border-[#C8E6E0] shadow-sm">
+          <div className="flex items-center gap-3 bg-[#FAFAFA] px-5 py-2.5 rounded-xl border border-[#C8E6E0] shadow-sm">
             <span className="text-xs text-[#61746E] font-semibold uppercase tracking-wider">Monthly Total</span>
             <span className="font-mono tabular-nums text-lg font-bold text-[#147D5A]">
               {formatCurrency(month.monthly_total_cost)}
@@ -65,7 +65,7 @@ function MonthPage({
       </div>
 
       {/* Column headers */}
-      <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#F5F5F5]"
+      <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#FAFAFA]"
         style={{
           gridTemplateColumns: patientView
             ? '2.2fr 1.2fr 1.8fr 1.8fr'
@@ -149,7 +149,7 @@ function MonthPage({
 
       {/* Add supplement */}
       {!isFinalized && !patientView && (
-        <div className="px-8 py-5 border-t border-border/30 bg-[#F5F5F5]">
+        <div className="px-8 py-5 border-t border-border/30 bg-[#FAFAFA]">
           <Popover open={searchOpen} onOpenChange={setSearchOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm"
@@ -318,7 +318,7 @@ export default function PlanEditorPage() {
     <div className="p-10 max-w-[1560px] mx-auto">
 
       {/* ── Header card ── */}
-      <div className="rounded-2xl border border-border/40 bg-[#F5F5F5] shadow-sm mb-8 overflow-hidden">
+      <div className="rounded-2xl border border-border/40 bg-[#FAFAFA] shadow-sm mb-8 overflow-hidden">
         {/* Top row: back + actions */}
         <div className="flex items-center justify-between px-8 py-4 border-b border-[#C8E6E0] bg-[#EAF4F3]">
           <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="gap-2 text-muted-foreground hover:text-[#0B0D10] h-10 px-3 rounded-lg">
@@ -447,7 +447,7 @@ export default function PlanEditorPage() {
         {effectiveShowCosts && !patientViewMode && (
           <div className="w-[340px] shrink-0">
             <div className="sticky top-10">
-              <div className="rounded-2xl border border-border/40 bg-[#F5F5F5] shadow-sm p-7" data-testid="plan-editor-cost-summary">
+              <div className="rounded-2xl border border-border/40 bg-[#FAFAFA] shadow-sm p-7" data-testid="plan-editor-cost-summary">
                 <h3 className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-6">Cost Summary</h3>
                 <div className="space-y-4">
                   {(plan.months || []).map(month => (
