@@ -203,6 +203,7 @@ export default function DashboardPage() {
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-[hsl(187,79%,23%)]"
                         onClick={(e) => handleDuplicate(e, plan._id)}
                         title="Duplicate plan"
+                        data-testid={`duplicate-plan-${plan._id}`}
                       >
                         <Copy size={14} />
                       </Button>
