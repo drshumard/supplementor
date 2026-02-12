@@ -101,9 +101,9 @@ export default function SupplementsPage() {
 
       {/* Summary bar */}
       <div className="flex items-center gap-5 mb-6">
-        <div className="rounded-xl bg-[#FFF8F0] border border-[#F5E6D3] px-5 py-3 flex items-center gap-3">
-          <Pill size={16} className="text-[#E8740C]" />
-          <span className="text-sm font-semibold text-[#8B7355]">{total} Total</span>
+        <div className="rounded-xl bg-[#EAF4F3] border border-[#C8E6E0] px-5 py-3 flex items-center gap-3">
+          <Pill size={16} className="text-[#0D5F68]" />
+          <span className="text-sm font-semibold text-[#61746E]">{total} Total</span>
         </div>
         <div className="rounded-xl bg-[#E8F5E9] border border-[#C8E6C9] px-5 py-3 flex items-center gap-3">
           <span className="w-2.5 h-2.5 rounded-full bg-[#147D5A]"></span>
