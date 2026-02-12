@@ -331,10 +331,8 @@ async def list_plans(
     if status:
         query["status"] = status
     
-    # HC users only see their own plans; admin sees all
-    user = await get_current_user(authorization)
-    if user and user.get("role") == "hc":
-        query["created_by"] = user.get("sub")
+    # All authenticated users see all plans
+    # (Admin and HC both need visibility into all patient plans)
     
     cursor = db.plans.find(query).sort("updated_at", -1).skip(skip).limit(limit)
     docs = await cursor.to_list(length=limit)
