@@ -1,89 +1,514 @@
-from fastapi import FastAPI, APIRouter
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+"""
+Supplement Protocol Web App — FastAPI Backend
+"""
 import os
-import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
-import uuid
-from datetime import datetime, timezone
+import math
+from datetime import datetime, timedelta
+from typing import Optional
+
+from fastapi import FastAPI, HTTPException, Query, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
+from motor.motor_asyncio import AsyncIOMotorClient
+from bson import ObjectId
+from passlib.context import CryptContext
+from jose import jwt, JWTError
+
+from models import (
+    serialize_doc, SupplementCreate, SupplementUpdate,
+    TemplateCreate, TemplateUpdate, TemplateSupplementEntry,
+    PlanCreate, PlanUpdate, PlanMonth, PlanSupplementEntry,
+    UserCreate, UserLogin
+)
+from calculations import (
+    calculate_daily_dosage, calculate_bottles_needed,
+    calculate_supplement_cost, recalculate_plan_costs
+)
+from pdf_generator import generate_patient_pdf, generate_hc_pdf
+from seed_data import SUPPLEMENTS, TEMPLATES
 
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+# ─── App Setup ───────────────────────────────────────────────────────────────
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+app = FastAPI(title="Supplement Protocol Manager")
 
-# Create the main app without a prefix
-app = FastAPI()
-
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
-
-
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class StatusCheckCreate(BaseModel):
-    client_name: str
-
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
-
-# Include the router in the main app
-app.include_router(api_router)
-
+cors_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+# ─── Database ────────────────────────────────────────────────────────────────
+
+MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
+DB_NAME = os.environ.get("DB_NAME", "supplement_app")
+
+client = AsyncIOMotorClient(MONGO_URL)
+db = client[DB_NAME]
+
+
+# ─── Auth Helpers ────────────────────────────────────────────────────────────
+
+SECRET_KEY = os.environ.get("JWT_SECRET", "supplement-app-secret-key-2026")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_HOURS = 24
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None
+
+
+# ─── Health ──────────────────────────────────────────────────────────────────
+
+@app.get("/api/health")
+async def health():
+    return {"status": "healthy", "service": "supplement-protocol-manager"}
+
+
+# ─── Auth Endpoints ──────────────────────────────────────────────────────────
+
+@app.post("/api/auth/register")
+async def register(user: UserCreate):
+    existing = await db.users.find_one({"email": user.email.lower()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    hashed = pwd_context.hash(user.password)
+    doc = {
+        "email": user.email.lower(),
+        "password_hash": hashed,
+        "name": user.name,
+        "role": user.role,
+        "created_at": datetime.utcnow(),
+    }
+    result = await db.users.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    token = create_access_token({"sub": str(result.inserted_id), "email": user.email.lower(), "role": user.role, "name": user.name})
+    return {"token": token, "user": serialize_doc(doc)}
+
+
+@app.post("/api/auth/login")
+async def login(creds: UserLogin):
+    user = await db.users.find_one({"email": creds.email.lower()})
+    if not user or not pwd_context.verify(creds.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    token = create_access_token({"sub": str(user["_id"]), "email": user["email"], "role": user["role"], "name": user["name"]})
+    safe_user = serialize_doc(user)
+    safe_user.pop("password_hash", None)
+    return {"token": token, "user": safe_user}
+
+
+@app.get("/api/auth/me")
+async def get_me(token: str = Query(...)):
+    payload = verify_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    safe = serialize_doc(user)
+    safe.pop("password_hash", None)
+    return safe
+
+
+# ─── Seed Endpoint ───────────────────────────────────────────────────────────
+
+@app.post("/api/seed")
+async def seed_data():
+    """Seed the database with initial supplements and templates."""
+    # Only seed if empty
+    supp_count = await db.supplements.count_documents({})
+    if supp_count == 0:
+        for s in SUPPLEMENTS:
+            s["active"] = True
+            s["created_at"] = datetime.utcnow()
+            s["updated_at"] = datetime.utcnow()
+        await db.supplements.insert_many(SUPPLEMENTS)
+    
+    tmpl_count = await db.templates.count_documents({})
+    if tmpl_count == 0:
+        for t in TEMPLATES:
+            t["created_at"] = datetime.utcnow()
+            t["updated_at"] = datetime.utcnow()
+        await db.templates.insert_many(TEMPLATES)
+    
+    # Create default admin if no users
+    user_count = await db.users.count_documents({})
+    if user_count == 0:
+        hashed = pwd_context.hash("admin123")
+        await db.users.insert_one({
+            "email": "admin@clarity.com",
+            "password_hash": hashed,
+            "name": "Dr. Jason",
+            "role": "admin",
+            "created_at": datetime.utcnow(),
+        })
+        hashed_hc = pwd_context.hash("hc123")
+        await db.users.insert_one({
+            "email": "hc@clarity.com",
+            "password_hash": hashed_hc,
+            "name": "Sarah (HC)",
+            "role": "hc",
+            "created_at": datetime.utcnow(),
+        })
+    
+    final_supp = await db.supplements.count_documents({})
+    final_tmpl = await db.templates.count_documents({})
+    final_users = await db.users.count_documents({})
+    return {
+        "message": "Seed complete",
+        "supplements": final_supp,
+        "templates": final_tmpl,
+        "users": final_users
+    }
+
+
+# ─── Supplements CRUD ────────────────────────────────────────────────────────
+
+@app.get("/api/supplements")
+async def list_supplements(
+    search: str = "",
+    active_only: bool = True,
+    skip: int = 0,
+    limit: int = 200
+):
+    query = {}
+    if active_only:
+        query["active"] = True
+    if search:
+        query["supplement_name"] = {"$regex": search, "$options": "i"}
+    
+    cursor = db.supplements.find(query).sort("supplement_name", 1).skip(skip).limit(limit)
+    docs = await cursor.to_list(length=limit)
+    total = await db.supplements.count_documents(query)
+    return {"supplements": serialize_doc(docs), "total": total}
+
+
+@app.get("/api/supplements/{supplement_id}")
+async def get_supplement(supplement_id: str):
+    doc = await db.supplements.find_one({"_id": ObjectId(supplement_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Supplement not found")
+    return serialize_doc(doc)
+
+
+@app.post("/api/supplements")
+async def create_supplement(data: SupplementCreate):
+    doc = data.model_dump()
+    doc["created_at"] = datetime.utcnow()
+    doc["updated_at"] = datetime.utcnow()
+    result = await db.supplements.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return serialize_doc(doc)
+
+
+@app.put("/api/supplements/{supplement_id}")
+async def update_supplement(supplement_id: str, data: SupplementUpdate):
+    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    updates["updated_at"] = datetime.utcnow()
+    result = await db.supplements.update_one(
+        {"_id": ObjectId(supplement_id)},
+        {"$set": updates}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Supplement not found")
+    doc = await db.supplements.find_one({"_id": ObjectId(supplement_id)})
+    return serialize_doc(doc)
+
+
+@app.delete("/api/supplements/{supplement_id}")
+async def delete_supplement(supplement_id: str):
+    result = await db.supplements.delete_one({"_id": ObjectId(supplement_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Supplement not found")
+    return {"message": "Deleted"}
+
+
+# ─── Templates CRUD ──────────────────────────────────────────────────────────
+
+@app.get("/api/templates")
+async def list_templates(program_name: str = ""):
+    query = {}
+    if program_name:
+        query["program_name"] = program_name
+    cursor = db.templates.find(query).sort([("program_name", 1), ("step_number", 1)])
+    docs = await cursor.to_list(length=100)
+    return {"templates": serialize_doc(docs)}
+
+
+@app.get("/api/templates/{template_id}")
+async def get_template(template_id: str):
+    doc = await db.templates.find_one({"_id": ObjectId(template_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return serialize_doc(doc)
+
+
+@app.put("/api/templates/{template_id}")
+async def update_template(template_id: str, data: TemplateUpdate):
+    updates = {}
+    if data.program_name is not None:
+        updates["program_name"] = data.program_name
+    if data.step_number is not None:
+        updates["step_number"] = data.step_number
+    if data.default_months is not None:
+        updates["default_months"] = data.default_months
+    if data.supplements is not None:
+        updates["supplements"] = [s.model_dump() for s in data.supplements]
+    updates["updated_at"] = datetime.utcnow()
+    
+    result = await db.templates.update_one(
+        {"_id": ObjectId(template_id)},
+        {"$set": updates}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    doc = await db.templates.find_one({"_id": ObjectId(template_id)})
+    return serialize_doc(doc)
+
+
+# ─── Plans CRUD ──────────────────────────────────────────────────────────────
+
+@app.get("/api/plans")
+async def list_plans(
+    search: str = "",
+    program: str = "",
+    status: str = "",
+    skip: int = 0,
+    limit: int = 50
+):
+    query = {}
+    if search:
+        query["patient_name"] = {"$regex": search, "$options": "i"}
+    if program:
+        query["program_name"] = program
+    if status:
+        query["status"] = status
+    
+    cursor = db.plans.find(query).sort("updated_at", -1).skip(skip).limit(limit)
+    docs = await cursor.to_list(length=limit)
+    total = await db.plans.count_documents(query)
+    return {"plans": serialize_doc(docs), "total": total}
+
+
+@app.get("/api/plans/{plan_id}")
+async def get_plan(plan_id: str):
+    doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return serialize_doc(doc)
+
+
+@app.post("/api/plans")
+async def create_plan(data: PlanCreate):
+    doc = data.model_dump()
+    
+    # If a template_id is provided, load template defaults
+    if data.template_id:
+        template = await db.templates.find_one({"_id": ObjectId(data.template_id)})
+        if template:
+            if not doc.get("months") or len(doc["months"]) == 0:
+                num_months = template.get("default_months", 1)
+                template_supps = template.get("supplements", [])
+                months = []
+                for m in range(1, num_months + 1):
+                    month_supps = []
+                    for ts in template_supps:
+                        month_supps.append({
+                            "supplement_id": ts["supplement_id"],
+                            "supplement_name": ts["supplement_name"],
+                            "company": ts.get("company", ""),
+                            "quantity_per_dose": ts.get("quantity_per_dose"),
+                            "frequency_per_day": ts.get("frequency_per_day"),
+                            "dosage_display": ts.get("dosage_display", ""),
+                            "instructions": ts.get("instructions", ""),
+                            "with_food": True,
+                            "hc_notes": "",
+                            "units_per_bottle": ts.get("units_per_bottle"),
+                            "cost_per_bottle": ts.get("cost_per_bottle", 0),
+                            "refrigerate": ts.get("refrigerate", False),
+                            "bottles_needed": None,
+                            "calculated_cost": None,
+                            "bottles_per_month_override": None,
+                        })
+                    months.append({
+                        "month_number": m,
+                        "supplements": month_supps,
+                        "monthly_total_cost": 0,
+                    })
+                doc["months"] = months
+    
+    # Recalculate costs
+    doc = recalculate_plan_costs(doc)
+    
+    doc["status"] = "draft"
+    doc["created_at"] = datetime.utcnow()
+    doc["updated_at"] = datetime.utcnow()
+    
+    result = await db.plans.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return serialize_doc(doc)
+
+
+@app.put("/api/plans/{plan_id}")
+async def update_plan(plan_id: str, data: PlanUpdate):
+    existing = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    updates = {}
+    if data.patient_name is not None:
+        updates["patient_name"] = data.patient_name
+    if data.date is not None:
+        updates["date"] = data.date
+    if data.program_name is not None:
+        updates["program_name"] = data.program_name
+    if data.step_label is not None:
+        updates["step_label"] = data.step_label
+    if data.step_number is not None:
+        updates["step_number"] = data.step_number
+    if data.status is not None:
+        updates["status"] = data.status
+    if data.months is not None:
+        months_data = [m.model_dump() for m in data.months]
+        plan_data = {"months": months_data}
+        plan_data = recalculate_plan_costs(plan_data)
+        updates["months"] = plan_data["months"]
+        updates["total_program_cost"] = plan_data["total_program_cost"]
+    
+    updates["updated_at"] = datetime.utcnow()
+    
+    await db.plans.update_one(
+        {"_id": ObjectId(plan_id)},
+        {"$set": updates}
+    )
+    doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    return serialize_doc(doc)
+
+
+@app.delete("/api/plans/{plan_id}")
+async def delete_plan(plan_id: str):
+    result = await db.plans.delete_one({"_id": ObjectId(plan_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return {"message": "Deleted"}
+
+
+# ─── Plan PDF Export ─────────────────────────────────────────────────────────
+
+@app.get("/api/plans/{plan_id}/export/patient")
+async def export_patient_pdf(plan_id: str):
+    doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    plan = serialize_doc(doc)
+    # Ensure dosage_display is set for all supplements
+    for month in plan.get("months", []):
+        for supp in month.get("supplements", []):
+            if not supp.get("dosage_display"):
+                q = supp.get("quantity_per_dose", 0) or 0
+                f = supp.get("frequency_per_day", 0) or 0
+                if q and f:
+                    supp["dosage_display"] = f"{q} cap{'s' if q > 1 else ''}, {f}x/day"
+    
+    pdf_bytes = generate_patient_pdf(plan)
+    filename = f"{plan.get('patient_name', 'patient').replace(' ', '_')}_protocol.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@app.get("/api/plans/{plan_id}/export/hc")
+async def export_hc_pdf(plan_id: str):
+    doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    plan = serialize_doc(doc)
+    # Ensure calculations are done
+    plan = recalculate_plan_costs(plan)
+    
+    # Ensure dosage_display
+    for month in plan.get("months", []):
+        for supp in month.get("supplements", []):
+            if not supp.get("dosage_display"):
+                q = supp.get("quantity_per_dose", 0) or 0
+                f = supp.get("frequency_per_day", 0) or 0
+                if q and f:
+                    supp["dosage_display"] = f"{q} cap{'s' if q > 1 else ''}, {f}x/day"
+    
+    pdf_bytes = generate_hc_pdf(plan)
+    filename = f"{plan.get('patient_name', 'patient').replace(' ', '_')}_protocol_HC.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+# ─── Startup ─────────────────────────────────────────────────────────────────
+
+@app.on_event("startup")
+async def startup():
+    """Auto-seed on startup if database is empty."""
+    supp_count = await db.supplements.count_documents({})
+    if supp_count == 0:
+        print("Database empty, auto-seeding...")
+        # Import fresh seed data
+        from seed_data import SUPPLEMENTS as FRESH_SUPPS, TEMPLATES as FRESH_TMPLS
+        import copy
+        supps = copy.deepcopy(FRESH_SUPPS)
+        tmpls = copy.deepcopy(FRESH_TMPLS)
+        for s in supps:
+            s["active"] = True
+            s["created_at"] = datetime.utcnow()
+            s["updated_at"] = datetime.utcnow()
+        await db.supplements.insert_many(supps)
+        
+        for t in tmpls:
+            t["created_at"] = datetime.utcnow()
+            t["updated_at"] = datetime.utcnow()
+        await db.templates.insert_many(tmpls)
+        
+        # Create default users
+        hashed = pwd_context.hash("admin123")
+        await db.users.insert_one({
+            "email": "admin@clarity.com",
+            "password_hash": hashed,
+            "name": "Dr. Jason",
+            "role": "admin",
+            "created_at": datetime.utcnow(),
+        })
+        hashed_hc = pwd_context.hash("hc123")
+        await db.users.insert_one({
+            "email": "hc@clarity.com",
+            "password_hash": hashed_hc,
+            "name": "Sarah (HC)",
+            "role": "hc",
+            "created_at": datetime.utcnow(),
+        })
+        print("Seed complete!")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
