@@ -152,8 +152,8 @@ export default function TemplatesPage() {
           <div className="p-5 border-t border-border/30">
             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2.5 text-sm text-muted-foreground w-full justify-start h-12 rounded-xl border-dashed hover:border-[#E8740C]/40 hover:bg-[#FFF8F0]">
-                  <Plus size={16} className="text-[#E8740C]" /> Add supplement to template...
+                <Button variant="outline" className="gap-2.5 text-sm text-muted-foreground w-full justify-start h-12 rounded-xl border-dashed hover:border-[#0D5F68]/40 hover:bg-[#EAF4F3]">
+                  <Plus size={16} className="text-[#0D5F68]" /> Add supplement to template...
                   <ChevronsUpDown size={13} className="ml-auto" />
                 </Button>
               </PopoverTrigger>
