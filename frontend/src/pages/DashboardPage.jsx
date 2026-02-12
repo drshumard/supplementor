@@ -162,21 +162,21 @@ export default function DashboardPage() {
                   className="cursor-pointer hover:bg-[hsl(174,35%,93%)]/30 transition-colors"
                   onClick={() => navigate(`/plans/${plan._id}`)}
                 >
-                  <TableCell className="font-semibold text-[#0B0D10] py-4 px-5 text-sm">
+                  <TableCell className="font-semibold text-[#0B0D10] py-5 px-5 text-sm">
                     {plan.patient_name || 'Untitled'}
                   </TableCell>
-                  <TableCell className="text-sm py-4">{plan.program_name}</TableCell>
-                  <TableCell className="text-sm py-4">{plan.step_label || `Step ${plan.step_number}`}</TableCell>
-                  <TableCell className="text-sm font-mono tabular-nums py-4">
+                  <TableCell className="text-sm py-5">{plan.program_name}</TableCell>
+                  <TableCell className="text-sm py-5">{plan.step_label || `Step ${plan.step_number}`}</TableCell>
+                  <TableCell className="text-sm font-mono tabular-nums py-5">
                     {plan.months?.length || 0}
                   </TableCell>
-                  <TableCell className="text-sm font-mono tabular-nums text-right py-4 text-[#147D5A] font-semibold">
+                  <TableCell className="text-sm font-mono tabular-nums text-right py-5 text-[#147D5A] font-semibold">
                     {formatCurrency(plan.total_program_cost)}
                   </TableCell>
-                  <TableCell className="py-4">
+                  <TableCell className="py-5">
                     <Badge
                       data-testid={`plan-status-${plan._id}`}
-                      className={`px-3 py-1 text-xs font-semibold ${
+                      className={`px-3 py-1.5 text-xs font-bold ${
                         plan.status === 'finalized'
                           ? 'bg-emerald-600 text-white hover:bg-emerald-600'
                           : 'bg-[#EEF1F1] text-[#61746E] hover:bg-[#EEF1F1]'
@@ -185,15 +185,15 @@ export default function DashboardPage() {
                       {plan.status || 'draft'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground py-4">
+                  <TableCell className="text-sm text-muted-foreground py-5">
                     {plan.updated_at
                       ? new Date(plan.updated_at).toLocaleDateString('en-US', {
                           month: 'short', day: 'numeric', year: 'numeric'
                         })
                       : '-'}
                   </TableCell>
-                  <TableCell className="py-4">
-                    <div className="flex items-center gap-1">
+                  <TableCell className="py-5">
+                    <div className="flex items-center gap-1.5">
                       <Button
                         variant="ghost"
                         size="sm"
