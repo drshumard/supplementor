@@ -17,23 +17,23 @@
   },
   {
     "content": "Phase 2: V1 App Development - Backend (FastAPI + MongoDB)",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Phase 2: V1 App Development - Frontend (React + shadcn/ui)",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: Seed database with ~70 real supplements",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 2: All user stories covered in Development and testing",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Phase 2: End-to-end testing with testing agent",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Phase 3: Feature expansion + hardening",
