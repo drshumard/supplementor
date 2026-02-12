@@ -23,19 +23,19 @@ export default function AppShell({ children }) {
     <div className="flex h-screen bg-[#F4F5F5]" data-testid="app-shell">
       {/* Left Navigation */}
       <aside className="w-[260px] bg-white border-r border-border/60 flex flex-col shrink-0">
-        <div className="h-[80px] flex items-center px-7 border-b border-border/40">
+        <div className="h-[84px] flex items-center px-7 border-b border-border/40">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[hsl(187,79%,23%)] flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-base">C</span>
+            <div className="w-11 h-11 rounded-xl bg-[hsl(187,79%,23%)] flex items-center justify-center shadow-sm">
+              <span className="text-white font-bold text-lg">C</span>
             </div>
             <div>
-              <div className="text-base font-semibold tracking-[-0.01em] text-[#0B0D10]">Clarity</div>
+              <div className="text-base font-bold tracking-[-0.01em] text-[#0B0D10]">Clarity</div>
               <div className="text-[11px] text-muted-foreground tracking-wide uppercase">Protocol Manager</div>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 py-5 px-4 space-y-1.5">
+        <nav className="flex-1 py-6 px-4 space-y-2">
           {filteredNav.map(item => {
             const active = location.pathname === item.path || 
               (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -44,7 +44,7 @@ export default function AppShell({ children }) {
                 key={item.path}
                 onClick={() => navigate(item.path)}
                 data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
-                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 ${
+                className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                   active
                     ? 'bg-[hsl(174,35%,93%)] text-[hsl(187,79%,23%)] shadow-sm'
                     : 'text-[#61746E] hover:bg-[#F4F5F5] hover:text-[#2B3437]'
@@ -58,8 +58,8 @@ export default function AppShell({ children }) {
         </nav>
 
         <div className="p-4 border-t border-border/40">
-          <div className="flex items-center gap-3.5 px-4 py-3">
-            <div className="w-10 h-10 rounded-full bg-[hsl(174,35%,93%)] flex items-center justify-center text-sm font-bold text-[hsl(187,79%,23%)]">
+          <div className="flex items-center gap-3.5 px-4 py-3.5">
+            <div className="w-11 h-11 rounded-full bg-[hsl(174,35%,93%)] flex items-center justify-center text-sm font-bold text-[hsl(187,79%,23%)]">
               {user?.name?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
