@@ -27,23 +27,23 @@ import { toast } from 'sonner';
 function NumberStepper({ value, onChange, disabled, min = 0 }) {
   const num = value ?? 0;
   return (
-    <div className="inline-flex items-center h-9 rounded-full bg-[#EAF4F3] border border-[#C8E6E0] overflow-hidden select-none">
+    <div className="inline-flex items-center h-10 rounded-lg bg-[#D5ECE8] border border-[#C8E6E0] overflow-hidden select-none">
       <button
         type="button"
         disabled={disabled || num <= min}
         onClick={() => onChange(Math.max(min, num - 1))}
-        className="w-8 h-full flex items-center justify-center text-[#61746E] hover:bg-[#C8E6E0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-[#D5ECE8]"
+        className="w-9 h-full flex items-center justify-center text-[#61746E] hover:bg-[#C8E6E0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       >
-        <Minus size={13} />
+        <Minus size={14} />
       </button>
-      <span className="w-7 text-center font-mono text-sm font-bold text-[#0B0D10]">{num}</span>
+      <span className="w-9 h-full flex items-center justify-center bg-[#F4F5F5] font-mono text-sm font-bold text-[#0B0D10]">{num}</span>
       <button
         type="button"
         disabled={disabled}
         onClick={() => onChange(num + 1)}
-        className="w-8 h-full flex items-center justify-center bg-[#D5ECE8] text-[#61746E] hover:bg-[#C8E6E0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="w-9 h-full flex items-center justify-center text-[#61746E] hover:bg-[#C8E6E0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
       >
-        <Plus size={13} />
+        <Plus size={14} />
       </button>
     </div>
   );
