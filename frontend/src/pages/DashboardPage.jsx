@@ -195,18 +195,29 @@ export default function DashboardPage() {
                       : '-'}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteId(plan._id);
-                      }}
-                      data-testid={`delete-plan-${plan._id}`}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-[hsl(187,79%,23%)]"
+                        onClick={(e) => handleDuplicate(e, plan._id)}
+                        title="Duplicate plan"
+                      >
+                        <Copy size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteId(plan._id);
+                        }}
+                        data-testid={`delete-plan-${plan._id}`}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
