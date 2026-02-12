@@ -134,7 +134,7 @@ export default function SupplementsPage() {
           <TableBody>
             {loading ? (
               <TableRow><TableCell colSpan={8} className="h-40 text-center text-muted-foreground">
-                <div className="flex items-center justify-center gap-3"><div className="w-5 h-5 border-2 border-[#E8740C] border-t-transparent rounded-full animate-spin" /> Loading...</div>
+                <div className="flex items-center justify-center gap-3"><div className="w-5 h-5 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin" /> Loading...</div>
               </TableCell></TableRow>
             ) : supplements.length === 0 ? (
               <TableRow><TableCell colSpan={8} className="h-40 text-center text-muted-foreground text-base">No supplements found</TableCell></TableRow>
