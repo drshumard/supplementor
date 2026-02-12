@@ -4,43 +4,39 @@
     "status": "completed"
   },
   {
-    "content": "Phase 1: Research best PDF library for FastAPI",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1: Build calculation engine + PDF export test script",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 1: Validate POC - calculations correct, PDF one-page-per-month, no cost leakage",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 2: V1 App Development - Backend (FastAPI + MongoDB)",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 2: V1 App Development - Frontend (React + shadcn/ui)",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 2: Seed database with ~70 real supplements",
+    "content": "Phase 2: V1 App Development - Backend + Frontend",
     "status": "completed"
   },
   {
     "content": "Phase 2: All user stories covered in Development and testing",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Phase 2: End-to-end testing with testing agent",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 3: Plan ownership - associate plans with HC user_id",
     "status": "in_progress"
   },
   {
-    "content": "Phase 3: Feature expansion + hardening",
+    "content": "Phase 3: Draft vs Finalized plan lifecycle",
     "status": "pending"
   },
   {
-    "content": "Phase 4: Authentication + role-based access",
+    "content": "Phase 3: Plan duplication feature",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 3: Patient View toggle in plan editor",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 3: Inline validation + data integrity",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 3: End-to-end testing with testing agent",
     "status": "pending"
   }
 ]
