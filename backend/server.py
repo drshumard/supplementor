@@ -262,7 +262,7 @@ async def update_supplement(supplement_id: str, data: SupplementUpdate, user=Dep
 
 
 @app.delete("/api/supplements/{supplement_id}")
-async def delete_supplement(supplement_id: str):
+async def delete_supplement(supplement_id: str, user=Depends(require_admin)):
     result = await db.supplements.delete_one({"_id": ObjectId(supplement_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Supplement not found")
