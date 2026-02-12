@@ -1,0 +1,42 @@
+[
+  {
+    "content": "Phase 1: Core POC - PDF generation + calculation engine",
+    "status": "in_progress"
+  },
+  {
+    "content": "Phase 1: Research best PDF library for FastAPI",
+    "status": "in_progress"
+  },
+  {
+    "content": "Phase 1: Build calculation engine + PDF export test script",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 1: Validate POC - calculations correct, PDF one-page-per-month, no cost leakage",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: V1 App Development - Backend (FastAPI + MongoDB)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: V1 App Development - Frontend (React + shadcn/ui)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Seed database with ~70 real supplements",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: End-to-end testing with testing agent",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 3: Feature expansion + hardening",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 4: Authentication + role-based access",
+    "status": "pending"
+  }
+]
