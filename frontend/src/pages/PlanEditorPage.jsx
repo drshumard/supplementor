@@ -55,7 +55,7 @@ function MonthPage({
           </div>
         </div>
         {showCosts && !patientView && (
-          <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-xl border border-[#C8E6E0] shadow-sm">
+          <div className="flex items-center gap-3 bg-[#F9FBFB] px-5 py-2.5 rounded-xl border border-[#C8E6E0] shadow-sm">
             <span className="text-xs text-[#61746E] font-semibold uppercase tracking-wider">Monthly Total</span>
             <span className="font-mono tabular-nums text-lg font-bold text-[#147D5A]">
               {formatCurrency(month.monthly_total_cost)}
