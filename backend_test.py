@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 
 class SupplementAPITester:
-    def __init__(self, base_url="https://clarity-supplements.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://clinic-protocol-mgmt.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         self.hc_token = None
