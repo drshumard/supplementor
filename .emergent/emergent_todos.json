@@ -1,18 +1,26 @@
 [
   {
     "content": "Phase 4: Replace month tabs with vertical stacked pages layout",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Phase 4: Maximize template pre-fill so HC does minimum work",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
-    "content": "Phase 4: Add 'Apply to all months' quick action for edits",
-    "status": "pending"
+    "content": "Phase 4: Add 'Add supplement to all months' global action",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 4: Per-month 'Add supplement' buttons",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 4: Per-month removal (individual, not all months)",
+    "status": "completed"
   },
   {
     "content": "Phase 4: Test the new multi-page layout",
-    "status": "pending"
+    "status": "completed"
   }
 ]
