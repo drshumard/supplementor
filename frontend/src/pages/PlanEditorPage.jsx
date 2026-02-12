@@ -149,7 +149,7 @@ function MonthPage({
 
       {/* Add supplement */}
       {!isFinalized && !patientView && (
-        <div className="px-8 py-5 border-t border-border/30 bg-[#FAFBFB]">
+        <div className="px-8 py-5 border-t border-border/30 bg-[#F2F6F6]">
           <Popover open={searchOpen} onOpenChange={setSearchOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm"
