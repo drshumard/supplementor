@@ -160,7 +160,7 @@ function MonthPage({
                 <div className="font-mono tabular-nums text-sm font-bold text-[#147D5A] text-center">{formatCurrency(supp.calculated_cost)}</div>
               </>)}
               {!isFinalized && !patientView && (
-                <div>
+                <div className="flex justify-center">
                   <Button variant="ghost" size="sm"
                     className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-[#C53B3B] hover:bg-red-50 rounded-lg"
                     onClick={() => setDeleteRow(idx)}><Trash2 size={14} /></Button>
