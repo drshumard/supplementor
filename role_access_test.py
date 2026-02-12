@@ -211,6 +211,18 @@ class RoleAccessTester:
         """Test PDF exports work with Authorization headers"""
         print(f"\n📄 Testing PDF Exports with Authorization")
         
+        # Get a real supplement ID first
+        success, response = self.run_test(
+            "Get Supplement for PDF Test", "GET", "/supplements?limit=1", 200,
+            token=self.admin_token
+        )
+        
+        if not success or not response.get('supplements'):
+            print("❌ Could not get supplement for PDF test")
+            return False
+            
+        supp = response['supplements'][0]
+        
         # First create a test plan
         plan_data = {
             "patient_name": "PDF Test Patient",
@@ -219,9 +231,12 @@ class RoleAccessTester:
             "months": [{
                 "month_number": 1,
                 "supplements": [{
-                    "supplement_name": "Test Supplement",
+                    "supplement_id": supp['_id'],
+                    "supplement_name": supp['supplement_name'],
+                    "company": supp.get('company', ''),
                     "quantity_per_dose": 1,
                     "frequency_per_day": 1,
+                    "units_per_bottle": supp.get('units_per_bottle', 60),
                     "cost_per_bottle": 25.00
                 }]
             }]
