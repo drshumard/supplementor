@@ -149,7 +149,6 @@ function MonthPage({
                     onChange={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.value)}
                     className="h-10 text-sm w-full border-border/50 rounded-lg" placeholder="2 caps 3x/day" disabled={isFinalized} />}
               </div>
-              <div></div>
               <div>
                 {patientView ? <span className="text-sm text-muted-foreground italic">{supp.instructions || '-'}</span> :
                   <Input value={supp.instructions || ''}
