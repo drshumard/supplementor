@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF } from '../lib/api';
+import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, finalizePlan, reopenPlan, duplicatePlan } from '../lib/api';
 import { formatCurrency, recalculateMonthCosts, downloadBlob } from '../lib/utils';
+import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
+import { Switch } from '../components/ui/switch';
+import { Label } from '../components/ui/label';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '../components/ui/table';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '../components/ui/select';
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '../components/ui/command';
@@ -24,25 +24,31 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 import {
-  ArrowLeft, Plus, Trash2, Download, FileText, Eye, Save,
-  Snowflake, ChevronsUpDown, Check,
+  ArrowLeft, Plus, Trash2, Download, FileText, Eye, EyeOff, Save,
+  Snowflake, ChevronsUpDown, Check, Lock, Unlock, Copy, AlertTriangle,
+  User,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function PlanEditorPage() {
   const { planId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeMonth, setActiveMonth] = useState('1');
   const [showCosts, setShowCosts] = useState(true);
+  const [patientViewMode, setPatientViewMode] = useState(false);
   const [supplements, setSupplements] = useState([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteRow, setDeleteRow] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [confirmFinalize, setConfirmFinalize] = useState(false);
   const saveTimerRef = useRef(null);
+
+  const isFinalized = plan?.status === 'finalized';
 
   // Load plan
   useEffect(() => {
@@ -68,7 +74,7 @@ export default function PlanEditorPage() {
 
   // Auto-save with debounce
   const savePlan = useCallback(async (planData) => {
-    if (!planData || !planId) return;
+    if (!planData || !planId || planData.status === 'finalized') return;
     setSaving(true);
     try {
       const result = await updatePlan(planId, {
@@ -106,7 +112,7 @@ export default function PlanEditorPage() {
 
   // Add supplement to all months in the step
   const addSupplement = (supp) => {
-    if (!plan) return;
+    if (!plan || isFinalized) return;
     const newPlan = { ...plan };
     const entry = {
       supplement_id: supp._id,
@@ -137,13 +143,13 @@ export default function PlanEditorPage() {
 
   // Remove supplement from all months
   const removeSupplement = (index) => {
-    if (!plan) return;
+    if (!plan || isFinalized) return;
     const newPlan = { ...plan };
     const suppName = currentMonth?.supplements?.[index]?.supplement_name;
     for (const month of newPlan.months || []) {
-      month.supplements = (month.supplements || []).filter((_, i) => {
+      month.supplements = (month.supplements || []).filter((s, i) => {
         if (month.month_number === Number(activeMonth)) return i !== index;
-        return month.supplements[i]?.supplement_name !== suppName;
+        return s.supplement_name !== suppName;
       });
     }
     recalcAndUpdate(newPlan);
@@ -153,7 +159,7 @@ export default function PlanEditorPage() {
 
   // Update a supplement field for current month only
   const updateSupplementField = (monthNum, suppIndex, field, value) => {
-    if (!plan) return;
+    if (!plan || isFinalized) return;
     const newPlan = { ...plan };
     const month = newPlan.months?.find(m => m.month_number === monthNum);
     if (month && month.supplements[suppIndex]) {
@@ -164,7 +170,7 @@ export default function PlanEditorPage() {
 
   // Update patient name
   const updatePatientName = (name) => {
-    if (!plan) return;
+    if (!plan || isFinalized) return;
     const newPlan = { ...plan, patient_name: name };
     setPlan(newPlan);
     debouncedSave(newPlan);
@@ -174,8 +180,7 @@ export default function PlanEditorPage() {
   const handleExportPatient = async () => {
     setExporting(true);
     try {
-      // Save first
-      await savePlan(plan);
+      if (!isFinalized) await savePlan(plan);
       const blob = await exportPatientPDF(planId);
       downloadBlob(blob, `${plan.patient_name || 'patient'}_protocol.pdf`);
       toast.success('Patient PDF exported');
@@ -189,7 +194,7 @@ export default function PlanEditorPage() {
   const handleExportHC = async () => {
     setExporting(true);
     try {
-      await savePlan(plan);
+      if (!isFinalized) await savePlan(plan);
       const blob = await exportHCPDF(planId);
       downloadBlob(blob, `${plan.patient_name || 'patient'}_protocol_HC.pdf`);
       toast.success('HC PDF exported');
@@ -200,9 +205,42 @@ export default function PlanEditorPage() {
     }
   };
 
+  // Plan lifecycle
+  const handleFinalize = async () => {
+    try {
+      await savePlan(plan);
+      const result = await finalizePlan(planId);
+      setPlan(prev => ({ ...prev, ...result }));
+      toast.success('Plan finalized');
+      setConfirmFinalize(false);
+    } catch (err) {
+      toast.error('Failed to finalize');
+    }
+  };
+
+  const handleReopen = async () => {
+    try {
+      const result = await reopenPlan(planId);
+      setPlan(prev => ({ ...prev, ...result }));
+      toast.success('Plan reopened');
+    } catch (err) {
+      toast.error('Failed to reopen');
+    }
+  };
+
+  const handleDuplicate = async () => {
+    try {
+      const result = await duplicatePlan(planId);
+      toast.success('Plan duplicated');
+      navigate(`/plans/${result._id}`);
+    } catch (err) {
+      toast.error('Failed to duplicate');
+    }
+  };
+
   // Add month
   const addMonth = () => {
-    if (!plan) return;
+    if (!plan || isFinalized) return;
     const newPlan = { ...plan };
     const lastMonth = newPlan.months?.[newPlan.months.length - 1];
     const newNum = (lastMonth?.month_number || 0) + 1;
@@ -214,7 +252,7 @@ export default function PlanEditorPage() {
 
   // Remove month
   const removeMonth = (monthNum) => {
-    if (!plan || (plan.months?.length || 0) <= 1) return;
+    if (!plan || isFinalized || (plan.months?.length || 0) <= 1) return;
     const newPlan = { ...plan };
     newPlan.months = (newPlan.months || []).filter(m => m.month_number !== monthNum);
     recalcAndUpdate(newPlan);
@@ -228,6 +266,20 @@ export default function PlanEditorPage() {
     s.company?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Validation warnings
+  const getWarnings = (supps) => {
+    const warnings = [];
+    (supps || []).forEach((s, i) => {
+      if (!s.quantity_per_dose && !s.bottles_per_month_override) {
+        warnings.push({ index: i, msg: `${s.supplement_name}: missing dosage quantity` });
+      }
+      if (!s.frequency_per_day && !s.bottles_per_month_override) {
+        warnings.push({ index: i, msg: `${s.supplement_name}: missing frequency` });
+      }
+    });
+    return warnings;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -239,9 +291,40 @@ export default function PlanEditorPage() {
   if (!plan) return null;
 
   const programTotal = plan.total_program_cost || 0;
+  const warnings = currentMonth ? getWarnings(currentMonth.supplements) : [];
+
+  // In patient view mode, hide costs and show clean view
+  const effectiveShowCosts = patientViewMode ? false : showCosts;
 
   return (
     <div className="p-6 max-w-[1560px] mx-auto">
+      {/* Finalized Banner */}
+      {isFinalized && (
+        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-center gap-3">
+          <Lock size={16} className="text-amber-600" />
+          <span className="text-sm text-amber-800 font-medium">This plan is finalized and locked from editing.</span>
+          <div className="ml-auto flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleReopen} className="text-xs gap-1">
+              <Unlock size={12} /> Reopen
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleDuplicate} className="text-xs gap-1">
+              <Copy size={12} /> Duplicate
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Patient View Banner */}
+      {patientViewMode && (
+        <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 p-3 flex items-center gap-3">
+          <User size={16} className="text-blue-600" />
+          <span className="text-sm text-blue-800 font-medium">Patient View Preview — Costs and bottle counts are hidden. This is what the patient will see.</span>
+          <Button variant="outline" size="sm" onClick={() => setPatientViewMode(false)} className="ml-auto text-xs">
+            Exit Patient View
+          </Button>
+        </div>
+      )}
+
       {/* Top bar */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -261,28 +344,48 @@ export default function PlanEditorPage() {
                 className="text-lg font-semibold border-none bg-transparent px-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.01em] max-w-[300px]"
                 placeholder="Patient name"
                 data-testid="plan-editor-patient-name"
+                disabled={isFinalized}
               />
-              <Badge variant="secondary" className="bg-[#EEF1F1] text-[#61746E] text-xs">
+              <Badge
+                variant={isFinalized ? 'default' : 'secondary'}
+                className={isFinalized
+                  ? 'bg-[hsl(147,70%,30%)] text-white'
+                  : 'bg-[#EEF1F1] text-[#61746E]'}
+              >
                 {plan.status || 'draft'}
               </Badge>
-              {saving && <span className="text-xs text-muted-foreground">Saving...</span>}
+              {saving && <span className="text-xs text-muted-foreground animate-pulse">Saving...</span>}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5 pl-0.5">
               {plan.program_name} / {plan.step_label || `Step ${plan.step_number}`} / {plan.date}
+              {plan.created_by_name ? ` / Created by ${plan.created_by_name}` : ''}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowCosts(!showCosts)}
-            className="gap-2 text-xs"
-            data-testid="plan-editor-toggle-costs"
-          >
-            <Eye size={14} />
-            {showCosts ? 'Hide Costs' : 'Show Costs'}
-          </Button>
+          {!patientViewMode && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPatientViewMode(true)}
+                className="gap-2 text-xs"
+                data-testid="plan-editor-patient-view-toggle"
+              >
+                <User size={14} /> Patient View
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCosts(!showCosts)}
+                className="gap-2 text-xs"
+                data-testid="plan-editor-toggle-costs"
+              >
+                {showCosts ? <EyeOff size={14} /> : <Eye size={14} />}
+                {showCosts ? 'Hide Costs' : 'Show Costs'}
+              </Button>
+            </>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -293,31 +396,68 @@ export default function PlanEditorPage() {
           >
             <Download size={14} /> Patient PDF
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportHC}
-            disabled={exporting}
-            className="gap-2 text-xs"
-            data-testid="plan-editor-export-hc-pdf"
-          >
-            <FileText size={14} /> HC PDF
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => savePlan(plan)}
-            disabled={saving}
-            className="gap-2 text-xs"
-            data-testid="plan-editor-save-button"
-          >
-            <Save size={14} /> {saving ? 'Saving...' : 'Save'}
-          </Button>
+          {!patientViewMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportHC}
+              disabled={exporting}
+              className="gap-2 text-xs"
+              data-testid="plan-editor-export-hc-pdf"
+            >
+              <FileText size={14} /> HC PDF
+            </Button>
+          )}
+          {!isFinalized && !patientViewMode && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDuplicate}
+                className="gap-2 text-xs"
+              >
+                <Copy size={14} /> Duplicate
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmFinalize(true)}
+                className="gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50"
+                data-testid="plan-editor-finalize-button"
+              >
+                <Lock size={14} /> Finalize
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => savePlan(plan)}
+                disabled={saving}
+                className="gap-2 text-xs"
+                data-testid="plan-editor-save-button"
+              >
+                <Save size={14} /> {saving ? 'Saving...' : 'Save'}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       <div className="flex gap-6">
         {/* Main content */}
         <div className="flex-1 min-w-0">
+          {/* Warnings */}
+          {warnings.length > 0 && !patientViewMode && (
+            <div className="mb-3 rounded-lg bg-amber-50 border border-amber-200 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle size={14} className="text-amber-600" />
+                <span className="text-xs font-semibold text-amber-800">Dosage warnings</span>
+              </div>
+              <ul className="list-disc list-inside text-xs text-amber-700 space-y-0.5">
+                {warnings.slice(0, 5).map((w, i) => <li key={i}>{w.msg}</li>)}
+                {warnings.length > 5 && <li>...and {warnings.length - 5} more</li>}
+              </ul>
+            </div>
+          )}
+
           {/* Month tabs */}
           <Tabs value={activeMonth} onValueChange={setActiveMonth} data-testid="plan-editor-month-tabs">
             <div className="flex items-center gap-2 mb-4">
@@ -332,16 +472,18 @@ export default function PlanEditorPage() {
                   </TabsTrigger>
                 ))}
               </TabsList>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={addMonth}
-                className="h-8 gap-1 text-xs text-muted-foreground"
-                data-testid="plan-editor-add-month"
-              >
-                <Plus size={14} /> Month
-              </Button>
-              {(plan.months?.length || 0) > 1 && (
+              {!isFinalized && !patientViewMode && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={addMonth}
+                  className="h-8 gap-1 text-xs text-muted-foreground"
+                  data-testid="plan-editor-add-month"
+                >
+                  <Plus size={14} /> Month
+                </Button>
+              )}
+              {!isFinalized && !patientViewMode && (plan.months?.length || 0) > 1 && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -361,24 +503,30 @@ export default function PlanEditorPage() {
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[240px]">Supplement</TableHead>
-                        <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[70px] text-center">Qty</TableHead>
-                        <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[70px] text-center">Freq/Day</TableHead>
-                        <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[140px]">Dosage Display</TableHead>
-                        <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[160px]">Instructions</TableHead>
-                        {showCosts && (
+                        {!patientViewMode && (
+                          <>
+                            <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[70px] text-center">Qty</TableHead>
+                            <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[70px] text-center">Freq/Day</TableHead>
+                          </>
+                        )}
+                        <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[160px]">Dosage</TableHead>
+                        <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[180px]">Instructions</TableHead>
+                        {effectiveShowCosts && (
                           <>
                             <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[70px] text-center">Bottles</TableHead>
                             <TableHead className="text-xs font-semibold tracking-[0.08em] uppercase text-muted-foreground w-[90px] text-right">Cost</TableHead>
                           </>
                         )}
-                        <TableHead className="w-[40px]"></TableHead>
+                        {!isFinalized && !patientViewMode && (
+                          <TableHead className="w-[40px]"></TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(month.supplements || []).length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={showCosts ? 8 : 6} className="h-24 text-center text-muted-foreground text-sm">
-                            No supplements added. Use the search below to add.
+                          <TableCell colSpan={8} className="h-24 text-center text-muted-foreground text-sm">
+                            No supplements added. {!isFinalized ? 'Use the search below to add.' : ''}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -395,43 +543,59 @@ export default function PlanEditorPage() {
                                 )}
                               </div>
                             </TableCell>
+                            {!patientViewMode && (
+                              <>
+                                <TableCell className="py-2">
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    value={supp.quantity_per_dose ?? ''}
+                                    onChange={(e) => updateSupplementField(month.month_number, idx, 'quantity_per_dose', e.target.value ? parseInt(e.target.value) : null)}
+                                    className="h-8 text-center font-mono text-sm w-full border-border/50 focus:border-[hsl(187,79%,23%)]"
+                                    data-testid={`supp-qty-${idx}`}
+                                    disabled={isFinalized}
+                                  />
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    value={supp.frequency_per_day ?? ''}
+                                    onChange={(e) => updateSupplementField(month.month_number, idx, 'frequency_per_day', e.target.value ? parseInt(e.target.value) : null)}
+                                    className="h-8 text-center font-mono text-sm w-full border-border/50 focus:border-[hsl(187,79%,23%)]"
+                                    data-testid={`supp-freq-${idx}`}
+                                    disabled={isFinalized}
+                                  />
+                                </TableCell>
+                              </>
+                            )}
                             <TableCell className="py-2">
-                              <Input
-                                type="number"
-                                min={0}
-                                value={supp.quantity_per_dose ?? ''}
-                                onChange={(e) => updateSupplementField(month.month_number, idx, 'quantity_per_dose', e.target.value ? parseInt(e.target.value) : null)}
-                                className="h-8 text-center font-mono text-sm w-full border-border/50 focus:border-[hsl(187,79%,23%)]"
-                                data-testid={`supp-qty-${idx}`}
-                              />
+                              {patientViewMode ? (
+                                <span className="text-sm">{supp.dosage_display || '-'}</span>
+                              ) : (
+                                <Input
+                                  value={supp.dosage_display || ''}
+                                  onChange={(e) => updateSupplementField(month.month_number, idx, 'dosage_display', e.target.value)}
+                                  className="h-8 text-sm w-full border-border/50"
+                                  placeholder="e.g., 2 caps 3x/day"
+                                  disabled={isFinalized}
+                                />
+                              )}
                             </TableCell>
                             <TableCell className="py-2">
-                              <Input
-                                type="number"
-                                min={0}
-                                value={supp.frequency_per_day ?? ''}
-                                onChange={(e) => updateSupplementField(month.month_number, idx, 'frequency_per_day', e.target.value ? parseInt(e.target.value) : null)}
-                                className="h-8 text-center font-mono text-sm w-full border-border/50 focus:border-[hsl(187,79%,23%)]"
-                                data-testid={`supp-freq-${idx}`}
-                              />
+                              {patientViewMode ? (
+                                <span className="text-sm text-muted-foreground italic">{supp.instructions || '-'}</span>
+                              ) : (
+                                <Input
+                                  value={supp.instructions || ''}
+                                  onChange={(e) => updateSupplementField(month.month_number, idx, 'instructions', e.target.value)}
+                                  className="h-8 text-sm w-full border-border/50"
+                                  placeholder="With food"
+                                  disabled={isFinalized}
+                                />
+                              )}
                             </TableCell>
-                            <TableCell className="py-2">
-                              <Input
-                                value={supp.dosage_display || ''}
-                                onChange={(e) => updateSupplementField(month.month_number, idx, 'dosage_display', e.target.value)}
-                                className="h-8 text-sm w-full border-border/50"
-                                placeholder="e.g., 2 caps 3x/day"
-                              />
-                            </TableCell>
-                            <TableCell className="py-2">
-                              <Input
-                                value={supp.instructions || ''}
-                                onChange={(e) => updateSupplementField(month.month_number, idx, 'instructions', e.target.value)}
-                                className="h-8 text-sm w-full border-border/50"
-                                placeholder="With food"
-                              />
-                            </TableCell>
-                            {showCosts && (
+                            {effectiveShowCosts && (
                               <>
                                 <TableCell className="py-2 text-center font-mono tabular-nums text-sm">
                                   {supp.bottles_needed || '-'}
@@ -441,16 +605,18 @@ export default function PlanEditorPage() {
                                 </TableCell>
                               </>
                             )}
-                            <TableCell className="py-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                                onClick={() => setDeleteRow(idx)}
-                              >
-                                <Trash2 size={13} />
-                              </Button>
-                            </TableCell>
+                            {!isFinalized && !patientViewMode && (
+                              <TableCell className="py-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                  onClick={() => setDeleteRow(idx)}
+                                >
+                                  <Trash2 size={13} />
+                                </Button>
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))
                       )}
@@ -458,55 +624,57 @@ export default function PlanEditorPage() {
                   </Table>
 
                   {/* Add supplement search */}
-                  <div className="p-3 border-t border-border/50">
-                    <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-2 text-xs text-muted-foreground w-full justify-start"
-                          data-testid="plan-editor-add-row-button"
-                        >
-                          <Plus size={14} /> Add supplement...
-                          <ChevronsUpDown size={12} className="ml-auto" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0" align="start">
-                        <Command data-testid="plan-editor-supplement-typeahead">
-                          <CommandInput
-                            placeholder="Search supplements..."
-                            value={searchQuery}
-                            onValueChange={setSearchQuery}
-                          />
-                          <CommandList>
-                            <CommandEmpty>No supplements found.</CommandEmpty>
-                            <CommandGroup className="max-h-[280px] overflow-y-auto">
-                              {filteredSupplements.slice(0, 30).map(supp => (
-                                <CommandItem
-                                  key={supp._id}
-                                  value={supp.supplement_name}
-                                  onSelect={() => addSupplement(supp)}
-                                  className="flex items-center justify-between cursor-pointer"
-                                >
-                                  <div>
-                                    <div className="text-sm font-medium">{supp.supplement_name}</div>
-                                    <div className="text-xs text-muted-foreground">{supp.company}</div>
-                                  </div>
-                                  <span className="text-xs font-mono text-muted-foreground">
-                                    {formatCurrency(supp.cost_per_bottle)}
-                                  </span>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  {!isFinalized && !patientViewMode && (
+                    <div className="p-3 border-t border-border/50">
+                      <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 text-xs text-muted-foreground w-full justify-start"
+                            data-testid="plan-editor-add-row-button"
+                          >
+                            <Plus size={14} /> Add supplement...
+                            <ChevronsUpDown size={12} className="ml-auto" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <Command data-testid="plan-editor-supplement-typeahead">
+                            <CommandInput
+                              placeholder="Search supplements..."
+                              value={searchQuery}
+                              onValueChange={setSearchQuery}
+                            />
+                            <CommandList>
+                              <CommandEmpty>No supplements found.</CommandEmpty>
+                              <CommandGroup className="max-h-[280px] overflow-y-auto">
+                                {filteredSupplements.slice(0, 30).map(supp => (
+                                  <CommandItem
+                                    key={supp._id}
+                                    value={supp.supplement_name}
+                                    onSelect={() => addSupplement(supp)}
+                                    className="flex items-center justify-between cursor-pointer"
+                                  >
+                                    <div>
+                                      <div className="text-sm font-medium">{supp.supplement_name}</div>
+                                      <div className="text-xs text-muted-foreground">{supp.company}</div>
+                                    </div>
+                                    <span className="text-xs font-mono text-muted-foreground">
+                                      {formatCurrency(supp.cost_per_bottle)}
+                                    </span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
                 </div>
 
                 {/* Monthly total */}
-                {showCosts && (
+                {effectiveShowCosts && (
                   <div className="flex justify-end mt-3 pr-2">
                     <div className="text-sm">
                       <span className="text-muted-foreground">Monthly total: </span>
@@ -522,7 +690,7 @@ export default function PlanEditorPage() {
         </div>
 
         {/* Right Inspector - Cost Summary */}
-        {showCosts && (
+        {effectiveShowCosts && !patientViewMode && (
           <div className="w-[320px] shrink-0">
             <div className="sticky top-6">
               <div className="rounded-xl border bg-card shadow-[var(--shadow-sm)] p-5" data-testid="plan-editor-cost-summary">
@@ -576,6 +744,25 @@ export default function PlanEditorPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Finalize Dialog */}
+      <AlertDialog open={confirmFinalize} onOpenChange={setConfirmFinalize}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalize this plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Finalizing will lock the plan from further edits. You can reopen it later if needed.
+              Make sure all supplements, dosages, and instructions are correct before finalizing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinalize} className="bg-amber-600 hover:bg-amber-700">
+              Finalize Plan
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
