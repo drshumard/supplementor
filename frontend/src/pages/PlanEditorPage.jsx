@@ -101,8 +101,8 @@ function MonthPage({
         }}>
         <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">Supplement</span>
         {!patientView && (<>
-          <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">Qty</span>
-          <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">x/Day</span>
+          <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Qty</span>
+          <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">x/Day</span>
         </>)}
         <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">Dosage</span>
         <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">Instructions</span>
