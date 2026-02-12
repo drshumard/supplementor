@@ -290,7 +290,7 @@ async def get_template(template_id: str):
 
 
 @app.put("/api/templates/{template_id}")
-async def update_template(template_id: str, data: TemplateUpdate):
+async def update_template(template_id: str, data: TemplateUpdate, user=Depends(require_admin)):
     updates = {}
     if data.program_name is not None:
         updates["program_name"] = data.program_name
