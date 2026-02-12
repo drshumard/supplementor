@@ -320,7 +320,8 @@ async def list_plans(
     program: str = "",
     status: str = "",
     skip: int = 0,
-    limit: int = 50
+    limit: int = 50,
+    authorization: str = Header(None)
 ):
     query = {}
     if search:
@@ -329,6 +330,11 @@ async def list_plans(
         query["program_name"] = program
     if status:
         query["status"] = status
+    
+    # HC users only see their own plans; admin sees all
+    user = await get_current_user(authorization)
+    if user and user.get("role") == "hc":
+        query["created_by"] = user.get("sub")
     
     cursor = db.plans.find(query).sort("updated_at", -1).skip(skip).limit(limit)
     docs = await cursor.to_list(length=limit)
