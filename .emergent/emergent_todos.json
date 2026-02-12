@@ -1,22 +1,22 @@
 [
   {
-    "content": "Plan Editor: bigger centered patient name, left-aligned columns, colorful buttons (teal/black/amber/red), warm tinted month headers",
-    "status": "in_progress"
+    "content": "Plan Editor: bigger centered patient name, left-aligned columns, colorful buttons, warm tinted month headers",
+    "status": "completed"
   },
   {
     "content": "Dashboard: warm stat cards, colorful New Plan button, improved visual hierarchy",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Supplements & Templates pages: warm backgrounds, colorful accents",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "AppShell & global: warm section tints, button color variety",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Screenshot verify + testing",
-    "status": "pending"
+    "status": "completed"
   }
 ]
