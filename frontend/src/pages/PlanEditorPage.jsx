@@ -374,11 +374,11 @@ export default function PlanEditorPage() {
         </div>
 
         {/* Patient name — large, centered */}
-        <div className="px-8 py-14 text-center">
+        <div className="px-8 py-10 text-center">
           <Input
             value={plan.patient_name || ''}
             onChange={(e) => updatePatientName(e.target.value)}
-            className="text-5xl font-bold border-none bg-transparent h-20 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.03em] text-center max-w-[480px] mx-auto"
+            className="text-5xl font-bold border border-border/40 bg-[#FAFAFA] rounded-xl h-16 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.03em] text-center max-w-[480px] mx-auto"
             placeholder="Patient Name"
             data-testid="plan-editor-patient-name"
             disabled={isFinalized}
