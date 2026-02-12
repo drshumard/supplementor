@@ -364,8 +364,8 @@ export default function PlanEditorPage() {
               {plan.status || 'draft'}
             </Badge>
             <span className="text-sm text-muted-foreground">
-              {plan.program_name} &middot; {plan.step_label || `Step ${plan.step_number}`} &middot; {plan.date}
-              {plan.created_by_name ? ` &middot; ${plan.created_by_name}` : ''}
+              {plan.program_name} / {plan.step_label || `Step ${plan.step_number}`} / {plan.date}
+              {plan.created_by_name ? ` / ${plan.created_by_name}` : ''}
             </span>
             {saving && <span className="text-xs text-[#0D5F68] animate-pulse font-semibold">Saving...</span>}
           </div>
