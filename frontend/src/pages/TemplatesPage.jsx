@@ -106,7 +106,7 @@ export default function TemplatesPage() {
         </div>
         {currentTemplate && (
           <div className="ml-auto">
-            <Badge className="bg-[#E8740C] text-white hover:bg-[#E8740C] px-4 py-2 text-xs font-bold">
+            <Badge className="bg-[#0D5F68] text-white hover:bg-[#0D5F68] px-4 py-2 text-xs font-bold">
               <Layers size={13} className="mr-2" /> {editSupps.length} supplement{editSupps.length !== 1 ? 's' : ''}
             </Badge>
           </div>
