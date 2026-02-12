@@ -99,7 +99,7 @@ export default function TemplatesPage() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold text-[#8B7355] uppercase tracking-wider">Default Months</Label>
+          <Label className="text-xs font-bold text-[#61746E] uppercase tracking-wider">Default Months</Label>
           <Input type="number" min={1} max={12} value={editMonths}
             onChange={(e) => setEditMonths(Math.max(1, parseInt(e.target.value) || 1))}
             className="w-[100px] h-12 font-mono text-sm" />
