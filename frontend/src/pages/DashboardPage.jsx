@@ -53,9 +53,6 @@ export default function DashboardPage() {
     catch (err) { toast.error('Duplicate failed'); }
   };
 
-  const draftCount = plans.filter(p => p.status !== 'finalized').length;
-  const finalizedCount = plans.filter(p => p.status === 'finalized').length;
-
   return (
     <div className="p-10 max-w-[1560px] mx-auto">
       {/* Header */}
