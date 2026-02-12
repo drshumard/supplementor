@@ -373,24 +373,24 @@ export default function PlanEditorPage() {
           </div>
         </div>
 
-        {/* Patient name — large, centered */}
-        <div className="px-8 py-10 text-center">
+        {/* Patient name + meta */}
+        <div className="px-8 py-8 text-center">
           <Input
             value={plan.patient_name || ''}
             onChange={(e) => updatePatientName(e.target.value)}
-            className="text-5xl font-bold border border-border/40 bg-[#FAFAFA] rounded-xl h-16 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.03em] text-center max-w-[480px] mx-auto"
+            className="text-3xl font-bold border border-border/40 bg-[#FAFAFA] rounded-xl h-10 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.02em] text-center max-w-[480px] mx-auto"
             placeholder="Patient Name"
             data-testid="plan-editor-patient-name"
             disabled={isFinalized}
           />
-          <div className="flex items-center justify-center gap-3 mt-3">
-            <Badge className={`px-4 py-1.5 text-xs font-bold ${isFinalized ? 'bg-[#147D5A] text-white hover:bg-[#147D5A]' : 'bg-[#EEF1F1] text-[#61746E] hover:bg-[#EEF1F1]'}`}>
-              {plan.status || 'draft'}
-            </Badge>
+          <div className="flex items-center justify-center gap-2 mt-3">
             <span className="text-sm text-muted-foreground">
               {plan.program_name} / {plan.step_label || `Step ${plan.step_number}`} / {plan.date}
               {plan.created_by_name ? ` / ${plan.created_by_name}` : ''}
             </span>
+            <Badge className={`px-3 py-1 text-xs font-bold ${isFinalized ? 'bg-[#147D5A] text-white hover:bg-[#147D5A]' : 'bg-[#EEF1F1] text-[#61746E] hover:bg-[#EEF1F1]'}`}>
+              {plan.status || 'draft'}
+            </Badge>
             {saving && <span className="text-xs text-[#0D5F68] animate-pulse font-semibold">Saving...</span>}
           </div>
         </div>
