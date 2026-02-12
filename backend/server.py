@@ -451,6 +451,61 @@ async def delete_plan(plan_id: str):
     return {"message": "Deleted"}
 
 
+@app.post("/api/plans/{plan_id}/duplicate")
+async def duplicate_plan(plan_id: str, authorization: str = Header(None)):
+    """Duplicate an existing plan (for returning patients)."""
+    doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    # Create new plan based on existing
+    new_doc = {k: v for k, v in doc.items() if k != "_id"}
+    new_doc["patient_name"] = f"{doc.get('patient_name', 'Copy')} (Copy)"
+    new_doc["status"] = "draft"
+    new_doc["date"] = datetime.utcnow().strftime("%Y-%m-%d")
+    new_doc["created_at"] = datetime.utcnow()
+    new_doc["updated_at"] = datetime.utcnow()
+    
+    user = await get_current_user(authorization)
+    if user:
+        new_doc["created_by"] = user.get("sub")
+        new_doc["created_by_name"] = user.get("name", "")
+    
+    result = await db.plans.insert_one(new_doc)
+    new_doc["_id"] = result.inserted_id
+    return serialize_doc(new_doc)
+
+
+@app.post("/api/plans/{plan_id}/finalize")
+async def finalize_plan(plan_id: str):
+    """Finalize a plan (lock it from further edits)."""
+    doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    await db.plans.update_one(
+        {"_id": ObjectId(plan_id)},
+        {"$set": {"status": "finalized", "finalized_at": datetime.utcnow(), "updated_at": datetime.utcnow()}}
+    )
+    doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    return serialize_doc(doc)
+
+
+@app.post("/api/plans/{plan_id}/reopen")
+async def reopen_plan(plan_id: str):
+    """Reopen a finalized plan."""
+    doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    await db.plans.update_one(
+        {"_id": ObjectId(plan_id)},
+        {"$set": {"status": "draft", "updated_at": datetime.utcnow()}, "$unset": {"finalized_at": ""}}
+    )
+    doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    return serialize_doc(doc)
+
+
 # ─── Plan PDF Export ─────────────────────────────────────────────────────────
 
 @app.get("/api/plans/{plan_id}/export/patient")
