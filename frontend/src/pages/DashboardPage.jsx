@@ -157,7 +157,7 @@ export default function DashboardPage() {
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <FileText size={40} strokeWidth={1} />
                   <p className="text-base">No plans yet</p>
-                  <Button onClick={() => navigate('/plans/new')} className="mt-2 h-11 px-5 bg-[#E8740C] hover:bg-[#D06508] text-white font-semibold">Create your first plan</Button>
+                  <Button onClick={() => navigate('/plans/new')} className="mt-2 h-11 px-5 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold">Create your first plan</Button>
                 </div>
               </TableCell></TableRow>
             ) : (
