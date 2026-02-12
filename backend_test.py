@@ -484,6 +484,145 @@ class SupplementAPITester:
             )
         
         return success1 and success2 and success3 and success4
+    
+    def test_admin_access_permissions(self):
+        """Test that admin role CAN access all endpoints"""
+        if not self.admin_token:
+            return False
+        
+        print(f"\n🔑 Testing Admin Access Permissions...")
+        
+        # 1. Admin should be able to POST /api/supplements
+        success1, response = self.run_test(
+            "Admin POST Supplement",
+            "POST",
+            "/supplements",
+            200,  # Expecting success
+            data={
+                "supplement_name": "Admin Test Supplement",
+                "company": "Admin Test Co",
+                "units_per_bottle": 60,
+                "unit_type": "caps",
+                "cost_per_bottle": 29.99,
+                "active": True
+            },
+            token=self.admin_token,
+            description="Admin should be able to create supplements"
+        )
+        
+        created_supp_id = None
+        if success1 and '_id' in response:
+            created_supp_id = response['_id']
+        
+        # 2. Admin should be able to PUT /api/supplements/{id}
+        success2 = False
+        if created_supp_id:
+            success2, response = self.run_test(
+                "Admin PUT Supplement",
+                "PUT",
+                f"/supplements/{created_supp_id}",
+                200,
+                data={"cost_per_bottle": 39.99, "notes": "Updated by admin"},
+                token=self.admin_token,
+                description="Admin should be able to update supplements"
+            )
+        
+        # 3. Admin should be able to DELETE /api/supplements/{id}
+        success3 = False
+        if created_supp_id:
+            success3, response = self.run_test(
+                "Admin DELETE Supplement",
+                "DELETE",
+                f"/supplements/{created_supp_id}",
+                200,
+                token=self.admin_token,
+                description="Admin should be able to delete supplements"
+            )
+        
+        return success1 and success2 and success3
+    
+    def test_dashboard_filter_all(self):
+        """Test dashboard plan filter with 'all' value"""
+        success, response = self.run_test(
+            "Dashboard Filter All Plans",
+            "GET",
+            "/plans?program=",  # Empty string should return all plans
+            200,
+            token=self.admin_token,
+            description="Filter with empty string should return all plans"
+        )
+        
+        if success:
+            plans = response.get('plans', [])
+            total = response.get('total', 0)
+            print(f"   Found {len(plans)} plans (total: {total})")
+        
+        return success
+    
+    def test_pdf_export_with_auth(self):
+        """Test PDF export endpoints with proper Authorization headers"""
+        if not self.test_plan_id:
+            return False
+
+        print(f"\n📄 Testing PDF Export with Authorization Headers...")
+        
+        # Test patient PDF export with Authorization header
+        print(f"\n🔍 Testing Patient PDF Export with Auth...")
+        success1 = False
+        try:
+            url = f"{self.base_url}/plans/{self.test_plan_id}/export/patient"
+            headers = {'Authorization': f'Bearer {self.admin_token}'}
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                content_type = response.headers.get('content-type', '')
+                if 'pdf' in content_type or len(response.content) > 1000:  # PDF should be substantial
+                    print("✅ PASSED - Patient PDF export with auth working")
+                    print(f"   Content-Type: {content_type}")
+                    print(f"   PDF size: {len(response.content)} bytes")
+                    success1 = True
+                    self.tests_passed += 1
+                else:
+                    print(f"❌ FAILED - Expected PDF, got {content_type}")
+            else:
+                print(f"❌ FAILED - Expected 200, got status {response.status_code}")
+                try:
+                    error = response.json()
+                    print(f"   Error: {error}")
+                except:
+                    print(f"   Error text: {response.text[:200]}")
+        except Exception as e:
+            print(f"❌ FAILED - Error: {e}")
+        self.tests_run += 1
+
+        # Test HC PDF export with Authorization header
+        print(f"\n🔍 Testing HC PDF Export with Auth...")
+        success2 = False
+        try:
+            url = f"{self.base_url}/plans/{self.test_plan_id}/export/hc"
+            headers = {'Authorization': f'Bearer {self.admin_token}'}
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                content_type = response.headers.get('content-type', '')
+                if 'pdf' in content_type or len(response.content) > 1000:  # PDF should be substantial
+                    print("✅ PASSED - HC PDF export with auth working")
+                    print(f"   Content-Type: {content_type}")
+                    print(f"   PDF size: {len(response.content)} bytes")
+                    success2 = True
+                    self.tests_passed += 1
+                else:
+                    print(f"❌ FAILED - Expected PDF, got {content_type}")
+            else:
+                print(f"❌ FAILED - Expected 200, got status {response.status_code}")
+                try:
+                    error = response.json()
+                    print(f"   Error: {error}")
+                except:
+                    print(f"   Error text: {response.text[:200]}")
+        except Exception as e:
+            print(f"❌ FAILED - Error: {e}")
+        self.tests_run += 1
+
+        return success1 and success2
 
     def cleanup(self):
         """Clean up test data"""
