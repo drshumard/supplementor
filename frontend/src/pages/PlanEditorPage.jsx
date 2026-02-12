@@ -96,8 +96,8 @@ function MonthPage({
           gridTemplateColumns: patientView
             ? '1.6fr 1.4fr 2fr 2fr'
             : showCosts
-              ? '1.6fr 0.7fr 0.7fr 1.4fr 2fr 0.6fr 0.8fr 0.3fr'
-              : '1.6fr 0.7fr 0.7fr 1.4fr 2fr 0.3fr'
+              ? '1.6fr 0.7fr 0.7fr 1.4fr 0.2fr 2fr 0.6fr 0.8fr 0.3fr'
+              : '1.6fr 0.7fr 0.7fr 1.4fr 0.2fr 2fr 0.3fr'
         }}>
         <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">Supplement</span>
         {!patientView && (<>
