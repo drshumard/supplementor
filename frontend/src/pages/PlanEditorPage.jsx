@@ -320,7 +320,7 @@ export default function PlanEditorPage() {
       {/* ── Header card ── */}
       <div className="rounded-2xl border border-border/40 bg-white shadow-sm mb-8 overflow-hidden">
         {/* Top row: back + actions */}
-        <div className="flex items-center justify-between px-8 py-4 border-b border-border/30 bg-[#FAFBFB]">
+        <div className="flex items-center justify-between px-8 py-4 border-b border-[#C8E6E0] bg-[#EAF4F3]">
           <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="gap-2 text-muted-foreground hover:text-[#0B0D10] h-10 px-3 rounded-lg">
             <ArrowLeft size={18} /> Back
           </Button>
