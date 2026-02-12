@@ -38,7 +38,7 @@ function MonthPage({
   );
 
   return (
-    <div className="rounded-2xl border border-border/40 bg-white shadow-sm mb-10 overflow-hidden"
+    <div className="rounded-2xl border border-border/40 bg-[#F9FBFB] shadow-sm mb-10 overflow-hidden"
       data-testid={`month-page-${month.month_number}`}>
 
       {/* Month header */}
