@@ -144,39 +144,39 @@ export default function SupplementsPage() {
             ) : (
               supplements.map(supp => (
                 <TableRow key={supp._id} className="hover:bg-[hsl(174,35%,93%)]/30">
-                  <TableCell className="py-3.5 px-5">
+                  <TableCell className="py-4.5 px-5">
                     <div className="flex items-center gap-2.5">
                       <span className="font-semibold text-sm text-[#0B0D10]">{supp.supplement_name}</span>
                       {supp.refrigerate && <Snowflake size={13} className="text-blue-500" />}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground py-3.5">{supp.company}</TableCell>
-                  <TableCell className="text-center font-mono tabular-nums text-sm py-3.5">
+                  <TableCell className="text-sm text-muted-foreground py-4.5">{supp.company}</TableCell>
+                  <TableCell className="text-center font-mono tabular-nums text-sm py-4.5">
                     {supp.units_per_bottle || '-'} {supp.unit_type}
                   </TableCell>
-                  <TableCell className="text-sm py-3.5">{supp.default_dosage_display || '-'}</TableCell>
-                  <TableCell className="text-right font-mono tabular-nums text-sm font-semibold text-[#147D5A] py-3.5">
+                  <TableCell className="text-sm py-4.5">{supp.default_dosage_display || '-'}</TableCell>
+                  <TableCell className="text-right font-mono tabular-nums text-sm font-semibold text-[#147D5A] py-4.5">
                     {formatCurrency(supp.cost_per_bottle)}
                   </TableCell>
-                  <TableCell className="text-center font-mono tabular-nums text-sm py-3.5">
+                  <TableCell className="text-center font-mono tabular-nums text-sm py-4.5">
                     {supp.bottles_per_month ?? '-'}
                   </TableCell>
-                  <TableCell className="text-center py-3.5">
-                    <Badge className={`px-3 py-1 text-[10px] font-bold ${
+                  <TableCell className="text-center py-4.5">
+                    <Badge className={`px-3 py-1.5 text-[10px] font-bold ${
                       supp.active !== false
                         ? 'bg-emerald-600 text-white hover:bg-emerald-600'
                         : 'bg-gray-200 text-gray-600 hover:bg-gray-200'}`}>
                       {supp.active !== false ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="py-3.5">
-                    <div className="flex items-center gap-1">
+                  <TableCell className="py-4.5">
+                    <div className="flex items-center gap-1.5">
                       <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg hover:bg-[hsl(174,35%,93%)] text-muted-foreground hover:text-[hsl(187,79%,23%)]" onClick={() => openEdit(supp)}>
-                        <Pencil size={14} />
+                        <Pencil size={15} />
                       </Button>
                       <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-50"
                         onClick={() => setDeleteId(supp._id)}>
-                        <Trash2 size={14} />
+                        <Trash2 size={15} />
                       </Button>
                     </div>
                   </TableCell>
