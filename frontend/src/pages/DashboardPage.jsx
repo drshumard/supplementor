@@ -104,11 +104,11 @@ export default function DashboardPage() {
               <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 px-6">Patient</TableHead>
               <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Program</TableHead>
               <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Step</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Months</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 text-right">Total Cost</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Status</TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[70px]">Months</TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[130px]">Total Cost</TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[120px]">Status</TableHead>
               <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Last Updated</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[120px]"></TableHead>
+              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
