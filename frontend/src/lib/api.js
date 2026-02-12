@@ -78,7 +78,9 @@ export const deletePlan = (id) =>
 // PDF Export
 export const exportPatientPDF = (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/patient`;
-  return fetch(url).then(r => {
+  const token = localStorage.getItem('auth_token');
+  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  return fetch(url, { headers }).then(r => {
     if (!r.ok) throw new Error('Export failed');
     return r.blob();
   });
@@ -86,7 +88,9 @@ export const exportPatientPDF = (planId) => {
 
 export const exportHCPDF = (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/hc`;
-  return fetch(url).then(r => {
+  const token = localStorage.getItem('auth_token');
+  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  return fetch(url, { headers }).then(r => {
     if (!r.ok) throw new Error('Export failed');
     return r.blob();
   });
