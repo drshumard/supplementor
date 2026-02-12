@@ -405,35 +405,85 @@ class SupplementAPITester:
         return True
 
     def test_hc_access_restrictions(self):
-        """Test that HC role can't access admin endpoints"""
+        """Test role-based access control fixes"""
         if not self.hc_token:
             return False
-
-        # HC should NOT be able to create supplements
-        success, response = self.run_test(
-            "HC Create Supplement (Should Fail)",
+        
+        print(f"\n🔒 Testing Role-Based Access Control Fixes...")
+        
+        # 1. HC should get 403 when trying to POST /api/supplements
+        success1, response = self.run_test(
+            "HC POST Supplement (Should get 403)",
             "POST",
             "/supplements",
-            401,  # Expecting 401 or 403
+            403,  # Expecting 403 Forbidden
             data={"supplement_name": "HC Test", "active": True},
             token=self.hc_token,
-            description="HC role should be denied admin functions"
+            description="HC role should get 403 for supplement creation"
         )
-        # Note: If the API returns 403 instead of 401, that's also acceptable
-        if not success and self.tests_run > 0:
-            # Check if we got 403 instead
-            try:
-                url = f"{self.base_url}/supplements"
-                headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {self.hc_token}'}
-                response = requests.post(url, json={"supplement_name": "HC Test", "active": True}, headers=headers)
-                if response.status_code == 403:
-                    print("✅ PASSED - Got 403 (Forbidden) as expected")
-                    self.tests_passed += 1
-                    success = True
-            except:
-                pass
-
-        return success
+        
+        # 2. HC should get 403 when trying to PUT /api/supplements/{id}
+        # First get a supplement ID
+        supp_list_success, supp_response = self.run_test(
+            "Get Supplement for Update Test",
+            "GET",
+            "/supplements?limit=1",
+            200,
+            token=self.admin_token,
+            description="Get supplement ID for update test"
+        )
+        
+        success2 = False
+        if supp_list_success and supp_response.get('supplements'):
+            supp_id = supp_response['supplements'][0]['_id']
+            success2, response = self.run_test(
+                "HC PUT Supplement (Should get 403)",
+                "PUT",
+                f"/supplements/{supp_id}",
+                403,
+                data={"cost_per_bottle": 99.99},
+                token=self.hc_token,
+                description="HC role should get 403 for supplement update"
+            )
+        
+        # 3. HC should get 403 when trying to DELETE /api/supplements/{id}
+        success3 = False
+        if supp_list_success and supp_response.get('supplements'):
+            supp_id = supp_response['supplements'][0]['_id']
+            success3, response = self.run_test(
+                "HC DELETE Supplement (Should get 403)",
+                "DELETE",
+                f"/supplements/{supp_id}",
+                403,
+                token=self.hc_token,
+                description="HC role should get 403 for supplement deletion"
+            )
+        
+        # 4. HC should get 403 when trying to PUT /api/templates/{id}
+        # First get a template ID
+        tmpl_list_success, tmpl_response = self.run_test(
+            "Get Template for Update Test",
+            "GET",
+            "/templates?limit=1",
+            200,
+            token=self.admin_token,
+            description="Get template ID for update test"
+        )
+        
+        success4 = False
+        if tmpl_list_success and tmpl_response.get('templates'):
+            tmpl_id = tmpl_response['templates'][0]['_id']
+            success4, response = self.run_test(
+                "HC PUT Template (Should get 403)",
+                "PUT",
+                f"/templates/{tmpl_id}",
+                403,
+                data={"program_name": "Updated by HC"},
+                token=self.hc_token,
+                description="HC role should get 403 for template update"
+            )
+        
+        return success1 and success2 and success3 and success4
 
     def cleanup(self):
         """Clean up test data"""
