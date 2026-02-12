@@ -180,6 +180,7 @@ export default function DashboardPage() {
                   <TableCell>
                     <Badge
                       variant={plan.status === 'finalized' ? 'default' : 'secondary'}
+                      data-testid={`plan-status-${plan._id}`}
                       className={plan.status === 'finalized'
                         ? 'bg-[hsl(147,70%,30%)] text-white'
                         : 'bg-[#EEF1F1] text-[#61746E]'}
