@@ -32,7 +32,7 @@ export default function DashboardPage() {
   const fetchPlans = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getPlans(search, program);
+      const res = await getPlans(search, program === 'all' ? '' : program);
       setPlans(res.plans || []);
       setTotal(res.total || 0);
     } catch (err) {
