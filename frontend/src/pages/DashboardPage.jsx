@@ -149,7 +149,7 @@ export default function DashboardPage() {
             {loading ? (
               <TableRow><TableCell colSpan={8} className="h-40 text-center text-muted-foreground">
                 <div className="flex items-center justify-center gap-3">
-                  <div className="w-5 h-5 border-2 border-[#E8740C] border-t-transparent rounded-full animate-spin" /> Loading...
+                  <div className="w-5 h-5 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin" /> Loading...
                 </div>
               </TableCell></TableRow>
             ) : plans.length === 0 ? (
