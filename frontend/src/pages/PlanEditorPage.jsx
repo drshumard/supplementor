@@ -143,21 +143,21 @@ function MonthPage({
                 <div className="flex justify-center"><NumberStepper value={supp.frequency_per_day} disabled={isFinalized}
                   onChange={(v) => onUpdateField(month.month_number, idx, 'frequency_per_day', v)} /></div>
               </>)}
-              <div>
-                {patientView ? <span className="text-sm">{supp.dosage_display || '-'}</span> :
+              <div className="flex justify-center">
+                {patientView ? <span className="text-sm text-center">{supp.dosage_display || '-'}</span> :
                   <Input value={supp.dosage_display || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.value)}
-                    className="h-10 text-sm w-full border-border/50 rounded-lg" placeholder="2 caps 3x/day" disabled={isFinalized} />}
+                    className="h-10 text-sm text-center w-full border-border/50 rounded-lg" placeholder="2 caps 3x/day" disabled={isFinalized} />}
               </div>
-              <div>
-                {patientView ? <span className="text-sm text-muted-foreground italic">{supp.instructions || '-'}</span> :
+              <div className="flex justify-center">
+                {patientView ? <span className="text-sm text-muted-foreground italic text-center">{supp.instructions || '-'}</span> :
                   <Input value={supp.instructions || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.value)}
-                    className="h-10 text-sm w-full border-border/50 rounded-lg" placeholder="With food" disabled={isFinalized} />}
+                    className="h-10 text-sm text-center w-full border-border/50 rounded-lg" placeholder="With food" disabled={isFinalized} />}
               </div>
               {showCosts && !patientView && (<>
-                <div className="font-mono tabular-nums text-sm font-semibold text-[#2B3437]">{supp.bottles_needed || '-'}</div>
-                <div className="font-mono tabular-nums text-sm font-bold text-[#147D5A]">{formatCurrency(supp.calculated_cost)}</div>
+                <div className="font-mono tabular-nums text-sm font-semibold text-[#2B3437] text-center">{supp.bottles_needed || '-'}</div>
+                <div className="font-mono tabular-nums text-sm font-bold text-[#147D5A] text-center">{formatCurrency(supp.calculated_cost)}</div>
               </>)}
               {!isFinalized && !patientView && (
                 <div>
