@@ -65,7 +65,7 @@ function MonthPage({
       </div>
 
       {/* Column headers */}
-      <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#FAFBFB]"
+      <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#F2F6F6]"
         style={{
           gridTemplateColumns: patientView
             ? '2.2fr 1.2fr 1.8fr 1.8fr'
