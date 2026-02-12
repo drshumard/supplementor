@@ -144,13 +144,14 @@ function MonthPage({
                 <div className="flex justify-center"><NumberStepper value={supp.frequency_per_day} disabled={isFinalized}
                   onChange={(v) => onUpdateField(month.month_number, idx, 'frequency_per_day', v)} /></div>
               </>)}
-              <div className="pr-2">
+              <div>
                 {patientView ? <span className="text-sm">{supp.dosage_display || '-'}</span> :
                   <Input value={supp.dosage_display || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.value)}
                     className="h-10 text-sm w-full border-border/50 rounded-lg" placeholder="2 caps 3x/day" disabled={isFinalized} />}
               </div>
-              <div className="pr-2">
+              {!patientView && <div></div>}
+              <div>
                 {patientView ? <span className="text-sm text-muted-foreground italic">{supp.instructions || '-'}</span> :
                   <Input value={supp.instructions || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.value)}
