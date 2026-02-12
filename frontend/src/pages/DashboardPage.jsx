@@ -78,30 +78,30 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Stat cards — warm tinted */}
+      {/* Stat cards — teal health palette */}
       <div className="grid grid-cols-3 gap-5 mb-8">
-        <div className="rounded-2xl bg-[#FFF8F0] border border-[#F5E6D3] p-6">
+        <div className="rounded-2xl bg-[#EAF4F3] border border-[#C8E6E0] p-6">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-[#E8740C] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#0D5F68] flex items-center justify-center">
               <ClipboardList size={18} className="text-white" />
             </div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#8B7355]">Total Plans</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#61746E]">Total Plans</span>
           </div>
           <div className="text-3xl font-bold text-[#0B0D10]">{total}</div>
         </div>
-        <div className="rounded-2xl bg-[#FFF8E1] border border-[#F5E0A0] p-6">
+        <div className="rounded-2xl bg-[#F6F7F7] border border-[#DCE3E3] p-6">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-[#F5A623] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#B26A00] flex items-center justify-center">
               <Clock size={18} className="text-white" />
             </div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#8B7355]">Drafts</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#61746E]">Drafts</span>
           </div>
           <div className="text-3xl font-bold text-[#0B0D10]">{draftCount}</div>
         </div>
         <div className="rounded-2xl bg-[#E8F5E9] border border-[#C8E6C9] p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-[#147D5A] flex items-center justify-center">
-              <CheckCircle size={18} className="text-white" />
+              <CheckCircle2 size={18} className="text-white" />
             </div>
             <span className="text-xs font-bold uppercase tracking-wider text-[#4A7C59]">Finalized</span>
           </div>
