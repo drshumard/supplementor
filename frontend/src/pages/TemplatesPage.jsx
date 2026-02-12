@@ -178,8 +178,8 @@ export default function TemplatesPage() {
           </div>
         </div>
       ) : (
-        <div className="text-center py-20 rounded-2xl border border-dashed bg-[#FFF8F0]">
-          <Layers size={48} strokeWidth={1} className="mx-auto mb-4 text-[#E8740C]/40" />
+        <div className="text-center py-20 rounded-2xl border border-dashed bg-[#EAF4F3]">
+          <Layers size={48} strokeWidth={1} className="mx-auto mb-4 text-[#0D5F68]/40" />
           <p className="text-base font-bold text-[#0B0D10]">No template found</p>
           <p className="text-sm text-muted-foreground mt-1">Select a program and step above</p>
         </div>
