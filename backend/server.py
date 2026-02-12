@@ -351,8 +351,14 @@ async def get_plan(plan_id: str):
 
 
 @app.post("/api/plans")
-async def create_plan(data: PlanCreate):
+async def create_plan(data: PlanCreate, authorization: str = Header(None)):
     doc = data.model_dump()
+    
+    # Associate plan with the creating user
+    user = await get_current_user(authorization)
+    if user:
+        doc["created_by"] = user.get("sub")
+        doc["created_by_name"] = user.get("name", "")
     
     # If a template_id is provided, load template defaults
     if data.template_id:
