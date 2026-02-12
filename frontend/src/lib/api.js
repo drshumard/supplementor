@@ -75,6 +75,15 @@ export const updatePlan = (id, data) =>
 export const deletePlan = (id) =>
   request(`/plans/${id}`, { method: 'DELETE' });
 
+export const duplicatePlan = (id) =>
+  request(`/plans/${id}/duplicate`, { method: 'POST' });
+
+export const finalizePlan = (id) =>
+  request(`/plans/${id}/finalize`, { method: 'POST' });
+
+export const reopenPlan = (id) =>
+  request(`/plans/${id}/reopen`, { method: 'POST' });
+
 // PDF Export
 export const exportPatientPDF = (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/patient`;
