@@ -32,7 +32,7 @@ function NumberStepper({ value, onChange, disabled, min = 0 }) {
         type="button"
         disabled={disabled || num <= min}
         onClick={() => onChange(Math.max(min, num - 1))}
-        className="w-8 h-full flex items-center justify-center text-[#61746E] hover:bg-[#D5ECE8] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="w-8 h-full flex items-center justify-center text-[#61746E] hover:bg-[#C8E6E0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-[#D5ECE8]"
       >
         <Minus size={13} />
       </button>
