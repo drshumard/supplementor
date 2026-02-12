@@ -125,10 +125,10 @@ function MonthPage({
               className="grid items-center px-8 py-5 border-b border-border/15 last:border-b-0 hover:bg-[#F6FAFA] transition-colors duration-150 group gap-x-5"
               style={{
                 gridTemplateColumns: patientView
-                  ? '2.2fr 1.2fr 1.8fr 1.8fr'
+                  ? '1.6fr 1.4fr 2fr'
                   : showCosts
-                    ? '2.2fr 0.6fr 0.6fr 1.2fr 1.8fr 0.6fr 0.8fr 0.3fr'
-                    : '2.2fr 0.6fr 0.6fr 1.2fr 1.8fr 0.3fr'
+                    ? '1.5fr 0.7fr 0.7fr 1.3fr 1.8fr 0.5fr 0.7fr 0.3fr'
+                    : '1.5fr 0.7fr 0.7fr 1.3fr 2fr 0.3fr'
               }}>
               <div className="flex items-center gap-3 pr-4">
                 <div>
