@@ -138,12 +138,10 @@ function MonthPage({
                 {supp.refrigerate && <Snowflake size={14} className="text-blue-500 shrink-0" />}
               </div>
               {!patientView && (<>
-                <div><Input type="number" min={0} value={supp.quantity_per_dose ?? ''}
-                  onChange={(e) => onUpdateField(month.month_number, idx, 'quantity_per_dose', e.target.value ? parseInt(e.target.value) : null)}
-                  className="h-10 w-16 text-center font-mono text-sm border-border/50 rounded-lg" disabled={isFinalized} /></div>
-                <div><Input type="number" min={0} value={supp.frequency_per_day ?? ''}
-                  onChange={(e) => onUpdateField(month.month_number, idx, 'frequency_per_day', e.target.value ? parseInt(e.target.value) : null)}
-                  className="h-10 w-16 text-center font-mono text-sm border-border/50 rounded-lg" disabled={isFinalized} /></div>
+                <div><NumberStepper value={supp.quantity_per_dose} disabled={isFinalized}
+                  onChange={(v) => onUpdateField(month.month_number, idx, 'quantity_per_dose', v)} /></div>
+                <div><NumberStepper value={supp.frequency_per_day} disabled={isFinalized}
+                  onChange={(v) => onUpdateField(month.month_number, idx, 'frequency_per_day', v)} /></div>
               </>)}
               <div className="pr-2">
                 {patientView ? <span className="text-sm">{supp.dosage_display || '-'}</span> :
