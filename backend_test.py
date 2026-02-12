@@ -695,12 +695,19 @@ def main():
         tester.test_get_plan()
         tester.test_update_plan()
         tester.test_search_plans()
+        
+        # Dashboard filter tests
+        tester.test_dashboard_filter_all()
 
-        # PDF export tests
-        tester.test_pdf_exports()
+        # PDF export tests with authorization
+        tester.test_pdf_export_with_auth()
 
-        # Role-based access tests
+        # Role-based access control tests (CRITICAL)
+        print(f"\n{'='*50}")
+        print("🔒 CRITICAL: Testing Role-Based Access Control")
+        print("="*50)
         tester.test_hc_access_restrictions()
+        tester.test_admin_access_permissions()
 
         # Cleanup
         tester.cleanup()
