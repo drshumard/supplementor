@@ -97,7 +97,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border bg-[#F9FBFB] shadow-sm overflow-hidden" data-testid="plans-table">
+      <div className="rounded-2xl border bg-[#F5F5F5] shadow-sm overflow-hidden" data-testid="plans-table">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent bg-[#EAF4F3]">
