@@ -17,26 +17,26 @@
   },
   {
     "content": "Phase 3: Plan ownership - associate plans with HC user_id",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Phase 3: Draft vs Finalized plan lifecycle",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 3: Plan duplication feature",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 3: Patient View toggle in plan editor",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 3: Inline validation + data integrity",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Phase 3: End-to-end testing with testing agent",
-    "status": "pending"
+    "status": "in_progress"
   }
 ]
