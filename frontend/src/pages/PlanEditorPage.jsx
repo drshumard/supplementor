@@ -447,7 +447,7 @@ export default function PlanEditorPage() {
         {effectiveShowCosts && !patientViewMode && (
           <div className="w-[340px] shrink-0">
             <div className="sticky top-10">
-              <div className="rounded-2xl border border-border/40 bg-white shadow-sm p-7" data-testid="plan-editor-cost-summary">
+              <div className="rounded-2xl border border-border/40 bg-[#F9FBFB] shadow-sm p-7" data-testid="plan-editor-cost-summary">
                 <h3 className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-6">Cost Summary</h3>
                 <div className="space-y-4">
                   {(plan.months || []).map(month => (
