@@ -59,6 +59,17 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDuplicate = async (e, planId) => {
+    e.stopPropagation();
+    try {
+      const result = await duplicatePlan(planId);
+      toast.success('Plan duplicated');
+      navigate(`/plans/${result._id}`);
+    } catch (err) {
+      toast.error('Duplicate failed');
+    }
+  };
+
   return (
     <div className="p-8 max-w-[1560px] mx-auto">
       {/* Header */}
