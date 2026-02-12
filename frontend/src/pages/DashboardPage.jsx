@@ -71,7 +71,7 @@ export default function DashboardPage() {
         <Button
           onClick={() => navigate('/plans/new')}
           data-testid="plans-create-new-button"
-          className="gap-2.5 h-12 px-7 bg-[#E8740C] hover:bg-[#D06508] text-white font-bold shadow-sm text-sm"
+          className="gap-2.5 h-12 px-7 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-bold shadow-sm text-sm"
         >
           <Plus size={18} />
           New Plan
