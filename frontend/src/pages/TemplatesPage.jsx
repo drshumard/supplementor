@@ -83,7 +83,7 @@ export default function TemplatesPage() {
       </div>
 
       {/* Filter bar — warm amber tinted */}
-      <div className="flex items-center gap-5 mb-8 p-6 rounded-2xl bg-[#FFF8F0] border border-[#F5E6D3]">
+      <div className="flex items-center gap-5 mb-8 p-6 rounded-2xl bg-[#EAF4F3] border border-[#C8E6E0]">
         <div className="space-y-1.5">
           <Label className="text-xs font-bold text-[#8B7355] uppercase tracking-wider">Program</Label>
           <Select value={selectedProgram} onValueChange={setSelectedProgram}>
