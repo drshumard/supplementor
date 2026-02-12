@@ -122,7 +122,7 @@ function MonthPage({
         ) : (
           (month.supplements || []).map((supp, idx) => (
             <div key={idx}
-              className="grid items-center px-8 py-5 border-b border-border/15 last:border-b-0 hover:bg-[#F6FAFA] transition-colors duration-150 group"
+              className="grid items-center px-8 py-5 border-b border-border/15 last:border-b-0 hover:bg-[#F6FAFA] transition-colors duration-150 group gap-x-5"
               style={{
                 gridTemplateColumns: patientView
                   ? '2.2fr 1.2fr 1.8fr 1.8fr'
