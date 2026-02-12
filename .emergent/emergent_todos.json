@@ -1,42 +1,18 @@
 [
   {
-    "content": "Phase 1: Core POC - PDF generation + calculation engine",
-    "status": "completed"
+    "content": "Phase 4: Replace month tabs with vertical stacked pages layout",
+    "status": "in_progress"
   },
   {
-    "content": "Phase 2: V1 App Development - Backend + Frontend",
-    "status": "completed"
+    "content": "Phase 4: Maximize template pre-fill so HC does minimum work",
+    "status": "in_progress"
   },
   {
-    "content": "Phase 2: All user stories covered in Development and testing",
-    "status": "completed"
+    "content": "Phase 4: Add 'Apply to all months' quick action for edits",
+    "status": "pending"
   },
   {
-    "content": "Phase 2: End-to-end testing with testing agent",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 3: Plan ownership - associate plans with HC user_id",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 3: Draft vs Finalized plan lifecycle",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 3: Plan duplication feature",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 3: Patient View toggle in plan editor",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 3: Inline validation + data integrity",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 3: End-to-end testing with testing agent",
-    "status": "completed"
+    "content": "Phase 4: Test the new multi-page layout",
+    "status": "pending"
   }
 ]
