@@ -85,7 +85,7 @@ export default function TemplatesPage() {
       {/* Filter bar — warm amber tinted */}
       <div className="flex items-center gap-5 mb-8 p-6 rounded-2xl bg-[#EAF4F3] border border-[#C8E6E0]">
         <div className="space-y-1.5">
-          <Label className="text-xs font-bold text-[#8B7355] uppercase tracking-wider">Program</Label>
+          <Label className="text-xs font-bold text-[#61746E] uppercase tracking-wider">Program</Label>
           <Select value={selectedProgram} onValueChange={setSelectedProgram}>
             <SelectTrigger className="w-[200px] h-12 text-sm" data-testid="admin-templates-program-select"><SelectValue /></SelectTrigger>
             <SelectContent>{PROGRAMS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
