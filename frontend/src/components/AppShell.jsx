@@ -36,7 +36,7 @@ export default function AppShell({ children }) {
           </div>
         </div>
 
-        <nav className="flex-1 py-6 px-4 space-y-3">
+        <nav className="flex-1 py-6 px-4 space-y-4">
           {filteredNav.map(item => {
             const active = location.pathname === item.path || 
               (item.path !== '/' && location.pathname.startsWith(item.path));
