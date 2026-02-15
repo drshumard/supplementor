@@ -1,289 +1,266 @@
 """
-PDF generation for patient and HC exports using WeasyPrint.
+PDF generation for patient and HC exports using fpdf2 (pure Python, no system deps).
 """
-import io
-from jinja2 import Template
-from weasyprint import HTML
+from fpdf import FPDF
 
 
-PATIENT_PDF_TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-    @page {
-        size: Letter;
-        margin: 1in 0.75in;
-        @top-center {
-            content: "Clarity Wellness Center";
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 9pt;
-            color: #94a3b8;
-            letter-spacing: 0.5px;
-        }
-        @bottom-center {
-            content: "Page " counter(page) " of " counter(pages);
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 8pt;
-            color: #94a3b8;
-        }
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        color: #1e293b;
-        line-height: 1.5;
-    }
-    .month-page { page-break-before: always; }
-    .month-page:first-child { page-break-before: avoid; }
-    .header {
-        text-align: center;
-        margin-bottom: 24px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    .header h1 {
-        font-size: 22pt;
-        font-weight: 300;
-        color: #0f172a;
-        letter-spacing: -0.5px;
-        margin-bottom: 4px;
-    }
-    .header .subtitle {
-        font-size: 11pt;
-        color: #64748b;
-        font-weight: 400;
-    }
-    .meta {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 20px;
-        font-size: 10pt;
-        color: #475569;
-    }
-    .meta-label { font-weight: 600; color: #334155; }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 12px;
-    }
-    th {
-        background: #f8fafc;
-        padding: 8px 10px;
-        text-align: left;
-        font-size: 8.5pt;
-        font-weight: 600;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid #e2e8f0;
-    }
-    td {
-        padding: 8px 10px;
-        font-size: 10pt;
-        border-bottom: 1px solid #f1f5f9;
-        vertical-align: top;
-    }
-    tr:last-child td { border-bottom: none; }
-    .supplement-name { font-weight: 500; color: #0f172a; }
-    .company { font-size: 8pt; color: #94a3b8; margin-top: 1px; }
-    .instructions { font-size: 9pt; color: #64748b; font-style: italic; }
-    .fridge-badge {
-        display: inline-block;
-        background: #dbeafe;
-        color: #1d4ed8;
-        font-size: 7pt;
-        padding: 1px 5px;
-        border-radius: 3px;
-        font-weight: 600;
-    }
-</style>
-</head>
-<body>
-{% for month in plan.months %}
-<div class="month-page">
-    <div class="header">
-        <h1>{{ plan.program_name }}</h1>
-        <div class="subtitle">{{ plan.step_label }} &mdash; Month {{ month.month_number }}</div>
-    </div>
-    <div class="meta">
-        <div><span class="meta-label">Patient:</span> {{ plan.patient_name }}</div>
-        <div><span class="meta-label">Date:</span> {{ plan.date }}</div>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%">Supplement</th>
-                <th style="width:25%">Dosage</th>
-                <th style="width:40%">Instructions</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for s in month.supplements %}
-            <tr>
-                <td>
-                    <div class="supplement-name">{{ s.supplement_name }}</div>
-                    <div class="company">{{ s.company }}</div>
-                    {% if s.refrigerate %}<span class="fridge-badge">REFRIGERATE</span>{% endif %}
-                </td>
-                <td>{{ s.dosage_display }}</td>
-                <td class="instructions">{{ s.instructions }}{% if s.hc_notes and false %} — {{ s.hc_notes }}{% endif %}</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% endfor %}
-</body>
-</html>
-"""
+class BasePDF(FPDF):
+    """Base PDF with common styling."""
+    
+    def __init__(self, header_text="Clarity Wellness Center"):
+        super().__init__()
+        self._header_text = header_text
+        self.set_auto_page_break(auto=True, margin=25)
+    
+    def header(self):
+        self.set_font("Helvetica", "I", 9)
+        self.set_text_color(148, 163, 184)
+        self.cell(0, 8, self._header_text, align="C", new_x="LMARGIN", new_y="NEXT")
+        self.ln(2)
+    
+    def footer(self):
+        self.set_y(-20)
+        self.set_font("Helvetica", "", 8)
+        self.set_text_color(148, 163, 184)
+        self.cell(0, 10, f"Page {self.page_no()}/{{nb}}", align="C")
+    
+    def _draw_line(self, y=None):
+        if y is None:
+            y = self.get_y()
+        self.set_draw_color(226, 232, 240)
+        self.line(self.l_margin, y, self.w - self.r_margin, y)
 
 
-HC_PDF_TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-    @page {
-        size: Letter;
-        margin: 0.75in;
-        @top-center {
-            content: "INTERNAL \2014  HC Reference";
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 9pt;
-            color: #dc2626;
-            font-weight: 600;
-        }
-        @bottom-center {
-            content: "Page " counter(page) " of " counter(pages);
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 8pt;
-            color: #94a3b8;
-        }
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        color: #1e293b;
-        line-height: 1.5;
-        font-size: 9pt;
-    }
-    .month-page { page-break-before: always; }
-    .month-page:first-child { page-break-before: avoid; }
-    .header {
-        text-align: center;
-        margin-bottom: 16px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    .header h1 { font-size: 18pt; font-weight: 300; color: #0f172a; }
-    .header .subtitle { font-size: 10pt; color: #64748b; }
-    .meta {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 14px;
-        font-size: 9pt;
-        color: #475569;
-    }
-    .meta-label { font-weight: 600; color: #334155; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th {
-        background: #f8fafc;
-        padding: 6px 8px;
-        text-align: left;
-        font-size: 7.5pt;
-        font-weight: 600;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid #e2e8f0;
-    }
-    td {
-        padding: 6px 8px;
-        font-size: 9pt;
-        border-bottom: 1px solid #f1f5f9;
-        vertical-align: top;
-    }
-    .supplement-name { font-weight: 500; color: #0f172a; }
-    .company { font-size: 7.5pt; color: #94a3b8; }
-    .cost-cell { font-weight: 600; color: #059669; }
-    .total-row { background: #f0fdf4; font-weight: 600; }
-    .total-row td { border-top: 2px solid #059669; padding: 10px 8px; }
-    .program-total {
-        margin-top: 24px;
-        padding: 16px;
-        background: #f0fdf4;
-        border: 1px solid #bbf7d0;
-        border-radius: 8px;
-        text-align: center;
-    }
-    .program-total .label { font-size: 10pt; color: #475569; }
-    .program-total .amount { font-size: 20pt; font-weight: 600; color: #059669; }
-</style>
-</head>
-<body>
-{% for month in plan.months %}
-<div class="month-page">
-    <div class="header">
-        <h1>{{ plan.program_name }}</h1>
-        <div class="subtitle">{{ plan.step_label }} &mdash; Month {{ month.month_number }} (HC View)</div>
-    </div>
-    <div class="meta">
-        <div><span class="meta-label">Patient:</span> {{ plan.patient_name }}</div>
-        <div><span class="meta-label">Date:</span> {{ plan.date }}</div>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>Supplement</th>
-                <th>Dosage</th>
-                <th>Instructions</th>
-                <th style="text-align:center">Bottles</th>
-                <th style="text-align:right">Cost</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for s in month.supplements %}
-            <tr>
-                <td>
-                    <div class="supplement-name">{{ s.supplement_name }}</div>
-                    <div class="company">{{ s.company }}</div>
-                </td>
-                <td>{{ s.dosage_display }}</td>
-                <td>{{ s.instructions }}</td>
-                <td style="text-align:center">{{ s.bottles_needed or '-' }}</td>
-                <td class="cost-cell" style="text-align:right">${{ "%.2f"|format(s.calculated_cost or 0) }}</td>
-            </tr>
-        {% endfor %}
-        <tr class="total-row">
-            <td colspan="4" style="text-align:right">Monthly Total:</td>
-            <td class="cost-cell" style="text-align:right">${{ "%.2f"|format(month.monthly_total_cost or 0) }}</td>
-        </tr>
-        </tbody>
-    </table>
-</div>
-{% endfor %}
-
-<div class="month-page">
-    <div class="program-total">
-        <div class="label">Total Program Cost</div>
-        <div class="amount">${{ "%.2f"|format(plan.total_program_cost or 0) }}</div>
-    </div>
-</div>
-</body>
-</html>
-"""
+def _safe(val):
+    """Safely convert value to string."""
+    if val is None:
+        return ""
+    return str(val)
 
 
 def generate_patient_pdf(plan_data: dict) -> bytes:
     """Generate patient-facing PDF bytes (no cost info)."""
-    template = Template(PATIENT_PDF_TEMPLATE)
-    html_content = template.render(plan=plan_data)
-    return HTML(string=html_content).write_pdf()
+    pdf = BasePDF("Clarity Wellness Center")
+    pdf.alias_nb_pages()
+    
+    months = plan_data.get("months") or []
+    
+    for i, month in enumerate(months):
+        pdf.add_page()
+        
+        # Title
+        pdf.set_font("Helvetica", "B", 22)
+        pdf.set_text_color(15, 23, 42)
+        pdf.cell(0, 12, _safe(plan_data.get("program_name", "")), align="C", new_x="LMARGIN", new_y="NEXT")
+        
+        pdf.set_font("Helvetica", "", 11)
+        pdf.set_text_color(100, 116, 139)
+        step = plan_data.get("step_label") or f"Step {plan_data.get('step_number', '')}"
+        pdf.cell(0, 8, f"{step} - Month {month.get('month_number', i+1)}", align="C", new_x="LMARGIN", new_y="NEXT")
+        
+        pdf.ln(4)
+        pdf._draw_line()
+        pdf.ln(6)
+        
+        # Meta
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(51, 65, 85)
+        pdf.cell(40, 7, "Patient:", new_x="RIGHT")
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(71, 85, 105)
+        pdf.cell(60, 7, _safe(plan_data.get("patient_name", "")), new_x="RIGHT")
+        
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(51, 65, 85)
+        pdf.cell(25, 7, "Date:", new_x="RIGHT")
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(71, 85, 105)
+        pdf.cell(0, 7, _safe(plan_data.get("date", "")), new_x="LMARGIN", new_y="NEXT")
+        
+        pdf.ln(8)
+        
+        # Table header
+        col_w = [65, 45, 80]
+        headers = ["Supplement", "Dosage", "Instructions"]
+        
+        pdf.set_fill_color(248, 250, 252)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_text_color(100, 116, 139)
+        for j, h in enumerate(headers):
+            pdf.cell(col_w[j], 10, h.upper(), border=0, fill=True, new_x="RIGHT")
+        pdf.ln()
+        
+        pdf.set_draw_color(226, 232, 240)
+        pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+        pdf.ln(2)
+        
+        # Table rows
+        supplements = month.get("supplements") or []
+        for s in supplements:
+            y_start = pdf.get_y()
+            
+            # Check page break
+            if y_start > 250:
+                pdf.add_page()
+                y_start = pdf.get_y()
+            
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.set_text_color(15, 23, 42)
+            name = _safe(s.get("supplement_name", ""))
+            pdf.cell(col_w[0], 6, name, new_x="RIGHT")
+            
+            pdf.set_font("Helvetica", "", 10)
+            pdf.set_text_color(30, 41, 59)
+            pdf.cell(col_w[1], 6, _safe(s.get("dosage_display", "")), new_x="RIGHT")
+            
+            pdf.set_font("Helvetica", "I", 9)
+            pdf.set_text_color(100, 116, 139)
+            instr = _safe(s.get("instructions", ""))
+            pdf.cell(col_w[2], 6, instr, new_x="LMARGIN", new_y="NEXT")
+            
+            # Company line
+            pdf.set_font("Helvetica", "", 7)
+            pdf.set_text_color(148, 163, 184)
+            company = _safe(s.get("company", ""))
+            fridge = " [REFRIGERATE]" if s.get("refrigerate") else ""
+            pdf.cell(col_w[0], 4, f"{company}{fridge}", new_x="LMARGIN", new_y="NEXT")
+            
+            pdf.ln(3)
+            
+            # Separator
+            pdf.set_draw_color(241, 245, 249)
+            pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+            pdf.ln(2)
+    
+    return pdf.output()
 
 
 def generate_hc_pdf(plan_data: dict) -> bytes:
     """Generate HC/internal PDF bytes (with costs)."""
-    template = Template(HC_PDF_TEMPLATE)
-    html_content = template.render(plan=plan_data)
-    return HTML(string=html_content).write_pdf()
+    pdf = BasePDF("INTERNAL - HC Reference")
+    pdf._header_text = "INTERNAL - HC Reference"
+    pdf.alias_nb_pages()
+    
+    months = plan_data.get("months") or []
+    
+    for i, month in enumerate(months):
+        pdf.add_page()
+        
+        # Title
+        pdf.set_font("Helvetica", "B", 18)
+        pdf.set_text_color(15, 23, 42)
+        pdf.cell(0, 10, _safe(plan_data.get("program_name", "")), align="C", new_x="LMARGIN", new_y="NEXT")
+        
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(100, 116, 139)
+        step = plan_data.get("step_label") or f"Step {plan_data.get('step_number', '')}"
+        pdf.cell(0, 7, f"{step} - Month {month.get('month_number', i+1)} (HC View)", align="C", new_x="LMARGIN", new_y="NEXT")
+        
+        pdf.ln(3)
+        pdf._draw_line()
+        pdf.ln(5)
+        
+        # Meta
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_text_color(51, 65, 85)
+        pdf.cell(30, 6, "Patient:", new_x="RIGHT")
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(71, 85, 105)
+        pdf.cell(50, 6, _safe(plan_data.get("patient_name", "")), new_x="RIGHT")
+        
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_text_color(51, 65, 85)
+        pdf.cell(20, 6, "Date:", new_x="RIGHT")
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(71, 85, 105)
+        pdf.cell(0, 6, _safe(plan_data.get("date", "")), new_x="LMARGIN", new_y="NEXT")
+        
+        pdf.ln(6)
+        
+        # Table header
+        col_w = [50, 35, 50, 18, 27]
+        headers = ["Supplement", "Dosage", "Instructions", "Bottles", "Cost"]
+        
+        pdf.set_fill_color(248, 250, 252)
+        pdf.set_font("Helvetica", "B", 7.5)
+        pdf.set_text_color(100, 116, 139)
+        for j, h in enumerate(headers):
+            align = "R" if j >= 3 else "L"
+            pdf.cell(col_w[j], 9, h.upper(), border=0, fill=True, align=align, new_x="RIGHT")
+        pdf.ln()
+        
+        pdf.set_draw_color(226, 232, 240)
+        pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+        pdf.ln(2)
+        
+        # Rows
+        supplements = month.get("supplements") or []
+        for s in supplements:
+            if pdf.get_y() > 250:
+                pdf.add_page()
+            
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(15, 23, 42)
+            pdf.cell(col_w[0], 6, _safe(s.get("supplement_name", "")), new_x="RIGHT")
+            
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(30, 41, 59)
+            pdf.cell(col_w[1], 6, _safe(s.get("dosage_display", "")), new_x="RIGHT")
+            
+            pdf.set_font("Helvetica", "I", 8)
+            pdf.set_text_color(100, 116, 139)
+            pdf.cell(col_w[2], 6, _safe(s.get("instructions", "")), new_x="RIGHT")
+            
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(30, 41, 59)
+            bottles = s.get("bottles_needed") or "-"
+            pdf.cell(col_w[3], 6, str(bottles), align="R", new_x="RIGHT")
+            
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.set_text_color(5, 150, 105)
+            cost = s.get("calculated_cost") or 0
+            pdf.cell(col_w[4], 6, f"${cost:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
+            
+            # Company
+            pdf.set_font("Helvetica", "", 7)
+            pdf.set_text_color(148, 163, 184)
+            pdf.cell(col_w[0], 4, _safe(s.get("company", "")), new_x="LMARGIN", new_y="NEXT")
+            
+            pdf.ln(2)
+            pdf.set_draw_color(241, 245, 249)
+            pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+            pdf.ln(2)
+        
+        # Monthly total
+        pdf.ln(2)
+        pdf.set_draw_color(5, 150, 105)
+        pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+        pdf.ln(3)
+        
+        pdf.set_fill_color(240, 253, 244)
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(5, 150, 105)
+        total_w = sum(col_w)
+        monthly_total = month.get("monthly_total_cost") or 0
+        pdf.cell(total_w - col_w[-1], 10, "Monthly Total:", align="R", fill=True, new_x="RIGHT")
+        pdf.cell(col_w[-1], 10, f"${monthly_total:.2f}", align="R", fill=True, new_x="LMARGIN", new_y="NEXT")
+    
+    # Program total page
+    pdf.add_page()
+    pdf.ln(40)
+    
+    pdf.set_fill_color(240, 253, 244)
+    pdf.set_draw_color(187, 247, 208)
+    x = (pdf.w - 120) / 2
+    pdf.rect(x, pdf.get_y(), 120, 50, style="DF")
+    
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(71, 85, 105)
+    pdf.cell(0, 15, "Total Program Cost", align="C", new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.set_font("Helvetica", "B", 24)
+    pdf.set_text_color(5, 150, 105)
+    program_total = plan_data.get("total_program_cost") or 0
+    pdf.cell(0, 15, f"${program_total:.2f}", align="C", new_x="LMARGIN", new_y="NEXT")
+    
+    return pdf.output()
