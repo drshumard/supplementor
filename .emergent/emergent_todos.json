@@ -1,22 +1,22 @@
 [
   {
-    "content": "Plan Editor: bigger centered patient name, left-aligned columns, colorful buttons, warm tinted month headers",
-    "status": "completed"
+    "content": "Rename app from Clarity to Dr. Shumard everywhere",
+    "status": "in_progress"
   },
   {
-    "content": "Dashboard: warm stat cards, colorful New Plan button, improved visual hierarchy",
-    "status": "completed"
+    "content": "Replace logos with provided CDN URLs",
+    "status": "pending"
   },
   {
-    "content": "Supplements & Templates pages: warm backgrounds, colorful accents",
-    "status": "completed"
+    "content": "Add logo to PDF exports",
+    "status": "pending"
   },
   {
-    "content": "AppShell & global: warm section tints, button color variety",
-    "status": "completed"
+    "content": "Write Dockerfile + docker-compose.yml",
+    "status": "pending"
   },
   {
-    "content": "Screenshot verify + testing",
-    "status": "completed"
+    "content": "Write deploy.sh script + deployment guide",
+    "status": "pending"
   }
 ]
