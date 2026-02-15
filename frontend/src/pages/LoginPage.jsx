@@ -48,13 +48,13 @@ export default function LoginPage() {
       <Card className="w-full max-w-[440px] shadow-[var(--shadow-md)] border-border/50 relative z-10" data-testid="login-card">
         <CardHeader className="text-center pb-4 pt-8 px-8">
           <div className="flex justify-center mb-5">
-            <div className="w-14 h-14 rounded-2xl bg-[hsl(187,79%,23%)] flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-2xl">C</span>
+            <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md">
+              <img src="https://portal-drshumard.b-cdn.net/trans_sized.png" alt="Dr. Shumard" className="w-full h-full object-contain" />
             </div>
           </div>
           <CardTitle className="text-2xl font-semibold tracking-[-0.02em]">Welcome back</CardTitle>
           <CardDescription className="text-sm text-muted-foreground mt-1">
-            Sign in to Clarity Protocol Manager
+            Sign in to Dr. Shumard Protocol Manager
           </CardDescription>
         </CardHeader>
         <CardContent className="px-8 pb-8">
