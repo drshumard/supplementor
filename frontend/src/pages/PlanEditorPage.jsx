@@ -147,13 +147,13 @@ function MonthPage({
                 {patientView ? <span className="text-sm text-center">{supp.dosage_display || '-'}</span> :
                   <Input value={supp.dosage_display || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.value)}
-                    className="h-10 text-sm text-center w-full border-border/50 rounded-lg" placeholder="2 caps 3x/day" disabled={isFinalized} />}
+                    className="h-10 text-sm text-center w-full border-[#C8E6E0] rounded-lg" placeholder="2 caps 3x/day" disabled={isFinalized} />}
               </div>
               <div className="flex justify-center">
                 {patientView ? <span className="text-sm text-muted-foreground italic text-center">{supp.instructions || '-'}</span> :
                   <Input value={supp.instructions || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.value)}
-                    className="h-10 text-sm text-center w-full border-border/50 rounded-lg" placeholder="With food" disabled={isFinalized} />}
+                    className="h-10 text-sm text-center w-full border-[#C8E6E0] rounded-lg" placeholder="With food" disabled={isFinalized} />}
               </div>
               {showCosts && !patientView && (<>
                 <div className="font-mono tabular-nums text-sm font-semibold text-[#2B3437] text-center">{supp.bottles_needed || '-'}</div>
