@@ -36,24 +36,25 @@ export default function AppShell({ children }) {
           </div>
         </div>
 
-        <nav className="flex-1 py-6 px-4 space-y-4">
+        <nav className="flex-1 py-6 px-4 space-y-1">
           {filteredNav.map(item => {
             const active = location.pathname === item.path || 
               (item.path !== '/' && location.pathname.startsWith(item.path));
             return (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
-                className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-150 ${
-                  active
-                    ? 'bg-[hsl(174,35%,93%)] text-[hsl(187,79%,23%)] shadow-sm'
-                    : 'text-[#61746E] hover:bg-[#F4F5F5] hover:text-[#2B3437]'
-                }`}
-              >
-                <item.icon size={20} strokeWidth={active ? 2 : 1.5} />
-                {item.label}
-              </button>
+              <div key={item.path} className="py-1">
+                <button
+                  onClick={() => navigate(item.path)}
+                  data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
+                  className={`w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                    active
+                      ? 'bg-[hsl(174,35%,93%)] text-[hsl(187,79%,23%)] shadow-sm'
+                      : 'text-[#61746E] hover:bg-[#F4F5F5] hover:text-[#2B3437]'
+                  }`}
+                >
+                  <item.icon size={20} strokeWidth={active ? 2 : 1.5} />
+                  {item.label}
+                </button>
+              </div>
             );
           })}
         </nav>
