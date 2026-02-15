@@ -7,6 +7,7 @@ import PlanEditorPage from './pages/PlanEditorPage';
 import NewPlanPage from './pages/NewPlanPage';
 import SupplementsPage from './pages/SupplementsPage';
 import TemplatesPage from './pages/TemplatesPage';
+import UsersPage from './pages/UsersPage';
 import AppShell from './components/AppShell';
 import { getMe } from './lib/api';
 import './App.css';
