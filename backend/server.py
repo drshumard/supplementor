@@ -522,7 +522,7 @@ async def export_patient_pdf(plan_id: str):
                 if q and f:
                     supp["dosage_display"] = f"{q} cap{'s' if q > 1 else ''}, {f}x/day"
     
-    pdf_bytes = generate_patient_pdf(plan)
+    pdf_bytes = bytes(generate_patient_pdf(plan))
     filename = f"{plan.get('patient_name', 'patient').replace(' ', '_')}_protocol.pdf"
     return Response(
         content=pdf_bytes,
