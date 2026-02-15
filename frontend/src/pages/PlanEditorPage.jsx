@@ -378,7 +378,7 @@ export default function PlanEditorPage() {
           <Input
             value={plan.patient_name || ''}
             onChange={(e) => updatePatientName(e.target.value)}
-            className="text-3xl font-bold border border-border/50 bg-[#FAFAFA] rounded-lg h-10 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.02em] text-center max-w-[480px] mx-auto"
+            className="text-3xl font-bold border border-[#C8E6E0] bg-[#FAFAFA] rounded-lg h-10 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.02em] text-center max-w-[480px] mx-auto"
             placeholder="Patient Name"
             data-testid="plan-editor-patient-name"
             disabled={isFinalized}
