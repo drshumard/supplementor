@@ -80,6 +80,7 @@ function AppRoutes() {
                 <Route path="/plans/:planId" element={<PlanEditorPage />} />
                 <Route path="/admin/supplements" element={<SupplementsPage />} />
                 <Route path="/admin/templates" element={<TemplatesPage />} />
+                <Route path="/admin/users" element={<UsersPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </AppShell>
