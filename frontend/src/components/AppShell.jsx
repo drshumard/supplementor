@@ -30,7 +30,7 @@ export default function AppShell({ children }) {
               <span className="text-white font-bold text-lg">C</span>
             </div>
             <div>
-              <div className="text-base font-bold tracking-[-0.01em] text-[#0B0D10]">Clarity</div>
+              <div className="text-base font-bold tracking-[-0.01em] text-[#0B0D10]">Dr. Shumard</div>
               <div className="text-[11px] text-muted-foreground tracking-wide uppercase">Protocol Manager</div>
             </div>
           </div>
