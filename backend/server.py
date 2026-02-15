@@ -156,6 +156,92 @@ async def get_me(token: str = Query(...)):
     return safe
 
 
+# ─── User Management (Admin only) ────────────────────────────────────────────
+
+@app.get("/api/users")
+async def list_users(
+    search: str = "",
+    role: str = "",
+    user=Depends(require_admin)
+):
+    query = {}
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+        ]
+    if role:
+        query["role"] = role
+    cursor = db.users.find(query).sort("created_at", -1)
+    docs = await cursor.to_list(length=200)
+    total = await db.users.count_documents(query)
+    safe_docs = []
+    for d in serialize_doc(docs):
+        d.pop("password_hash", None)
+        safe_docs.append(d)
+    return {"users": safe_docs, "total": total}
+
+
+@app.post("/api/users")
+async def create_user(data: UserCreate, user=Depends(require_admin)):
+    existing = await db.users.find_one({"email": data.email.lower()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already exists")
+    hashed = pwd_context.hash(data.password)
+    doc = {
+        "email": data.email.lower(),
+        "password_hash": hashed,
+        "name": data.name,
+        "role": data.role,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+    result = await db.users.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    safe = serialize_doc(doc)
+    safe.pop("password_hash", None)
+    return safe
+
+
+@app.put("/api/users/{user_id}")
+async def update_user(user_id: str, data: UserUpdate, user=Depends(require_admin)):
+    existing = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not existing:
+        raise HTTPException(status_code=404, detail="User not found")
+    updates = {}
+    if data.email is not None:
+        # Check email uniqueness
+        dup = await db.users.find_one({"email": data.email.lower(), "_id": {"$ne": ObjectId(user_id)}})
+        if dup:
+            raise HTTPException(status_code=400, detail="Email already in use")
+        updates["email"] = data.email.lower()
+    if data.name is not None:
+        updates["name"] = data.name
+    if data.role is not None:
+        updates["role"] = data.role
+    if data.password is not None and data.password.strip():
+        updates["password_hash"] = pwd_context.hash(data.password)
+    if updates:
+        updates["updated_at"] = datetime.utcnow()
+        await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": updates})
+    doc = await db.users.find_one({"_id": ObjectId(user_id)})
+    safe = serialize_doc(doc)
+    safe.pop("password_hash", None)
+    return safe
+
+
+@app.delete("/api/users/{user_id}")
+async def delete_user(user_id: str, user=Depends(require_admin)):
+    # Prevent deleting yourself
+    if user.get("sub") == user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete your own account")
+    result = await db.users.delete_one({"_id": ObjectId(user_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"deleted": True}
+
+
+
 # ─── Seed Endpoint ───────────────────────────────────────────────────────────
 
 @app.post("/api/seed")
