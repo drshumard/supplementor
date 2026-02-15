@@ -18,7 +18,7 @@ from models import (
     serialize_doc, SupplementCreate, SupplementUpdate,
     TemplateCreate, TemplateUpdate, TemplateSupplementEntry,
     PlanCreate, PlanUpdate, PlanMonth, PlanSupplementEntry,
-    UserCreate, UserLogin
+    UserCreate, UserLogin, UserUpdate
 )
 from calculations import (
     calculate_daily_dosage, calculate_bottles_needed,
