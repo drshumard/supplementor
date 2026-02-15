@@ -105,6 +105,20 @@ export const exportHCPDF = (planId) => {
   });
 };
 
+
+// Users (admin)
+export const getUsers = (search = '', role = '') =>
+  request(`/users?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}`);
+
+export const createUser = (data) =>
+  request('/users', { method: 'POST', body: JSON.stringify(data) });
+
+export const updateUser = (id, data) =>
+  request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+export const deleteUser = (id) =>
+  request(`/users/${id}`, { method: 'DELETE' });
+
 // Seed
 export const seedData = () =>
   request('/seed', { method: 'POST' });
