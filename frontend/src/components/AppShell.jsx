@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { LayoutDashboard, FilePlus, Pill, Settings, LogOut, Layers } from 'lucide-react';
+import { LayoutDashboard, FilePlus, Pill, Settings, LogOut, Layers, Users } from 'lucide-react';
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 
@@ -10,6 +10,7 @@ const navItems = [
   { label: 'New Plan', icon: FilePlus, path: '/plans/new', roles: ['admin', 'hc'] },
   { label: 'Supplements', icon: Pill, path: '/admin/supplements', roles: ['admin'] },
   { label: 'Templates', icon: Layers, path: '/admin/templates', roles: ['admin'] },
+  { label: 'Users', icon: Users, path: '/admin/users', roles: ['admin'] },
 ];
 
 export default function AppShell({ children }) {
