@@ -26,8 +26,8 @@ export default function AppShell({ children }) {
       <aside className="w-[260px] bg-white border-r border-border/60 flex flex-col shrink-0">
         <div className="h-[84px] flex items-center px-7 border-b border-border/40">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-[hsl(187,79%,23%)] flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-lg">C</span>
+            <div className="w-11 h-11 rounded-xl overflow-hidden shadow-sm">
+              <img src="https://portal-drshumard.b-cdn.net/trans_sized.png" alt="Dr. Shumard" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="text-base font-bold tracking-[-0.01em] text-[#0B0D10]">Dr. Shumard</div>
