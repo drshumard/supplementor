@@ -25,15 +25,7 @@ export default function AppShell({ children }) {
       {/* Left Navigation */}
       <aside className="w-[260px] bg-white border-r border-border/60 flex flex-col shrink-0">
         <div className="h-[84px] flex items-center px-7 border-b border-border/40">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl overflow-hidden shadow-sm">
-              <img src="https://portal-drshumard.b-cdn.net/trans_sized.png" alt="Dr. Shumard" className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <div className="text-base font-bold tracking-[-0.01em] text-[#0B0D10]">Dr. Shumard</div>
-              <div className="text-[11px] text-muted-foreground tracking-wide uppercase">Protocol Manager</div>
-            </div>
-          </div>
+          <img src="https://portal-drshumard.b-cdn.net/logo.png" alt="Dr. Shumard" className="h-8 w-auto object-contain flex-shrink-0" />
         </div>
 
         <nav className="flex-1 py-6 px-4 space-y-1">
