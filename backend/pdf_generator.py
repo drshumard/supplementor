@@ -7,7 +7,7 @@ from fpdf import FPDF
 class BasePDF(FPDF):
     """Base PDF with common styling."""
     
-    def __init__(self, header_text="Clarity Wellness Center"):
+    def __init__(self, header_text="Dr. Shumard Wellness Center"):
         super().__init__()
         self._header_text = header_text
         self.set_auto_page_break(auto=True, margin=25)
