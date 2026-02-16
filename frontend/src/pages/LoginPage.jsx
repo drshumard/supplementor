@@ -93,11 +93,6 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
-          <div className="mt-6 pt-5 border-t border-border/50 text-center">
-            <p className="text-xs text-muted-foreground">
-              Demo: admin@clarity.com / admin123 or hc@clarity.com / hc123
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
