@@ -187,7 +187,23 @@ export default function SupplementsPage() {
                 <Input value={editData.supplement_name} onChange={(e) => setEditData({...editData, supplement_name: e.target.value})} className="h-12" />
               </div>
               <div className="space-y-2"><Label className="text-sm font-semibold">Company / Brand</Label><Input value={editData.company} onChange={(e) => setEditData({...editData, company: e.target.value})} className="h-12" /></div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Unit Type</Label><Input value={editData.unit_type} onChange={(e) => setEditData({...editData, unit_type: e.target.value})} className="h-12" placeholder="caps, ml, scoops" /></div>
+              <div className="space-y-2"><Label className="text-sm font-semibold">Unit Type</Label>
+                <Select value={editData.unit_type} onValueChange={(v) => setEditData({...editData, unit_type: v})}>
+                  <SelectTrigger className="h-12"><SelectValue placeholder="Select unit" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="caps">Capsules (caps)</SelectItem>
+                    <SelectItem value="ml">Milliliters (ml)</SelectItem>
+                    <SelectItem value="serving">Serving</SelectItem>
+                    <SelectItem value="scoop">Scoop</SelectItem>
+                    <SelectItem value="pump">Pump</SelectItem>
+                    <SelectItem value="drop">Drop</SelectItem>
+                    <SelectItem value="tablet">Tablet</SelectItem>
+                    <SelectItem value="packet">Packet</SelectItem>
+                    <SelectItem value="g">Grams (g)</SelectItem>
+                    <SelectItem value="lozenge">Lozenge</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2"><Label className="text-sm font-semibold">Units Per Bottle</Label><Input type="number" value={editData.units_per_bottle} onChange={(e) => setEditData({...editData, units_per_bottle: e.target.value})} className="h-12 font-mono" /></div>
               <div className="space-y-2"><Label className="text-sm font-semibold">Cost Per Bottle ($)</Label><Input type="number" step="0.01" value={editData.cost_per_bottle} onChange={(e) => setEditData({...editData, cost_per_bottle: e.target.value})} className="h-12 font-mono" /></div>
               <div className="space-y-2"><Label className="text-sm font-semibold">Default Qty Per Dose</Label><Input type="number" value={editData.default_quantity_per_dose} onChange={(e) => setEditData({...editData, default_quantity_per_dose: e.target.value})} className="h-12 font-mono" /></div>
