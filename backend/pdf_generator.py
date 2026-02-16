@@ -40,7 +40,7 @@ def _safe(val):
 
 def generate_patient_pdf(plan_data: dict) -> bytes:
     """Generate patient-facing PDF bytes (no cost info)."""
-    pdf = BasePDF("Clarity Wellness Center")
+    pdf = BasePDF("Dr. Shumard Wellness Center")
     pdf.alias_nb_pages()
     
     months = plan_data.get("months") or []
