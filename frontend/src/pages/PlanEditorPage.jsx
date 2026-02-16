@@ -301,7 +301,22 @@ export default function PlanEditorPage() {
   const updateField = (monthNum, suppIndex, field, value) => {
     if (!plan || isFinalized) return;
     const np = { ...plan }; const m = np.months?.find(x => x.month_number === monthNum);
-    if (m && m.supplements[suppIndex]) { m.supplements[suppIndex][field] = value; }
+    if (m && m.supplements[suppIndex]) {
+      m.supplements[suppIndex][field] = value;
+      // Auto-update dosage_display when qty or frequency changes
+      if (field === 'quantity_per_dose' || field === 'frequency_per_day') {
+        const s = m.supplements[suppIndex];
+        const qty = field === 'quantity_per_dose' ? value : s.quantity_per_dose;
+        const freq = field === 'frequency_per_day' ? value : s.frequency_per_day;
+        if (qty && freq) {
+          // Find unit type from master supplement list
+          const master = supplements.find(ms => ms._id === s.supplement_id);
+          const unit = master?.unit_type || 'caps';
+          const unitLabel = qty === 1 ? unit.replace(/s$/, '') : unit;
+          m.supplements[suppIndex].dosage_display = `${qty} ${unitLabel} ${freq}x/day`;
+        }
+      }
+    }
     recalcAndUpdate(np);
   };
   const updatePatientName = (name) => {
