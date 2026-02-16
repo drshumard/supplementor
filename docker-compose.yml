@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: drshumard-protocol
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3800}:80"
+    environment:
+      - MONGO_URL=${MONGO_URL:-mongodb://mongo:27017/drshumard_protocol}
+      - JWT_SECRET=${JWT_SECRET:-change-this-to-a-random-secret-key}
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    container_name: drshumard-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "${MONGO_PORT:-27018}:27017"
+
+volumes:
+  mongo_data:
