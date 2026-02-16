@@ -1,22 +1,22 @@
 [
   {
     "content": "Rename app from Clarity to Dr. Shumard everywhere",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Replace logos with provided CDN URLs",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Add logo to PDF exports",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Write Dockerfile + docker-compose.yml",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Write deploy.sh script + deployment guide",
-    "status": "pending"
+    "status": "completed"
   }
 ]
