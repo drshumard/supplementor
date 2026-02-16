@@ -1,7 +1,10 @@
 """
 PDF generation for patient and HC exports using fpdf2 (pure Python, no system deps).
 """
+import os
 from fpdf import FPDF
+
+LOGO_PATH = os.path.join(os.path.dirname(__file__), "logo.png")
 
 
 class BasePDF(FPDF):
@@ -13,9 +16,14 @@ class BasePDF(FPDF):
         self.set_auto_page_break(auto=True, margin=25)
     
     def header(self):
-        self.set_font("Helvetica", "I", 9)
+        # Logo centered
+        if os.path.exists(LOGO_PATH):
+            x = (self.w - 20) / 2
+            self.image(LOGO_PATH, x=x, y=8, w=20)
+            self.ln(18)
+        self.set_font("Helvetica", "", 9)
         self.set_text_color(148, 163, 184)
-        self.cell(0, 8, self._header_text, align="C", new_x="LMARGIN", new_y="NEXT")
+        self.cell(0, 6, self._header_text, align="C", new_x="LMARGIN", new_y="NEXT")
         self.ln(2)
     
     def footer(self):
