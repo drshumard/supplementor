@@ -158,3 +158,21 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     role: Optional[str] = None
     password: Optional[str] = None
+
+
+# ─── Patient Models ─────────────────────────────────────────────────────
+
+class PatientCreate(BaseModel):
+    name: str
+    email: str = ""
+    phone: str = ""
+    date_of_birth: str = ""
+    notes: str = ""
+
+
+class PatientUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    notes: Optional[str] = None
