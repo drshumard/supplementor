@@ -18,7 +18,7 @@ export default function AppShell({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const filteredNav = navItems.filter(n => n.roles.includes(user?.role));
 
