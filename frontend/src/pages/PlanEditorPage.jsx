@@ -283,7 +283,7 @@ export default function PlanEditorPage() {
       try {
         const [p, s] = await Promise.all([getPlan(planId), getSupplements('', true)]);
         setPlan(p); setSupplements(s.supplements || []);
-      } catch (err) { toast.error('Failed to load plan'); navigate('/'); }
+      } catch (err) { toast.error('Failed to load plan'); navigate(-1); }
       finally { setLoading(false); }
     };
     load();
