@@ -78,6 +78,8 @@ function AppRoutes() {
             <AppShell>
               <Routes>
                 <Route path="/" element={<DashboardPage />} />
+                <Route path="/patients" element={<PatientsPage />} />
+                <Route path="/patients/:patientId" element={<PatientDetailPage />} />
                 <Route path="/plans/new" element={<NewPlanPage />} />
                 <Route path="/plans/:planId" element={<PlanEditorPage />} />
                 <Route path="/admin/supplements" element={<SupplementsPage />} />
