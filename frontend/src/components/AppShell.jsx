@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { LayoutDashboard, FilePlus, Pill, LogOut, Layers, Users, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutDashboard, FilePlus, Pill, LogOut, Layers, Users, PanelLeftClose, PanelLeftOpen, UserRound } from 'lucide-react';
 import { Button } from './ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/', roles: ['admin', 'hc'] },
+  { label: 'Patients', icon: UserRound, path: '/patients', roles: ['admin', 'hc'] },
   { label: 'New Plan', icon: FilePlus, path: '/plans/new', roles: ['admin', 'hc'] },
   { label: 'Supplements', icon: Pill, path: '/admin/supplements', roles: ['admin'] },
   { label: 'Templates', icon: Layers, path: '/admin/templates', roles: ['admin'] },
