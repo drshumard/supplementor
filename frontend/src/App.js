@@ -8,6 +8,8 @@ import NewPlanPage from './pages/NewPlanPage';
 import SupplementsPage from './pages/SupplementsPage';
 import TemplatesPage from './pages/TemplatesPage';
 import UsersPage from './pages/UsersPage';
+import PatientsPage from './pages/PatientsPage';
+import PatientDetailPage from './pages/PatientDetailPage';
 import AppShell from './components/AppShell';
 import { getMe } from './lib/api';
 import './App.css';
