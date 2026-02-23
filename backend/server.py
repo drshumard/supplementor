@@ -769,17 +769,20 @@ async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
     step = plan.get("step_label", "")
     
     try:
-        from google_drive import upload_pdf_to_drive
+        from google_drive import upload_pdf_to_folder, get_or_create_patient_folder
+        
+        # Get/create folder ONCE
+        folder_id = get_or_create_patient_folder(patient_name)
         
         # Generate and upload patient PDF
         patient_pdf = bytes(generate_patient_pdf(plan))
         patient_filename = f"{patient_name} - {program} {step} (Patient).pdf"
-        patient_result = upload_pdf_to_drive(patient_name, patient_filename, patient_pdf)
+        patient_result = upload_pdf_to_folder(folder_id, patient_filename, patient_pdf)
         
         # Generate and upload HC PDF
         hc_pdf = bytes(generate_hc_pdf(plan))
         hc_filename = f"{patient_name} - {program} {step} (HC).pdf"
-        hc_result = upload_pdf_to_drive(patient_name, hc_filename, hc_pdf)
+        hc_result = upload_pdf_to_folder(folder_id, hc_filename, hc_pdf)
         
         return {
             "success": True,
