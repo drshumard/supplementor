@@ -1,22 +1,18 @@
 [
   {
-    "content": "Rename app from Clarity to Dr. Shumard everywhere",
-    "status": "completed"
+    "content": "Resize PDF logo bigger",
+    "status": "in_progress"
   },
   {
-    "content": "Replace logos with provided CDN URLs",
-    "status": "completed"
+    "content": "Collapsible sidebar with framer-motion",
+    "status": "pending"
   },
   {
-    "content": "Add logo to PDF exports",
-    "status": "completed"
+    "content": "Patient entity + multiple plans per patient (data model change)",
+    "status": "pending"
   },
   {
-    "content": "Write Dockerfile + docker-compose.yml",
-    "status": "completed"
-  },
-  {
-    "content": "Write deploy.sh script + deployment guide",
-    "status": "completed"
+    "content": "Google Drive integration - save PDFs to patient folders",
+    "status": "pending"
   }
 ]
