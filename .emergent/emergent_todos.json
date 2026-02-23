@@ -1,15 +1,15 @@
 [
   {
     "content": "Resize PDF logo bigger",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Collapsible sidebar with framer-motion",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Patient entity + multiple plans per patient (data model change)",
-    "status": "pending"
+    "status": "in_progress"
   },
   {
     "content": "Google Drive integration - save PDFs to patient folders",
