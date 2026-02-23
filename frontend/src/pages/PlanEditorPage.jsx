@@ -363,7 +363,15 @@ export default function PlanEditorPage() {
     const np = { ...plan, patient_name: name }; setPlan(np); debouncedSave(np);
   };
 
-  const handleExportPatient = async () => { setExporting(true); try { if (!isFinalized) await savePlan(plan); const b = await exportPatientPDF(planId); downloadBlob(b, `${plan.patient_name || 'patient'}_protocol.pdf`); toast.success('Patient PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
+  const goBack = () => {
+    if (plan?.patient_id) {
+      navigate(`/patients/${plan.patient_id}`);
+    } else if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  }; try { if (!isFinalized) await savePlan(plan); const b = await exportPatientPDF(planId); downloadBlob(b, `${plan.patient_name || 'patient'}_protocol.pdf`); toast.success('Patient PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
   const handleExportHC = async () => { setExporting(true); try { if (!isFinalized) await savePlan(plan); const b = await exportHCPDF(planId); downloadBlob(b, `${plan.patient_name || 'patient'}_protocol_HC.pdf`); toast.success('HC PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
   const [savingDrive, setSavingDrive] = useState(false);
   const handleSaveToDrive = async () => {
