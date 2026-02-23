@@ -738,6 +738,60 @@ async def export_hc_pdf(plan_id: str):
     )
 
 
+
+# ─── Google Drive Save ───────────────────────────────────────────────────────
+
+@app.post("/api/plans/{plan_id}/save-to-drive")
+async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
+    """Generate both PDFs and upload to Google Drive in patient folder."""
+    user = await get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    plan = serialize_doc(doc)
+    plan = recalculate_plan_costs(plan)
+    
+    # Ensure dosage_display
+    for month in plan.get("months", []):
+        for supp in month.get("supplements", []):
+            if not supp.get("dosage_display"):
+                q = supp.get("quantity_per_dose", 0) or 0
+                f = supp.get("frequency_per_day", 0) or 0
+                if q and f:
+                    supp["dosage_display"] = f"{q} cap{'s' if q > 1 else ''}, {f}x/day"
+    
+    patient_name = plan.get("patient_name", "Unknown")
+    program = plan.get("program_name", "Protocol")
+    step = plan.get("step_label", "")
+    
+    try:
+        from google_drive import upload_pdf_to_drive
+        
+        # Generate and upload patient PDF
+        patient_pdf = bytes(generate_patient_pdf(plan))
+        patient_filename = f"{patient_name} - {program} {step} (Patient).pdf"
+        patient_result = upload_pdf_to_drive(patient_name, patient_filename, patient_pdf)
+        
+        # Generate and upload HC PDF
+        hc_pdf = bytes(generate_hc_pdf(plan))
+        hc_filename = f"{patient_name} - {program} {step} (HC).pdf"
+        hc_result = upload_pdf_to_drive(patient_name, hc_filename, hc_pdf)
+        
+        return {
+            "success": True,
+            "patient_pdf": patient_result,
+            "hc_pdf": hc_result,
+            "message": f"Saved to Google Drive in '{patient_name}' folder",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Google Drive upload failed: {str(e)}")
+
+
+
 # ─── Startup ─────────────────────────────────────────────────────────────────
 
 @app.on_event("startup")
