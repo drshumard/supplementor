@@ -18,9 +18,9 @@ class BasePDF(FPDF):
     def header(self):
         # Logo centered
         if os.path.exists(LOGO_PATH):
-            x = (self.w - 20) / 2
-            self.image(LOGO_PATH, x=x, y=8, w=20)
-            self.ln(18)
+            x = (self.w - 35) / 2
+            self.image(LOGO_PATH, x=x, y=6, w=35)
+            self.ln(24)
         self.set_font("Helvetica", "", 9)
         self.set_text_color(148, 163, 184)
         self.cell(0, 6, self._header_text, align="C", new_x="LMARGIN", new_y="NEXT")
