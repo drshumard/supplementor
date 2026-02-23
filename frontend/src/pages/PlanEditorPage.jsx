@@ -326,6 +326,16 @@ export default function PlanEditorPage() {
 
   const handleExportPatient = async () => { setExporting(true); try { if (!isFinalized) await savePlan(plan); const b = await exportPatientPDF(planId); downloadBlob(b, `${plan.patient_name || 'patient'}_protocol.pdf`); toast.success('Patient PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
   const handleExportHC = async () => { setExporting(true); try { if (!isFinalized) await savePlan(plan); const b = await exportHCPDF(planId); downloadBlob(b, `${plan.patient_name || 'patient'}_protocol_HC.pdf`); toast.success('HC PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
+  const [savingDrive, setSavingDrive] = useState(false);
+  const handleSaveToDrive = async () => {
+    setSavingDrive(true);
+    try {
+      if (!isFinalized) await savePlan(plan);
+      const result = await saveToDrive(planId);
+      toast.success(result.message || 'Saved to Google Drive');
+    } catch (err) { toast.error(err.message || 'Drive save failed'); }
+    finally { setSavingDrive(false); }
+  };
   const handleFinalize = async () => { try { await savePlan(plan); const r = await finalizePlan(planId); setPlan(prev => ({ ...prev, ...r })); toast.success('Plan finalized'); setConfirmFinalize(false); } catch { toast.error('Failed to finalize'); } };
   const handleReopen = async () => { try { const r = await reopenPlan(planId); setPlan(prev => ({ ...prev, ...r })); toast.success('Plan reopened'); } catch { toast.error('Failed to reopen'); } };
   const handleDuplicate = async () => { try { const r = await duplicatePlan(planId); toast.success('Plan duplicated'); navigate(`/plans/${r._id}`); } catch { toast.error('Failed to duplicate'); } };
