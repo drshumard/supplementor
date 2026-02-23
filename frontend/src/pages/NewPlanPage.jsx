@@ -54,6 +54,7 @@ export default function NewPlanPage() {
     try {
       const data = {
         patient_name: patientName.trim(),
+        patient_id: prePatientId || null,
         date: planDate,
         program_name: selectedProgram,
         step_label: `Step ${selectedStep}`,
