@@ -243,6 +243,94 @@ async def delete_user(user_id: str, user=Depends(require_admin)):
 
 
 
+
+
+# ─── Patient Management ──────────────────────────────────────────────────────
+
+@app.get("/api/patients")
+async def list_patients(search: str = "", skip: int = 0, limit: int = 100, authorization: str = Header(None)):
+    user = await get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    query = {}
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+        ]
+    cursor = db.patients.find(query).sort("name", 1).skip(skip).limit(limit)
+    docs = await cursor.to_list(length=limit)
+    total = await db.patients.count_documents(query)
+    # Add plan count for each patient
+    patients = serialize_doc(docs)
+    for p in patients:
+        p["plan_count"] = await db.plans.count_documents({"patient_id": p["_id"]})
+    return {"patients": patients, "total": total}
+
+
+@app.get("/api/patients/{patient_id}")
+async def get_patient(patient_id: str, authorization: str = Header(None)):
+    user = await get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    doc = await db.patients.find_one({"_id": ObjectId(patient_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    patient = serialize_doc(doc)
+    # Get all plans for this patient
+    plan_cursor = db.plans.find({"patient_id": patient_id}).sort("updated_at", -1)
+    plans = await plan_cursor.to_list(length=100)
+    patient["plans"] = serialize_doc(plans)
+    return patient
+
+
+@app.post("/api/patients")
+async def create_patient(data: PatientCreate, authorization: str = Header(None)):
+    user = await get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    doc = {
+        "name": data.name,
+        "email": data.email,
+        "phone": data.phone,
+        "date_of_birth": data.date_of_birth,
+        "notes": data.notes,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "created_by": user.get("sub"),
+        "created_by_name": user.get("name"),
+    }
+    result = await db.patients.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return serialize_doc(doc)
+
+
+@app.put("/api/patients/{patient_id}")
+async def update_patient(patient_id: str, data: PatientUpdate, authorization: str = Header(None)):
+    user = await get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    existing = await db.patients.find_one({"_id": ObjectId(patient_id)})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    updates = {k: v for k, v in data.dict().items() if v is not None}
+    if updates:
+        updates["updated_at"] = datetime.utcnow()
+        await db.patients.update_one({"_id": ObjectId(patient_id)}, {"$set": updates})
+    doc = await db.patients.find_one({"_id": ObjectId(patient_id)})
+    return serialize_doc(doc)
+
+
+@app.delete("/api/patients/{patient_id}")
+async def delete_patient(patient_id: str, user=Depends(require_admin)):
+    # Delete patient and all their plans
+    await db.plans.delete_many({"patient_id": patient_id})
+    result = await db.patients.delete_one({"_id": ObjectId(patient_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return {"deleted": True}
+
+
 # ─── Seed Endpoint ───────────────────────────────────────────────────────────
 
 @app.post("/api/seed")
