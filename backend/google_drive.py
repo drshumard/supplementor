@@ -23,11 +23,14 @@ def _get_drive_service():
     return build("drive", "v3", credentials=delegated)
 
 
-def find_or_create_patient_folder(service, patient_name: str) -> str:
-    """Find or create a folder for the patient inside the shared drive."""
+def get_or_create_patient_folder(patient_name: str) -> str:
+    """Find or create a single folder for the patient. Returns folder ID."""
+    service = _get_drive_service()
+    
     # Search for existing folder
+    safe_name = patient_name.replace("'", "\\'")
     query = (
-        f"name = '{patient_name}' and "
+        f"name = '{safe_name}' and "
         f"mimeType = 'application/vnd.google-apps.folder' and "
         f"'{DRIVE_ID}' in parents and "
         f"trashed = false"
@@ -59,10 +62,9 @@ def find_or_create_patient_folder(service, patient_name: str) -> str:
     return folder["id"]
 
 
-def upload_pdf_to_drive(patient_name: str, filename: str, pdf_bytes: bytes) -> dict:
-    """Upload a PDF to the patient's folder on Google Drive."""
+def upload_pdf_to_folder(folder_id: str, filename: str, pdf_bytes: bytes) -> dict:
+    """Upload a PDF to a specific folder on Google Drive."""
     service = _get_drive_service()
-    folder_id = find_or_create_patient_folder(service, patient_name)
 
     file_metadata = {
         "name": filename,
