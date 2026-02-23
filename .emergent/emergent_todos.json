@@ -1,14 +1,14 @@
 [
   {
-    "content": "Rewrite PDF to match inspo: time groupings (AM/Afternoon/PM), With Food column, Notes, Month Order summary, fix text wrapping",
-    "status": "in_progress"
+    "content": "Rewrite PDF to match inspo: time groupings, With Food, Notes, Month Order, fix text wrapping",
+    "status": "completed"
   },
   {
     "content": "Add time_of_day field to plan supplements + plan editor UI",
-    "status": "pending"
+    "status": "completed"
   },
   {
     "content": "Update plan editor to show With Food and Notes columns matching PDF",
-    "status": "pending"
+    "status": "completed"
   }
 ]
