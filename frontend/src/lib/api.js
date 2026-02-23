@@ -119,6 +119,23 @@ export const updateUser = (id, data) =>
 export const deleteUser = (id) =>
   request(`/users/${id}`, { method: 'DELETE' });
 
+// Patients
+export const getPatients = (search = '') =>
+  request(`/patients?search=${encodeURIComponent(search)}`);
+
+export const getPatient = (id) =>
+  request(`/patients/${id}`);
+
+export const createPatient = (data) =>
+  request('/patients', { method: 'POST', body: JSON.stringify(data) });
+
+export const updatePatient = (id, data) =>
+  request(`/patients/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+export const deletePatient = (id) =>
+  request(`/patients/${id}`, { method: 'DELETE' });
+
+
 // Seed
 export const seedData = () =>
   request('/seed', { method: 'POST' });
