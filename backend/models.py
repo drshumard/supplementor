@@ -104,13 +104,14 @@ class PlanSupplementEntry(BaseModel):
     dosage_display: str = ""
     instructions: str = ""
     with_food: bool = True
+    time_of_day: str = "AM"  # AM, Afternoon, PM, Bedtime
     hc_notes: str = ""
     units_per_bottle: Optional[int] = None
     cost_per_bottle: float = 0.0
     refrigerate: bool = False
     bottles_needed: Optional[float] = None
     calculated_cost: Optional[float] = None
-    bottles_per_month_override: Optional[float] = None  # manual override from master
+    bottles_per_month_override: Optional[float] = None
 
 
 class PlanMonth(BaseModel):
