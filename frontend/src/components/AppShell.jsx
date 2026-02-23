@@ -97,18 +97,22 @@ export default function AppShell({ children }) {
 
         {/* User section */}
         <div className="p-3 border-t border-border/40">
-          <div className={`flex ${collapsed ? 'flex-col items-center gap-2 py-2' : 'items-center gap-3 px-3 py-3'}`}>
+          <motion.div
+            layout
+            transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+            className={`flex flex-col items-center gap-2 ${collapsed ? 'py-2' : 'px-3 py-3'}`}
+          >
             <div className="w-10 h-10 rounded-full bg-[hsl(174,35%,93%)] flex items-center justify-center text-sm font-bold text-[hsl(187,79%,23%)] shrink-0">
               {user?.name?.charAt(0) || 'U'}
             </div>
             <AnimatePresence mode="wait">
               {!collapsed && (
                 <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="flex-1 min-w-0 overflow-hidden"
+                  className="w-full text-center overflow-hidden"
                 >
                   <div className="text-sm font-semibold truncate text-[#0B0D10]">{user?.name}</div>
                   <div className="text-[11px] text-muted-foreground uppercase tracking-wide">{user?.role}</div>
@@ -125,7 +129,7 @@ export default function AppShell({ children }) {
             >
               <LogOut size={17} />
             </Button>
-          </div>
+          </motion.div>
         </div>
       </motion.aside>
 
