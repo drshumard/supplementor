@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, finalizePlan, reopenPlan, duplicatePlan } from '../lib/api';
+import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, finalizePlan, reopenPlan, duplicatePlan, saveToDrive } from '../lib/api';
 import { formatCurrency, recalculateMonthCosts, downloadBlob } from '../lib/utils';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
