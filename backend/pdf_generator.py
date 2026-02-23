@@ -1,274 +1,365 @@
 """
-PDF generation for patient and HC exports using fpdf2 (pure Python, no system deps).
+PDF generation for patient and HC exports using fpdf2.
+Layout matches clinic protocol style: Time groupings, With Food, Notes, Month Order.
 """
 import os
+import math
 from fpdf import FPDF
 
 LOGO_PATH = os.path.join(os.path.dirname(__file__), "logo.png")
 
+# Teal palette
+TEAL = (13, 95, 104)
+TEAL_LIGHT = (214, 236, 232)
+TEAL_BG = (234, 244, 243)
+DARK = (15, 23, 42)
+GRAY = (100, 116, 139)
+LIGHT_GRAY = (226, 232, 240)
+WHITE = (255, 255, 255)
+RED = (197, 59, 59)
+GREEN = (20, 125, 90)
 
-class BasePDF(FPDF):
-    """Base PDF with common styling."""
-    
-    def __init__(self, header_text="Dr. Shumard Wellness Center"):
+TIME_ORDER = ["AM", "Afternoon", "PM", "Bedtime"]
+
+
+class ProtocolPDF(FPDF):
+    def __init__(self):
         super().__init__()
-        self._header_text = header_text
-        self.set_auto_page_break(auto=True, margin=25)
-    
-    def header(self):
-        # Logo centered
-        if os.path.exists(LOGO_PATH):
-            x = (self.w - 35) / 2
-            self.image(LOGO_PATH, x=x, y=6, w=35)
-            self.ln(24)
-        self.set_font("Helvetica", "", 9)
-        self.set_text_color(148, 163, 184)
-        self.cell(0, 6, self._header_text, align="C", new_x="LMARGIN", new_y="NEXT")
-        self.ln(2)
-    
+        self.set_auto_page_break(auto=True, margin=20)
+
     def footer(self):
-        self.set_y(-20)
-        self.set_font("Helvetica", "", 8)
-        self.set_text_color(148, 163, 184)
-        self.cell(0, 10, f"Page {self.page_no()}/{{nb}}", align="C")
-    
-    def _draw_line(self, y=None):
-        if y is None:
-            y = self.get_y()
-        self.set_draw_color(226, 232, 240)
-        self.line(self.l_margin, y, self.w - self.r_margin, y)
+        self.set_y(-15)
+        self.set_font("Helvetica", "", 7)
+        self.set_text_color(*GRAY)
+        self.cell(0, 8, f"Page {self.page_no()}/{{nb}}", align="C")
 
 
 def _safe(val):
-    """Safely convert value to string."""
     if val is None:
         return ""
     return str(val)
 
 
-def generate_patient_pdf(plan_data: dict) -> bytes:
-    """Generate patient-facing PDF bytes (no cost info)."""
-    pdf = BasePDF("Dr. Shumard Wellness Center")
-    pdf.alias_nb_pages()
-    
-    months = plan_data.get("months") or []
-    
-    for i, month in enumerate(months):
+def _group_by_time(supplements):
+    """Group supplements by time_of_day."""
+    groups = {}
+    for s in supplements:
+        t = s.get("time_of_day", "AM") or "AM"
+        if t not in groups:
+            groups[t] = []
+        groups[t].append(s)
+    # Return in order
+    result = []
+    for t in TIME_ORDER:
+        if t in groups:
+            result.append((t, groups[t]))
+    # Any remaining
+    for t, supps in groups.items():
+        if t not in TIME_ORDER:
+            result.append((t, supps))
+    return result
+
+
+def _draw_header(pdf, plan):
+    """Draw logo + program title."""
+    y_start = pdf.get_y()
+    if os.path.exists(LOGO_PATH):
+        pdf.image(LOGO_PATH, x=pdf.l_margin, y=y_start, w=40)
+
+    pdf.set_xy(pdf.l_margin + 45, y_start + 2)
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.set_text_color(*DARK)
+    program = _safe(plan.get("program_name", ""))
+    step = _safe(plan.get("step_label", ""))
+    pdf.cell(0, 10, f"{program} - {step}", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_xy(pdf.l_margin + 45, y_start + 14)
+    pdf.set_font("Helvetica", "", 11)
+    pdf.set_text_color(*GRAY)
+    pdf.cell(0, 8, f"Patient: {_safe(plan.get('patient_name', ''))}    Date: {_safe(plan.get('date', ''))}", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_y(y_start + 30)
+    pdf.set_draw_color(*LIGHT_GRAY)
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+    pdf.ln(6)
+
+
+def _draw_time_table(pdf, time_label, supps, show_costs=False):
+    """Draw a time-grouped table (AM/Afternoon/PM)."""
+    page_w = pdf.w - pdf.l_margin - pdf.r_margin
+
+    if show_costs:
+        cols = [25, 45, 28, 22, 22, page_w - 142]  # Time, Supplement, Dose, With Food, Btls, Notes
+        headers = ["Time", "Supplement", "Dose", "Food", "Btls", "Notes"]
+    else:
+        cols = [25, 50, 30, 25, page_w - 130]  # Time, Supplement, Dose, With Food, Notes
+        headers = ["Time", "Supplement", "Dose", "Food", "Notes"]
+
+    # Check if we need a page break (header + at least 2 rows)
+    needed = 10 + len(supps) * 8
+    if pdf.get_y() + needed > pdf.h - 25:
         pdf.add_page()
+
+    # Table header row
+    pdf.set_fill_color(*TEAL_LIGHT)
+    pdf.set_font("Helvetica", "B", 8)
+    pdf.set_text_color(*TEAL)
+    x = pdf.l_margin
+    for i, h in enumerate(headers):
+        pdf.set_xy(x, pdf.get_y())
+        pdf.cell(cols[i], 8, h, border=1, fill=True, new_x="RIGHT")
+        x += cols[i]
+    pdf.ln()
+
+    # Data rows
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(*DARK)
+
+    for idx, s in enumerate(supps):
+        row_y = pdf.get_y()
+
+        # Page break check
+        if row_y > pdf.h - 25:
+            pdf.add_page()
+            row_y = pdf.get_y()
+
+        x = pdf.l_margin
+
+        # Time (only on first row)
+        pdf.set_xy(x, row_y)
+        if idx == 0:
+            pdf.set_font("Helvetica", "B", 9)
+            pdf.cell(cols[0], 8, time_label, border="LBR")
+            pdf.set_font("Helvetica", "", 9)
+        else:
+            pdf.cell(cols[0], 8, "", border="LBR")
+        x += cols[0]
+
+        # Supplement name
+        pdf.set_xy(x, row_y)
+        name = _safe(s.get("supplement_name", ""))
+        pdf.cell(cols[1], 8, name[:28], border="LBR")
+        x += cols[1]
+
+        # Dose
+        pdf.set_xy(x, row_y)
+        dose = _safe(s.get("dosage_display", ""))
+        pdf.cell(cols[2], 8, dose[:18], border="LBR")
+        x += cols[2]
+
+        # With Food
+        pdf.set_xy(x, row_y)
+        food = "Yes" if s.get("with_food", True) else "No"
+        pdf.cell(cols[3], 8, food, border="LBR")
+        x += cols[3]
+
+        if show_costs:
+            # Bottles
+            pdf.set_xy(x, row_y)
+            btls = _safe(s.get("bottles_needed", "-"))
+            pdf.cell(cols[4], 8, str(btls), border="LBR")
+            x += cols[4]
+
+        # Notes/Instructions - use multi_cell for wrapping
+        pdf.set_xy(x, row_y)
+        notes = _safe(s.get("instructions", ""))
+        if s.get("refrigerate"):
+            if notes:
+                notes += ". "
+            notes += "Refrigerate"
+            pdf.set_text_color(*RED)
         
-        # Title
-        pdf.set_font("Helvetica", "B", 22)
-        pdf.set_text_color(15, 23, 42)
-        pdf.cell(0, 12, _safe(plan_data.get("program_name", "")), align="C", new_x="LMARGIN", new_y="NEXT")
+        last_col = cols[-1]
+        # Calculate height needed
+        note_lines = max(1, math.ceil(pdf.get_string_width(notes) / (last_col - 2)))
+        cell_h = max(8, note_lines * 5)
         
-        pdf.set_font("Helvetica", "", 11)
-        pdf.set_text_color(100, 116, 139)
-        step = plan_data.get("step_label") or f"Step {plan_data.get('step_number', '')}"
-        pdf.cell(0, 8, f"{step} - Month {month.get('month_number', i+1)}", align="C", new_x="LMARGIN", new_y="NEXT")
-        
-        pdf.ln(4)
-        pdf._draw_line()
-        pdf.ln(6)
-        
-        # Meta
-        pdf.set_font("Helvetica", "B", 10)
-        pdf.set_text_color(51, 65, 85)
-        pdf.cell(40, 7, "Patient:", new_x="RIGHT")
-        pdf.set_font("Helvetica", "", 10)
-        pdf.set_text_color(71, 85, 105)
-        pdf.cell(60, 7, _safe(plan_data.get("patient_name", "")), new_x="RIGHT")
-        
-        pdf.set_font("Helvetica", "B", 10)
-        pdf.set_text_color(51, 65, 85)
-        pdf.cell(25, 7, "Date:", new_x="RIGHT")
-        pdf.set_font("Helvetica", "", 10)
-        pdf.set_text_color(71, 85, 105)
-        pdf.cell(0, 7, _safe(plan_data.get("date", "")), new_x="LMARGIN", new_y="NEXT")
-        
-        pdf.ln(8)
-        
-        # Table header
-        col_w = [65, 45, 80]
-        headers = ["Supplement", "Dosage", "Instructions"]
-        
-        pdf.set_fill_color(248, 250, 252)
-        pdf.set_font("Helvetica", "B", 8)
-        pdf.set_text_color(100, 116, 139)
-        for j, h in enumerate(headers):
-            pdf.cell(col_w[j], 10, h.upper(), border=0, fill=True, new_x="RIGHT")
-        pdf.ln()
-        
-        pdf.set_draw_color(226, 232, 240)
-        pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-        pdf.ln(2)
-        
-        # Table rows
-        supplements = month.get("supplements") or []
-        for s in supplements:
-            y_start = pdf.get_y()
-            
-            # Check page break
-            if y_start > 250:
-                pdf.add_page()
-                y_start = pdf.get_y()
-            
-            pdf.set_font("Helvetica", "B", 10)
-            pdf.set_text_color(15, 23, 42)
-            name = _safe(s.get("supplement_name", ""))
-            pdf.cell(col_w[0], 6, name, new_x="RIGHT")
-            
-            pdf.set_font("Helvetica", "", 10)
-            pdf.set_text_color(30, 41, 59)
-            pdf.cell(col_w[1], 6, _safe(s.get("dosage_display", "")), new_x="RIGHT")
-            
-            pdf.set_font("Helvetica", "I", 9)
-            pdf.set_text_color(100, 116, 139)
-            instr = _safe(s.get("instructions", ""))
-            pdf.cell(col_w[2], 6, instr, new_x="LMARGIN", new_y="NEXT")
-            
-            # Company line
-            pdf.set_font("Helvetica", "", 7)
-            pdf.set_text_color(148, 163, 184)
-            company = _safe(s.get("company", ""))
-            fridge = " [REFRIGERATE]" if s.get("refrigerate") else ""
-            pdf.cell(col_w[0], 4, f"{company}{fridge}", new_x="LMARGIN", new_y="NEXT")
-            
-            pdf.ln(3)
-            
-            # Separator
-            pdf.set_draw_color(241, 245, 249)
-            pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-            pdf.ln(2)
+        if cell_h > 8:
+            pdf.multi_cell(last_col, 5, notes, border="LBR", max_line_height=5)
+            # Reset y to match row height
+            end_y = pdf.get_y()
+            if end_y - row_y < 8:
+                pdf.set_y(row_y + 8)
+        else:
+            pdf.cell(last_col, 8, notes[:50], border="LBR")
+            pdf.ln()
+
+        pdf.set_text_color(*DARK)
+
+    pdf.ln(4)
+
+
+def _draw_month_order(pdf, month, plan):
+    """Draw the Month Order summary (bottles + duration)."""
+    supps = month.get("supplements", [])
+    if not supps:
+        return
+
+    num_months = len(plan.get("months", []))
+
+    pdf.ln(4)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_text_color(*DARK)
+    pdf.cell(0, 8, f"Month {month.get('month_number', 1)} Order", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
+
+    page_w = pdf.w - pdf.l_margin - pdf.r_margin
+    col_w = page_w / 2 - 2
+    cols_each = [col_w * 0.4, col_w * 0.15, col_w * 0.2, col_w * 0.25]
+
+    # Header
+    pdf.set_fill_color(*TEAL_LIGHT)
+    pdf.set_font("Helvetica", "B", 7.5)
+    pdf.set_text_color(*TEAL)
+
+    # Left table header
+    x = pdf.l_margin
+    for h, w in zip(["Supplement", "Bottles", "Duration", "Notes"], cols_each):
+        pdf.set_xy(x, pdf.get_y())
+        pdf.cell(w, 7, h, border=1, fill=True, new_x="RIGHT")
+        x += w
     
+    x += 4  # gap
+    for h, w in zip(["Supplement", "Bottles", "Duration", "Notes"], cols_each):
+        pdf.set_xy(x, pdf.get_y())
+        pdf.cell(w, 7, h, border=1, fill=True, new_x="RIGHT")
+        x += w
+    pdf.ln()
+
+    # Data - split into two columns
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(*DARK)
+
+    # Deduplicate supplements
+    seen = {}
+    for s in supps:
+        name = s.get("supplement_name", "")
+        if name not in seen:
+            seen[name] = s
+
+    unique = list(seen.values())
+    mid = math.ceil(len(unique) / 2)
+    left = unique[:mid]
+    right = unique[mid:]
+
+    max_rows = max(len(left), len(right))
+    for i in range(max_rows):
+        row_y = pdf.get_y()
+        if row_y > pdf.h - 20:
+            pdf.add_page()
+            row_y = pdf.get_y()
+
+        x = pdf.l_margin
+        # Left side
+        if i < len(left):
+            s = left[i]
+            pdf.set_xy(x, row_y)
+            pdf.cell(cols_each[0], 7, _safe(s.get("supplement_name", ""))[:22], border="LBR")
+            pdf.cell(cols_each[1], 7, str(s.get("bottles_needed", 1) or 1), border="LBR")
+            pdf.cell(cols_each[2], 7, f"{num_months} months", border="LBR")
+            note = "refrigerate" if s.get("refrigerate") else ""
+            if note:
+                pdf.set_text_color(*RED)
+            pdf.cell(cols_each[3], 7, note, border="LBR")
+            pdf.set_text_color(*DARK)
+        else:
+            pdf.set_xy(x, row_y)
+            for w in cols_each:
+                pdf.cell(w, 7, "", border="LBR")
+
+        x = pdf.l_margin + col_w + 4
+        # Right side
+        if i < len(right):
+            s = right[i]
+            pdf.set_xy(x, row_y)
+            pdf.cell(cols_each[0], 7, _safe(s.get("supplement_name", ""))[:22], border="LBR")
+            pdf.cell(cols_each[1], 7, str(s.get("bottles_needed", 1) or 1), border="LBR")
+            pdf.cell(cols_each[2], 7, f"{num_months} months", border="LBR")
+            note = "refrigerate" if s.get("refrigerate") else ""
+            if note:
+                pdf.set_text_color(*RED)
+            pdf.cell(cols_each[3], 7, note, border="LBR")
+            pdf.set_text_color(*DARK)
+        else:
+            pdf.set_xy(x, row_y)
+            for w in cols_each:
+                pdf.cell(w, 7, "", border="LBR")
+
+        pdf.ln()
+
+
+def generate_patient_pdf(plan_data: dict) -> bytes:
+    """Generate patient-facing PDF (no cost info)."""
+    pdf = ProtocolPDF()
+    pdf.alias_nb_pages()
+
+    months = plan_data.get("months") or []
+    for month in months:
+        pdf.add_page()
+        _draw_header(pdf, plan_data)
+
+        # Month label
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.set_text_color(*DARK)
+        pdf.cell(40, 8, f"Month {month.get('month_number', 1)}")
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.set_text_color(*RED)
+        pdf.cell(0, 8, "*Keep 2 hours from all medications", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+
+        # Group by time
+        groups = _group_by_time(month.get("supplements", []))
+        for time_label, supps in groups:
+            _draw_time_table(pdf, time_label, supps, show_costs=False)
+
+        # Month order
+        _draw_month_order(pdf, month, plan_data)
+
     return pdf.output()
 
 
 def generate_hc_pdf(plan_data: dict) -> bytes:
-    """Generate HC/internal PDF bytes (with costs)."""
-    pdf = BasePDF("INTERNAL - HC Reference")
-    pdf._header_text = "INTERNAL - HC Reference"
+    """Generate HC/internal PDF (with costs)."""
+    pdf = ProtocolPDF()
     pdf.alias_nb_pages()
-    
+
     months = plan_data.get("months") or []
-    
-    for i, month in enumerate(months):
+    for month in months:
         pdf.add_page()
-        
-        # Title
-        pdf.set_font("Helvetica", "B", 18)
-        pdf.set_text_color(15, 23, 42)
-        pdf.cell(0, 10, _safe(plan_data.get("program_name", "")), align="C", new_x="LMARGIN", new_y="NEXT")
-        
-        pdf.set_font("Helvetica", "", 10)
-        pdf.set_text_color(100, 116, 139)
-        step = plan_data.get("step_label") or f"Step {plan_data.get('step_number', '')}"
-        pdf.cell(0, 7, f"{step} - Month {month.get('month_number', i+1)} (HC View)", align="C", new_x="LMARGIN", new_y="NEXT")
-        
-        pdf.ln(3)
-        pdf._draw_line()
-        pdf.ln(5)
-        
-        # Meta
-        pdf.set_font("Helvetica", "B", 9)
-        pdf.set_text_color(51, 65, 85)
-        pdf.cell(30, 6, "Patient:", new_x="RIGHT")
-        pdf.set_font("Helvetica", "", 9)
-        pdf.set_text_color(71, 85, 105)
-        pdf.cell(50, 6, _safe(plan_data.get("patient_name", "")), new_x="RIGHT")
-        
-        pdf.set_font("Helvetica", "B", 9)
-        pdf.set_text_color(51, 65, 85)
-        pdf.cell(20, 6, "Date:", new_x="RIGHT")
-        pdf.set_font("Helvetica", "", 9)
-        pdf.set_text_color(71, 85, 105)
-        pdf.cell(0, 6, _safe(plan_data.get("date", "")), new_x="LMARGIN", new_y="NEXT")
-        
-        pdf.ln(6)
-        
-        # Table header
-        col_w = [50, 35, 50, 18, 27]
-        headers = ["Supplement", "Dosage", "Instructions", "Bottles", "Cost"]
-        
-        pdf.set_fill_color(248, 250, 252)
-        pdf.set_font("Helvetica", "B", 7.5)
-        pdf.set_text_color(100, 116, 139)
-        for j, h in enumerate(headers):
-            align = "R" if j >= 3 else "L"
-            pdf.cell(col_w[j], 9, h.upper(), border=0, fill=True, align=align, new_x="RIGHT")
-        pdf.ln()
-        
-        pdf.set_draw_color(226, 232, 240)
-        pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-        pdf.ln(2)
-        
-        # Rows
-        supplements = month.get("supplements") or []
-        for s in supplements:
-            if pdf.get_y() > 250:
-                pdf.add_page()
-            
-            pdf.set_font("Helvetica", "B", 9)
-            pdf.set_text_color(15, 23, 42)
-            pdf.cell(col_w[0], 6, _safe(s.get("supplement_name", "")), new_x="RIGHT")
-            
-            pdf.set_font("Helvetica", "", 9)
-            pdf.set_text_color(30, 41, 59)
-            pdf.cell(col_w[1], 6, _safe(s.get("dosage_display", "")), new_x="RIGHT")
-            
-            pdf.set_font("Helvetica", "I", 8)
-            pdf.set_text_color(100, 116, 139)
-            pdf.cell(col_w[2], 6, _safe(s.get("instructions", "")), new_x="RIGHT")
-            
-            pdf.set_font("Helvetica", "", 9)
-            pdf.set_text_color(30, 41, 59)
-            bottles = s.get("bottles_needed") or "-"
-            pdf.cell(col_w[3], 6, str(bottles), align="R", new_x="RIGHT")
-            
-            pdf.set_font("Helvetica", "B", 9)
-            pdf.set_text_color(5, 150, 105)
-            cost = s.get("calculated_cost") or 0
-            pdf.cell(col_w[4], 6, f"${cost:.2f}", align="R", new_x="LMARGIN", new_y="NEXT")
-            
-            # Company
-            pdf.set_font("Helvetica", "", 7)
-            pdf.set_text_color(148, 163, 184)
-            pdf.cell(col_w[0], 4, _safe(s.get("company", "")), new_x="LMARGIN", new_y="NEXT")
-            
-            pdf.ln(2)
-            pdf.set_draw_color(241, 245, 249)
-            pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-            pdf.ln(2)
-        
-        # Monthly total
-        pdf.ln(2)
-        pdf.set_draw_color(5, 150, 105)
-        pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-        pdf.ln(3)
-        
-        pdf.set_fill_color(240, 253, 244)
+        _draw_header(pdf, plan_data)
+
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.set_text_color(*DARK)
+        pdf.cell(40, 8, f"Month {month.get('month_number', 1)}")
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.set_text_color(*RED)
+        pdf.cell(0, 8, "HC INTERNAL VIEW", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+
+        groups = _group_by_time(month.get("supplements", []))
+        for time_label, supps in groups:
+            _draw_time_table(pdf, time_label, supps, show_costs=True)
+
+        # Cost summary
+        pdf.ln(4)
         pdf.set_font("Helvetica", "B", 10)
-        pdf.set_text_color(5, 150, 105)
-        total_w = sum(col_w)
-        monthly_total = month.get("monthly_total_cost") or 0
-        pdf.cell(total_w - col_w[-1], 10, "Monthly Total:", align="R", fill=True, new_x="RIGHT")
-        pdf.cell(col_w[-1], 10, f"${monthly_total:.2f}", align="R", fill=True, new_x="LMARGIN", new_y="NEXT")
-    
+        pdf.set_text_color(*GREEN)
+        monthly_total = month.get("monthly_total_cost", 0) or 0
+        pdf.cell(0, 8, f"Monthly Total: ${monthly_total:.2f}", new_x="LMARGIN", new_y="NEXT")
+
+        _draw_month_order(pdf, month, plan_data)
+
     # Program total page
-    pdf.add_page()
-    pdf.ln(40)
-    
-    pdf.set_fill_color(240, 253, 244)
-    pdf.set_draw_color(187, 247, 208)
-    x = (pdf.w - 120) / 2
-    pdf.rect(x, pdf.get_y(), 120, 50, style="DF")
-    
-    pdf.set_font("Helvetica", "", 10)
-    pdf.set_text_color(71, 85, 105)
-    pdf.cell(0, 15, "Total Program Cost", align="C", new_x="LMARGIN", new_y="NEXT")
-    
-    pdf.set_font("Helvetica", "B", 24)
-    pdf.set_text_color(5, 150, 105)
-    program_total = plan_data.get("total_program_cost") or 0
-    pdf.cell(0, 15, f"${program_total:.2f}", align="C", new_x="LMARGIN", new_y="NEXT")
-    
+    if len(months) > 1:
+        pdf.add_page()
+        _draw_header(pdf, plan_data)
+        pdf.ln(20)
+        pdf.set_font("Helvetica", "", 11)
+        pdf.set_text_color(*GRAY)
+        pdf.cell(0, 10, "Total Program Cost", align="C", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("Helvetica", "B", 28)
+        pdf.set_text_color(*GREEN)
+        total = plan_data.get("total_program_cost", 0) or 0
+        pdf.cell(0, 15, f"${total:.2f}", align="C", new_x="LMARGIN", new_y="NEXT")
+
     return pdf.output()
