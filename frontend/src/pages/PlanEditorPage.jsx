@@ -91,21 +91,23 @@ function MonthPage({
       </div>
 
       {/* Column headers */}
-      <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#FAFAFA] gap-x-5"
+      <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#FAFAFA] gap-x-4"
         style={{
           gridTemplateColumns: patientView
-            ? '1.6fr 1.4fr 2fr'
+            ? '0.6fr 1.6fr 1fr 0.6fr 1.6fr'
             : showCosts
-              ? '1.5fr 0.7fr 0.7fr 1.3fr 1.8fr 0.5fr 0.7fr 0.3fr'
-              : '1.5fr 0.7fr 0.7fr 1.3fr 2fr 0.3fr'
+              ? '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.4fr 0.5fr 0.6fr 0.3fr'
+              : '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.6fr 0.3fr'
         }}>
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Time</span>
         <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">Supplement</span>
         {!patientView && (<>
           <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Qty</span>
           <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">x/Day</span>
         </>)}
         <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Dosage</span>
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Instructions</span>
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Food</span>
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Notes</span>
         {showCosts && !patientView && (<>
           <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Bottles</span>
           <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Cost</span>
