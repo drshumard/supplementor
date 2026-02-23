@@ -20,7 +20,10 @@ export default function NewPlanPage() {
   const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedStep, setSelectedStep] = useState('');
   const [monthCount, setMonthCount] = useState(1);
-  const [patientName, setPatientName] = useState('');
+  const [searchParams] = useSearchParams();
+  const prePatientId = searchParams.get('patient_id') || '';
+  const prePatientName = searchParams.get('patient_name') || '';
+  const [patientName, setPatientName] = useState(prePatientName);
   const [planDate, setPlanDate] = useState(new Date().toISOString().split('T')[0]);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
