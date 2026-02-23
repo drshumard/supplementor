@@ -97,7 +97,7 @@ export default function AppShell({ children }) {
 
         {/* User section */}
         <div className="p-3 border-t border-border/40">
-          <div className={`flex items-center gap-3 px-3 py-3 ${collapsed ? 'justify-center' : ''}`}>
+          <div className={`flex ${collapsed ? 'flex-col items-center gap-2 py-2' : 'items-center gap-3 px-3 py-3'}`}>
             <div className="w-10 h-10 rounded-full bg-[hsl(174,35%,93%)] flex items-center justify-center text-sm font-bold text-[hsl(187,79%,23%)] shrink-0">
               {user?.name?.charAt(0) || 'U'}
             </div>
@@ -121,7 +121,7 @@ export default function AppShell({ children }) {
               onClick={logout}
               data-testid="logout-button"
               title="Sign out"
-              className={`h-9 w-9 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg shrink-0 ${collapsed ? '' : ''}`}
+              className="h-9 w-9 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg shrink-0"
             >
               <LogOut size={17} />
             </Button>
