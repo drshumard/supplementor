@@ -9,10 +9,10 @@
   },
   {
     "content": "Patient entity + multiple plans per patient (data model change)",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "Google Drive integration - save PDFs to patient folders",
-    "status": "pending"
+    "status": "completed"
   }
 ]
