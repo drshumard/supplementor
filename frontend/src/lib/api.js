@@ -105,6 +105,10 @@ export const exportHCPDF = (planId) => {
   });
 };
 
+// Google Drive
+export const saveToDrive = (planId) =>
+  request(`/plans/${planId}/save-to-drive`, { method: 'POST' });
+
 
 // Users (admin)
 export const getUsers = (search = '', role = '') =>
