@@ -127,20 +127,37 @@ function MonthPage({
         ) : (
           (month.supplements || []).map((supp, idx) => (
             <div key={idx}
-              className="grid items-center px-8 py-5 border-b border-border/15 last:border-b-0 hover:bg-[#F6FAFA] transition-colors duration-150 group gap-x-5"
+              className="grid items-center px-8 py-5 border-b border-border/15 last:border-b-0 hover:bg-[#F6FAFA] transition-colors duration-150 group gap-x-4"
               style={{
                 gridTemplateColumns: patientView
-                  ? '1.6fr 1.4fr 2fr'
+                  ? '0.6fr 1.6fr 1fr 0.6fr 1.6fr'
                   : showCosts
-                    ? '1.5fr 0.7fr 0.7fr 1.3fr 1.8fr 0.5fr 0.7fr 0.3fr'
-                    : '1.5fr 0.7fr 0.7fr 1.3fr 2fr 0.3fr'
+                    ? '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.4fr 0.5fr 0.6fr 0.3fr'
+                    : '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.6fr 0.3fr'
               }}>
-              <div className="flex items-center gap-3 pr-4">
+              {/* Time of Day */}
+              <div className="flex justify-center">
+                {patientView ? (
+                  <span className="text-xs font-semibold text-[#0D5F68]">{supp.time_of_day || 'AM'}</span>
+                ) : (
+                  <Select value={supp.time_of_day || 'AM'} onValueChange={(v) => onUpdateField(month.month_number, idx, 'time_of_day', v)} disabled={isFinalized}>
+                    <SelectTrigger className="h-9 text-xs border-[#C8E6E0] w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AM">AM</SelectItem>
+                      <SelectItem value="Afternoon">Afternoon</SelectItem>
+                      <SelectItem value="PM">PM</SelectItem>
+                      <SelectItem value="Bedtime">Bedtime</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              {/* Supplement */}
+              <div className="flex items-center gap-2">
                 <div>
                   <div className="text-sm font-semibold text-[#0B0D10]">{supp.supplement_name}</div>
                   <div className="text-[11px] text-muted-foreground mt-0.5">{supp.company}</div>
                 </div>
-                {supp.refrigerate && <Snowflake size={14} className="text-blue-500 shrink-0" />}
+                {supp.refrigerate && <Snowflake size={13} className="text-blue-500 shrink-0" />}
               </div>
               {!patientView && (<>
                 <div className="flex justify-center"><NumberStepper value={supp.quantity_per_dose} disabled={isFinalized}
@@ -148,17 +165,33 @@ function MonthPage({
                 <div className="flex justify-center"><NumberStepper value={supp.frequency_per_day} disabled={isFinalized}
                   onChange={(v) => onUpdateField(month.month_number, idx, 'frequency_per_day', v)} /></div>
               </>)}
+              {/* Dosage */}
               <div className="flex justify-center">
                 {patientView ? <span className="text-sm text-center">{supp.dosage_display || '-'}</span> :
                   <Input value={supp.dosage_display || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.value)}
-                    className="h-10 text-sm text-center w-full border-[#C8E6E0] rounded-lg" placeholder="2 caps 3x/day" disabled={isFinalized} />}
+                    className="h-9 text-xs text-center w-full border-[#C8E6E0] rounded-lg" placeholder="2 caps 3x/day" disabled={isFinalized} />}
               </div>
+              {/* With Food */}
+              <div className="flex justify-center">
+                {patientView ? (
+                  <span className="text-xs">{supp.with_food ? 'Yes' : 'No'}</span>
+                ) : (
+                  <Select value={supp.with_food ? 'yes' : 'no'} onValueChange={(v) => onUpdateField(month.month_number, idx, 'with_food', v === 'yes')} disabled={isFinalized}>
+                    <SelectTrigger className="h-9 text-xs border-[#C8E6E0] w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="yes">Yes</SelectItem>
+                      <SelectItem value="no">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              {/* Notes/Instructions */}
               <div className="flex justify-center">
                 {patientView ? <span className="text-sm text-muted-foreground italic text-center">{supp.instructions || '-'}</span> :
                   <Input value={supp.instructions || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.value)}
-                    className="h-10 text-sm text-center w-full border-[#C8E6E0] rounded-lg" placeholder="With food" disabled={isFinalized} />}
+                    className="h-9 text-xs w-full border-[#C8E6E0] rounded-lg" placeholder="Notes..." disabled={isFinalized} />}
               </div>
               {showCosts && !patientView && (<>
                 <div className="font-mono tabular-nums text-sm font-semibold text-[#2B3437] text-center">{supp.bottles_needed || '-'}</div>
