@@ -1,18 +1,14 @@
 [
   {
-    "content": "Resize PDF logo bigger",
-    "status": "completed"
+    "content": "Rewrite PDF to match inspo: time groupings (AM/Afternoon/PM), With Food column, Notes, Month Order summary, fix text wrapping",
+    "status": "in_progress"
   },
   {
-    "content": "Collapsible sidebar with framer-motion",
-    "status": "completed"
+    "content": "Add time_of_day field to plan supplements + plan editor UI",
+    "status": "pending"
   },
   {
-    "content": "Patient entity + multiple plans per patient (data model change)",
-    "status": "completed"
-  },
-  {
-    "content": "Google Drive integration - save PDFs to patient folders",
-    "status": "completed"
+    "content": "Update plan editor to show With Food and Notes columns matching PDF",
+    "status": "pending"
   }
 ]
