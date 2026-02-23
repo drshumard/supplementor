@@ -533,6 +533,10 @@ async def create_plan(data: PlanCreate, authorization: str = Header(None)):
         doc["created_by"] = user.get("sub")
         doc["created_by_name"] = user.get("name", "")
     
+    # Ensure patient_id is stored
+    if data.patient_id:
+        doc["patient_id"] = data.patient_id
+    
     # If a template_id is provided, load template defaults
     if data.template_id:
         template = await db.templates.find_one({"_id": ObjectId(data.template_id)})
