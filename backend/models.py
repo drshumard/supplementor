@@ -121,6 +121,7 @@ class PlanMonth(BaseModel):
 
 class PlanCreate(BaseModel):
     patient_name: str
+    patient_id: Optional[str] = None
     date: str = ""
     program_name: str
     step_label: str = ""
