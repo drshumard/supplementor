@@ -111,7 +111,7 @@ export default function PatientsPage() {
                 <TableRow key={p._id} className="cursor-pointer hover:bg-[#F0FAFA] transition-colors" onClick={() => navigate(`/patients/${p._id}`)}>
                   <TableCell className="py-5 px-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full border-b-2 border-[#E2E8F0] flex items-center justify-center text-sm font-bold text-[#0D5F68]">
+                      <div className="w-9 h-9 rounded-full bg-[#EAF4F3] flex items-center justify-center text-sm font-bold text-[#0D5F68]">
                         {p.name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
                       <span className="font-bold text-sm text-[#0B0D10]">{p.name}</span>
@@ -120,7 +120,7 @@ export default function PatientsPage() {
                   <TableCell className="text-sm text-muted-foreground py-5">{p.email || '-'}</TableCell>
                   <TableCell className="text-sm text-muted-foreground py-5">{p.phone || '-'}</TableCell>
                   <TableCell className="py-5">
-                    <Badge className="border-b-2 border-[#E2E8F0] text-[#0D5F68] hover:border-b-2 border-[#E2E8F0] px-3 py-1 text-xs font-bold">{p.plan_count || 0}</Badge>
+                    <Badge className="bg-[#EAF4F3] text-[#0D5F68] hover:bg-[#EAF4F3] px-3 py-1 text-xs font-bold">{p.plan_count || 0}</Badge>
                   </TableCell>
                   <TableCell className="py-5">
                     <div className="flex items-center gap-1.5">
