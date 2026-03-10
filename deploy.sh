@@ -42,28 +42,30 @@ deactivate
 echo "  Done."
 echo ""
 
-# ── 3. Environment files ──
-echo "[3/7] Setting up .env files..."
-
-# Backend .env
+# ── 3. Check .env files exist ──
+echo "[3/7] Checking .env files..."
 if [ ! -f "$APP_DIR/backend/.env" ]; then
-    JWT_SECRET=$(openssl rand -hex 32)
-    cat > $APP_DIR/backend/.env << EOF
-MONGO_URL=mongodb://localhost:27017/$MONGO_DB
-JWT_SECRET=$JWT_SECRET
-GOOGLE_DRIVE_ID=0AGikKY7QHD7NUk9PVA
-GOOGLE_DRIVE_IMPERSONATE_USER=drjason@drshumard.com
-EOF
-    echo "  Created backend/.env with random JWT secret."
-else
-    echo "  backend/.env exists, keeping current."
+    echo "  ERROR: backend/.env not found!"
+    echo "  Create it manually first:"
+    echo ""
+    echo "    cat > $APP_DIR/backend/.env << EOF"
+    echo "    MONGO_URL=mongodb://localhost:27017/$MONGO_DB"
+    echo "    JWT_SECRET=$(openssl rand -hex 32)"
+    echo "    GOOGLE_DRIVE_ID=0AGikKY7QHD7NUk9PVA"
+    echo "    GOOGLE_DRIVE_IMPERSONATE_USER=drjason@drshumard.com"
+    echo "    EOF"
+    echo ""
+    exit 1
 fi
-
-# Frontend .env
-cat > $APP_DIR/frontend/.env << EOF
-REACT_APP_BACKEND_URL=https://$DOMAIN
-EOF
-echo "  Created frontend/.env (REACT_APP_BACKEND_URL=https://$DOMAIN)"
+if [ ! -f "$APP_DIR/frontend/.env" ]; then
+    echo "  ERROR: frontend/.env not found!"
+    echo "  Create it manually first:"
+    echo ""
+    echo "    echo 'REACT_APP_BACKEND_URL=https://$DOMAIN' > $APP_DIR/frontend/.env"
+    echo ""
+    exit 1
+fi
+echo "  Both .env files found."
 echo ""
 
 # ── 4. Frontend build ──
