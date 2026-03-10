@@ -118,11 +118,11 @@ export default function UsersPage() {
 
       {/* Summary pills */}
       <div className="flex items-center gap-5 mb-6">
-        <div className="rounded-xl bg-[#EAF4F3] border border-[#C8E6E0] px-5 py-3 flex items-center gap-3">
+        <div className="rounded-xl border-b-2 border-[#E2E8F0] border border-[#C8E6E0] px-5 py-3 flex items-center gap-3">
           <Users size={16} className="text-[#0D5F68]" />
           <span className="text-sm font-semibold text-[#61746E]">{total} Total</span>
         </div>
-        <div className="rounded-xl bg-[#EAF4F3] border border-[#C8E6E0] px-5 py-3 flex items-center gap-3">
+        <div className="rounded-xl border-b-2 border-[#E2E8F0] border border-[#C8E6E0] px-5 py-3 flex items-center gap-3">
           <ShieldCheck size={16} className="text-[#0D5F68]" />
           <span className="text-sm font-semibold text-[#61746E]">{adminCount} Admin{adminCount !== 1 ? 's' : ''}</span>
         </div>
@@ -153,15 +153,15 @@ export default function UsersPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border bg-[#FAFAFA] shadow-sm overflow-hidden" data-testid="admin-users-table">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="admin-users-table">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent bg-[#EAF4F3]">
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 px-6">Name</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Email</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[140px]">Role</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Created</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[110px]"></TableHead>
+            <TableRow className="hover:bg-transparent border-b-2 border-[#E2E8F0]">
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4 px-6">Name</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Email</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4 w-[140px]">Role</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Created</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4 w-[110px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -175,10 +175,10 @@ export default function UsersPage() {
               <TableRow><TableCell colSpan={5} className="h-40 text-center text-muted-foreground text-base">No users found</TableCell></TableRow>
             ) : (
               users.map(u => (
-                <TableRow key={u._id} className="hover:bg-[#F6FAFA]">
+                <TableRow key={u._id} className="hover:bg-[#F0FAFA]">
                   <TableCell className="py-5 px-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-[#EAF4F3] flex items-center justify-center text-sm font-bold text-[#0D5F68]">
+                      <div className="w-9 h-9 rounded-full border-b-2 border-[#E2E8F0] flex items-center justify-center text-sm font-bold text-[#0D5F68]">
                         {u.name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
                       <span className="font-bold text-sm text-[#0B0D10]">{u.name}</span>

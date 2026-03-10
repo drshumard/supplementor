@@ -76,7 +76,7 @@ export default function PatientDetailPage() {
 
       {/* Patient Info Card */}
       <div className="rounded-2xl border border-border/40 bg-[#FAFAFA] shadow-sm mb-8 overflow-hidden">
-        <div className="flex items-center justify-between px-8 py-5 bg-[#EAF4F3] border-b border-[#C8E6E0]">
+        <div className="flex items-center justify-between px-8 py-5 border-b-2 border-[#E2E8F0] border-b border-[#C8E6E0]">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-xl font-bold text-[#0D5F68] border border-[#C8E6E0]">
               {patient.name?.charAt(0)?.toUpperCase() || '?'}
@@ -137,17 +137,17 @@ export default function PatientDetailPage() {
         </Button>
       </div>
 
-      <div className="rounded-2xl border bg-[#FAFAFA] shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent bg-[#EAF4F3]">
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 px-6">Program</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Step</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Months</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Total Cost</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Status</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Last Updated</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[100px]"></TableHead>
+            <TableRow className="hover:bg-transparent border-b-2 border-[#E2E8F0]">
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4 px-6">Program</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Step</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Months</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Total Cost</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Status</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Last Updated</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4 w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -158,7 +158,7 @@ export default function PatientDetailPage() {
               </TableCell></TableRow>
             ) : (
               plans.map(plan => (
-                <TableRow key={plan._id} className="cursor-pointer hover:bg-[#F6FAFA] transition-colors" onClick={() => navigate(`/plans/${plan._id}`)}>
+                <TableRow key={plan._id} className="cursor-pointer hover:bg-[#F0FAFA] transition-colors" onClick={() => navigate(`/plans/${plan._id}`)}>
                   <TableCell className="font-bold text-sm text-[#0B0D10] py-5 px-6">{plan.program_name}</TableCell>
                   <TableCell className="text-sm py-5">{plan.step_label || `Step ${plan.step_number}`}</TableCell>
                   <TableCell className="text-sm font-mono py-5">{plan.months?.length || 0}</TableCell>

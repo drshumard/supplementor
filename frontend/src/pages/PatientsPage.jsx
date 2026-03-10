@@ -80,15 +80,15 @@ export default function PatientsPage() {
           data-testid="patients-search" className="pl-11 h-12" />
       </div>
 
-      <div className="rounded-2xl border bg-[#FAFAFA] shadow-sm overflow-hidden" data-testid="patients-table">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="patients-table">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent bg-[#EAF4F3]">
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 px-6">Name</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Email</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Phone</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[100px]">Plans</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[100px]"></TableHead>
+            <TableRow className="hover:bg-transparent border-b-2 border-[#E2E8F0]">
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4 px-6">Name</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Email</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Phone</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4 w-[100px]">Plans</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4 w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -108,10 +108,10 @@ export default function PatientsPage() {
               </TableCell></TableRow>
             ) : (
               patients.map(p => (
-                <TableRow key={p._id} className="cursor-pointer hover:bg-[#F6FAFA] transition-colors" onClick={() => navigate(`/patients/${p._id}`)}>
+                <TableRow key={p._id} className="cursor-pointer hover:bg-[#F0FAFA] transition-colors" onClick={() => navigate(`/patients/${p._id}`)}>
                   <TableCell className="py-5 px-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-[#EAF4F3] flex items-center justify-center text-sm font-bold text-[#0D5F68]">
+                      <div className="w-9 h-9 rounded-full border-b-2 border-[#E2E8F0] flex items-center justify-center text-sm font-bold text-[#0D5F68]">
                         {p.name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
                       <span className="font-bold text-sm text-[#0B0D10]">{p.name}</span>
@@ -120,7 +120,7 @@ export default function PatientsPage() {
                   <TableCell className="text-sm text-muted-foreground py-5">{p.email || '-'}</TableCell>
                   <TableCell className="text-sm text-muted-foreground py-5">{p.phone || '-'}</TableCell>
                   <TableCell className="py-5">
-                    <Badge className="bg-[#EAF4F3] text-[#0D5F68] hover:bg-[#EAF4F3] px-3 py-1 text-xs font-bold">{p.plan_count || 0}</Badge>
+                    <Badge className="border-b-2 border-[#E2E8F0] text-[#0D5F68] hover:border-b-2 border-[#E2E8F0] px-3 py-1 text-xs font-bold">{p.plan_count || 0}</Badge>
                   </TableCell>
                   <TableCell className="py-5">
                     <div className="flex items-center gap-1.5">

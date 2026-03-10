@@ -67,11 +67,11 @@ function MonthPage({
   );
 
   return (
-    <div className="rounded-2xl border border-border/40 bg-[#FAFAFA] shadow-sm mb-10 overflow-hidden"
+    <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated mb-8 overflow-hidden"
       data-testid={`month-page-${month.month_number}`}>
 
       {/* Month header */}
-      <div className="flex items-center justify-between px-8 py-5 bg-[#EAF4F3] border-b border-[#C8E6E0]">
+      <div className="flex items-center justify-between px-8 py-4 bg-[#FAFBFC] border-b-2 border-[#E2E8F0]">
         <div className="flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-[#0D5F68] flex items-center justify-center shadow-sm">
             <Calendar size={18} className="text-white" />
@@ -102,18 +102,18 @@ function MonthPage({
               ? '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.4fr 0.5fr 0.6fr 0.3fr'
               : '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.6fr 0.3fr'
         }}>
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Time</span>
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">Supplement</span>
+        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Time</span>
+        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568]">Supplement</span>
         {!patientView && (<>
-          <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Qty</span>
-          <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">x/Day</span>
+          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Qty</span>
+          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">x/Day</span>
         </>)}
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Dosage</span>
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Food</span>
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Notes</span>
+        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Dosage</span>
+        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Food</span>
+        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Notes</span>
         {showCosts && !patientView && (<>
-          <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Bottles</span>
-          <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground text-center">Cost</span>
+          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Bottles</span>
+          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Cost</span>
         </>)}
         {!isFinalized && !patientView && <span></span>}
       </div>
@@ -127,7 +127,7 @@ function MonthPage({
         ) : (
           (month.supplements || []).map((supp, idx) => (
             <div key={idx}
-              className="grid items-center px-8 py-5 border-b border-border/15 last:border-b-0 hover:bg-[#F6FAFA] transition-colors duration-150 group gap-x-4"
+              className="grid items-center px-8 py-5 border-b border-border/15 last:border-b-0 hover:bg-[#F0FAFA] transition-colors duration-150 group gap-x-4"
               style={{
                 gridTemplateColumns: patientView
                   ? '0.6fr 1.6fr 1fr 0.6fr 1.6fr'
@@ -415,10 +415,23 @@ export default function PlanEditorPage() {
   return (
     <div className="p-10 max-w-[1560px] mx-auto">
 
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-[#94A3B8] mb-4">
+        <button onClick={() => navigate('/')} className="hover:text-[#334155] transition-colors">Dashboard</button>
+        <span>/</span>
+        {plan?.patient_id && (
+          <>
+            <button onClick={() => navigate(`/patients/${plan.patient_id}`)} className="hover:text-[#334155] transition-colors">{plan.patient_name}</button>
+            <span>/</span>
+          </>
+        )}
+        <span className="text-[#334155] font-medium">{plan?.program_name} - {plan?.step_label}</span>
+      </div>
+
       {/* ── Header card ── */}
-      <div className="rounded-2xl border border-border/40 bg-[#FAFAFA] shadow-sm mb-8 overflow-hidden">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated mb-8 overflow-hidden">
         {/* Top row: back + actions */}
-        <div className="flex items-center justify-between px-8 py-4 border-b border-[#C8E6E0] bg-[#EAF4F3]">
+        <div className="flex items-center justify-between px-8 py-3 border-b-2 border-[#E2E8F0]">
           <Button variant="ghost" size="sm" onClick={goBack} className="gap-2 text-muted-foreground hover:text-[#0B0D10] h-10 px-3 rounded-lg">
             <ArrowLeft size={18} /> Back
           </Button>
@@ -551,8 +564,8 @@ export default function PlanEditorPage() {
         {effectiveShowCosts && !patientViewMode && (
           <div className="w-[340px] shrink-0">
             <div className="sticky top-10">
-              <div className="rounded-2xl border border-border/40 bg-[#FAFAFA] shadow-sm p-7" data-testid="plan-editor-cost-summary">
-                <h3 className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground mb-6">Cost Summary</h3>
+              <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated p-7" data-testid="plan-editor-cost-summary">
+                <h3 className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] mb-6">Cost Summary</h3>
                 <div className="space-y-4">
                   {(plan.months || []).map(month => (
                     <div key={month.month_number} className="flex items-center justify-between">

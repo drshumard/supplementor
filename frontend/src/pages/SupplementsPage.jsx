@@ -104,7 +104,7 @@ export default function SupplementsPage() {
 
       {/* Summary bar */}
       <div className="flex items-center gap-5 mb-6">
-        <div className="rounded-xl bg-[#EAF4F3] border border-[#C8E6E0] px-5 py-3 flex items-center gap-3">
+        <div className="rounded-xl border-b-2 border-[#E2E8F0] border border-[#C8E6E0] px-5 py-3 flex items-center gap-3">
           <Pill size={16} className="text-[#0D5F68]" />
           <span className="text-sm font-semibold text-[#61746E]">{total} Total</span>
         </div>
@@ -120,7 +120,7 @@ export default function SupplementsPage() {
           data-testid="admin-supplements-search-input" className="pl-11 h-12" />
       </div>
 
-      <div className="rounded-2xl border bg-[#FAFAFA] shadow-sm overflow-hidden" data-testid="admin-supplements-table">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="admin-supplements-table">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent bg-[#FAFAFA]">
@@ -143,7 +143,7 @@ export default function SupplementsPage() {
               <TableRow><TableCell colSpan={8} className="h-40 text-center text-muted-foreground text-base">No supplements found</TableCell></TableRow>
             ) : (
               supplements.map(supp => (
-                <TableRow key={supp._id} className="hover:bg-[#FFFBF5]">
+                <TableRow key={supp._id} className="hover:bg-[#F0FAFA]">
                   <TableCell className="py-5 px-6">
                     <div className="flex items-center gap-2.5">
                       <span className="font-bold text-sm text-[#0B0D10]">{supp.supplement_name}</span>

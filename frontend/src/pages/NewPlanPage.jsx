@@ -122,22 +122,22 @@ export default function NewPlanPage() {
         {wizardSteps.map((ws, i) => (
           <React.Fragment key={ws.num}>
             <div className={`flex items-center gap-2.5 ${
-              step >= ws.num ? 'text-[hsl(187,79%,23%)]' : 'text-muted-foreground'
+              step >= ws.num ? 'text-[#0D5F68]' : 'text-[#94A3B8]'
             }`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
                 step > ws.num
-                  ? 'bg-[hsl(187,79%,23%)] text-white shadow-sm'
+                  ? 'bg-[#0D5F68] text-white shadow-md'
                   : step === ws.num
-                  ? 'bg-[hsl(174,35%,93%)] text-[hsl(187,79%,23%)] ring-2 ring-[hsl(187,79%,23%)]'
-                  : 'bg-[#EEF1F1] text-[#61746E]'
+                  ? 'bg-[#EAF4F3] text-[#0D5F68] ring-2 ring-[#0D5F68] shadow-sm'
+                  : 'bg-[#F1F5F9] text-[#94A3B8]'
               }`}>
-                {step > ws.num ? <Check size={14} /> : ws.num}
+                {step > ws.num ? <Check size={16} /> : ws.num}
               </div>
-              <span className="text-xs font-semibold hidden sm:inline">{ws.label}</span>
+              <span className={`text-sm hidden sm:inline ${step === ws.num ? 'font-bold' : 'font-medium'}`}>{ws.label}</span>
             </div>
             {i < wizardSteps.length - 1 && (
-              <div className={`flex-1 h-[2px] rounded ${
-                step > ws.num ? 'bg-[hsl(187,79%,23%)]' : 'bg-border'
+              <div className={`flex-1 h-[3px] rounded-full ${
+                step > ws.num ? 'bg-[#0D5F68]' : 'bg-[#E2E8F0]'
               }`} />
             )}
           </React.Fragment>

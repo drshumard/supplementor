@@ -97,18 +97,18 @@ export default function DashboardPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border bg-[#FAFAFA] shadow-sm overflow-hidden" data-testid="plans-table">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="plans-table">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent bg-[#EAF4F3]">
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 px-6">Patient</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Program</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Step</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[70px]">Months</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[130px]">Total Cost</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[120px]">Status</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4">Last Updated</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-[#0D5F68] py-4 w-[100px]"></TableHead>
+            <TableRow className="hover:bg-transparent border-b-2 border-[#E2E8F0]">
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 px-6">Patient</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5">Program</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5">Step</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 w-[70px]">Months</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 w-[130px]">Total Cost</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 w-[120px]">Status</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5">Updated</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -128,31 +128,31 @@ export default function DashboardPage() {
               </TableCell></TableRow>
             ) : (
               plans.map((plan) => (
-                <TableRow key={plan._id} className="cursor-pointer hover:bg-[#FFFBF5] transition-colors" onClick={() => navigate(`/plans/${plan._id}`)}>
-                  <TableCell className="font-bold text-[#0B0D10] py-5 px-6 text-sm">{plan.patient_name || 'Untitled'}</TableCell>
-                  <TableCell className="text-sm py-5">{plan.program_name}</TableCell>
-                  <TableCell className="text-sm py-5">{plan.step_label || `Step ${plan.step_number}`}</TableCell>
-                  <TableCell className="text-sm font-mono tabular-nums py-5 w-[70px]">{plan.months?.length || 0}</TableCell>
-                  <TableCell className="text-sm font-mono tabular-nums py-5 text-[#147D5A] font-bold w-[130px]">{formatCurrency(plan.total_program_cost)}</TableCell>
-                  <TableCell className="py-5 w-[120px]">
+                <TableRow key={plan._id} className="cursor-pointer hover:bg-[#F0FAFA] transition-colors duration-150" onClick={() => navigate(`/plans/${plan._id}`)}>
+                  <TableCell className="font-semibold text-[#0B0D10] py-4 px-6 text-sm">{plan.patient_name || 'Untitled'}</TableCell>
+                  <TableCell className="text-sm text-[#334155] py-4">{plan.program_name}</TableCell>
+                  <TableCell className="text-sm text-[#334155] py-4">{plan.step_label || `Step ${plan.step_number}`}</TableCell>
+                  <TableCell className="text-sm font-mono tabular-nums py-4 w-[70px] text-[#334155]">{plan.months?.length || 0}</TableCell>
+                  <TableCell className="text-sm font-mono tabular-nums py-4 text-[#147D5A] font-semibold w-[130px]">{formatCurrency(plan.total_program_cost)}</TableCell>
+                  <TableCell className="py-4 w-[120px]">
                     <Badge data-testid={`plan-status-${plan._id}`}
-                      className={`px-3 py-1.5 text-xs font-bold ${
+                      className={`px-2.5 py-1 text-[10px] font-bold rounded-md ${
                         plan.status === 'finalized'
-                          ? 'bg-[#147D5A] text-white hover:bg-[#147D5A]'
-                          : 'bg-[#EEF1F1] text-[#61746E] border border-[#DCE3E3] hover:bg-[#EEF1F1]'
+                          ? 'bg-[#0D5F68] text-white hover:bg-[#0D5F68]'
+                          : 'bg-[#FEF3C7] text-[#92400E] hover:bg-[#FEF3C7]'
                       }`}>
                       {plan.status || 'draft'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground py-5">
+                  <TableCell className="text-sm text-[#718096] py-4">
                     {plan.updated_at ? new Date(plan.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
                   </TableCell>
-                  <TableCell className="py-5">
+                  <TableCell className="py-4">
                     <div className="flex items-center gap-1.5">
-                      <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-muted-foreground hover:text-[#0D5F68] hover:bg-[#E0F2F1] rounded-lg"
-                        onClick={(e) => handleDuplicate(e, plan._id)} title="Duplicate" data-testid={`duplicate-plan-${plan._id}`}><Copy size={15} /></Button>
-                      <Button variant="ghost" size="sm" className="h-9 w-9 p-0 text-muted-foreground hover:text-[#C53030] hover:bg-red-50 rounded-lg"
-                        onClick={(e) => { e.stopPropagation(); setDeleteId(plan._id); }} data-testid={`delete-plan-${plan._id}`}><Trash2 size={15} /></Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#94A3B8] hover:text-[#0D5F68] hover:bg-[#EAF4F3] rounded-lg"
+                        onClick={(e) => handleDuplicate(e, plan._id)} title="Duplicate" data-testid={`duplicate-plan-${plan._id}`}><Copy size={14} /></Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#94A3B8] hover:text-[#C53B3B] hover:bg-red-50 rounded-lg"
+                        onClick={(e) => { e.stopPropagation(); setDeleteId(plan._id); }} data-testid={`delete-plan-${plan._id}`}><Trash2 size={14} /></Button>
                     </div>
                   </TableCell>
                 </TableRow>

@@ -83,7 +83,7 @@ export default function TemplatesPage() {
       </div>
 
       {/* Filter bar — warm amber tinted */}
-      <div className="flex items-center gap-5 mb-8 p-6 rounded-2xl bg-[#EAF4F3] border border-[#C8E6E0]">
+      <div className="flex items-center gap-5 mb-8 p-6 rounded-2xl border-b-2 border-[#E2E8F0] border border-[#C8E6E0]">
         <div className="space-y-1.5">
           <Label className="text-xs font-bold text-[#61746E] uppercase tracking-wider">Program</Label>
           <Select value={selectedProgram} onValueChange={setSelectedProgram}>
@@ -114,7 +114,7 @@ export default function TemplatesPage() {
       </div>
 
       {currentTemplate ? (
-        <div className="rounded-2xl border bg-[#FAFAFA] shadow-sm overflow-hidden" data-testid="admin-templates-table">
+        <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="admin-templates-table">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent bg-[#FAFAFA]">
@@ -134,7 +134,7 @@ export default function TemplatesPage() {
                 </TableCell></TableRow>
               ) : (
                 editSupps.map((supp, idx) => (
-                  <TableRow key={idx} className="hover:bg-[#FFFBF5] group">
+                  <TableRow key={idx} className="hover:bg-[#F0FAFA] group">
                     <TableCell className="font-bold text-sm text-[#0B0D10] py-5 px-6">{supp.supplement_name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground py-5">{supp.company}</TableCell>
                     <TableCell className="text-sm py-5">{supp.dosage_display || '-'}</TableCell>
@@ -152,7 +152,7 @@ export default function TemplatesPage() {
           <div className="p-5 border-t border-border/30">
             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2.5 text-sm text-muted-foreground w-full justify-start h-12 rounded-xl border-dashed hover:border-[#0D5F68]/40 hover:bg-[#EAF4F3]">
+                <Button variant="outline" className="gap-2.5 text-sm text-muted-foreground w-full justify-start h-12 rounded-xl border-dashed hover:border-[#0D5F68]/40 hover:border-b-2 border-[#E2E8F0]">
                   <Plus size={16} className="text-[#0D5F68]" /> Add supplement to template...
                   <ChevronsUpDown size={13} className="ml-auto" />
                 </Button>
@@ -178,7 +178,7 @@ export default function TemplatesPage() {
           </div>
         </div>
       ) : (
-        <div className="text-center py-20 rounded-2xl border border-dashed bg-[#EAF4F3]">
+        <div className="text-center py-20 rounded-2xl border border-dashed border-b-2 border-[#E2E8F0]">
           <Layers size={48} strokeWidth={1} className="mx-auto mb-4 text-[#0D5F68]/40" />
           <p className="text-base font-bold text-[#0B0D10]">No template found</p>
           <p className="text-sm text-muted-foreground mt-1">Select a program and step above</p>
