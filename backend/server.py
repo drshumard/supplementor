@@ -55,9 +55,9 @@ db = client[DB_NAME]
 
 # ─── Auth Helpers ────────────────────────────────────────────────────────────
 
-SECRET_KEY = os.environ.get("JWT_SECRET", "supplement-app-secret-key-2026")
+SECRET_KEY = os.environ.get("JWT_SECRET", "drshumard-protocol-secret-change-me-in-production-2026")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 24
+ACCESS_TOKEN_EXPIRE_HOURS = 12
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -116,7 +116,8 @@ async def health():
 # ─── Auth Endpoints ──────────────────────────────────────────────────────────
 
 @app.post("/api/auth/register")
-async def register(user: UserCreate):
+async def register(user: UserCreate, admin=Depends(require_admin)):
+    """Create a new user — admin only."""
     existing = await db.users.find_one({"email": user.email.lower()})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -146,14 +147,14 @@ async def login(creds: UserLogin):
 
 
 @app.get("/api/auth/me")
-async def get_me(token: str = Query(...)):
-    payload = verify_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+async def get_me(authorization: str = Header(None)):
+    user = await get_current_user(authorization)
     if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    doc = await db.users.find_one({"_id": ObjectId(user["sub"])})
+    if not doc:
         raise HTTPException(status_code=404, detail="User not found")
-    safe = serialize_doc(user)
+    safe = serialize_doc(doc)
     safe.pop("password_hash", None)
     return safe
 
@@ -346,8 +347,8 @@ async def delete_patient(patient_id: str, user=Depends(require_admin)):
 # ─── Seed Endpoint ───────────────────────────────────────────────────────────
 
 @app.post("/api/seed")
-async def seed_data():
-    """Seed the database with initial supplements and templates."""
+async def seed_data(user=Depends(require_admin)):
+    """Seed the database with initial supplements and templates. Admin only."""
     # Only seed if empty
     supp_count = await db.supplements.count_documents({})
     if supp_count == 0:
@@ -402,7 +403,8 @@ async def list_supplements(
     search: str = "",
     active_only: bool = True,
     skip: int = 0,
-    limit: int = 200
+    limit: int = 200,
+    user=Depends(require_auth)
 ):
     query = {}
     if active_only:
@@ -417,7 +419,7 @@ async def list_supplements(
 
 
 @app.get("/api/supplements/{supplement_id}")
-async def get_supplement(supplement_id: str):
+async def get_supplement(supplement_id: str, user=Depends(require_auth)):
     doc = await db.supplements.find_one({"_id": ObjectId(supplement_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Supplement not found")
@@ -459,7 +461,7 @@ async def delete_supplement(supplement_id: str, user=Depends(require_admin)):
 # ─── Templates CRUD ──────────────────────────────────────────────────────────
 
 @app.get("/api/templates")
-async def list_templates(program_name: str = ""):
+async def list_templates(program_name: str = "", user=Depends(require_auth)):
     query = {}
     if program_name:
         query["program_name"] = program_name
@@ -469,7 +471,7 @@ async def list_templates(program_name: str = ""):
 
 
 @app.get("/api/templates/{template_id}")
-async def get_template(template_id: str):
+async def get_template(template_id: str, user=Depends(require_auth)):
     doc = await db.templates.find_one({"_id": ObjectId(template_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Template not found")
@@ -508,7 +510,7 @@ async def list_plans(
     status: str = "",
     skip: int = 0,
     limit: int = 50,
-    authorization: str = Header(None)
+    user=Depends(require_auth)
 ):
     query = {}
     if search:
@@ -547,7 +549,7 @@ async def list_plans(
 
 
 @app.get("/api/plans/{plan_id}")
-async def get_plan(plan_id: str):
+async def get_plan(plan_id: str, user=Depends(require_auth)):
     doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -622,7 +624,7 @@ async def create_plan(data: PlanCreate, authorization: str = Header(None)):
 
 
 @app.put("/api/plans/{plan_id}")
-async def update_plan(plan_id: str, data: PlanUpdate):
+async def update_plan(plan_id: str, data: PlanUpdate, user=Depends(require_auth)):
     existing = await db.plans.find_one({"_id": ObjectId(plan_id)})
     if not existing:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -658,7 +660,7 @@ async def update_plan(plan_id: str, data: PlanUpdate):
 
 
 @app.delete("/api/plans/{plan_id}")
-async def delete_plan(plan_id: str):
+async def delete_plan(plan_id: str, user=Depends(require_auth)):
     result = await db.plans.delete_one({"_id": ObjectId(plan_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -724,7 +726,7 @@ async def duplicate_plan(plan_id: str, body: DuplicateRequest = None, authorizat
 
 
 @app.post("/api/plans/{plan_id}/finalize")
-async def finalize_plan(plan_id: str):
+async def finalize_plan(plan_id: str, user=Depends(require_auth)):
     """Finalize a plan (lock it from further edits)."""
     doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
     if not doc:
@@ -739,7 +741,7 @@ async def finalize_plan(plan_id: str):
 
 
 @app.post("/api/plans/{plan_id}/reopen")
-async def reopen_plan(plan_id: str):
+async def reopen_plan(plan_id: str, user=Depends(require_auth)):
     """Reopen a finalized plan."""
     doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
     if not doc:
@@ -756,7 +758,7 @@ async def reopen_plan(plan_id: str):
 # ─── Plan PDF Export ─────────────────────────────────────────────────────────
 
 @app.get("/api/plans/{plan_id}/export/patient")
-async def export_patient_pdf(plan_id: str):
+async def export_patient_pdf(plan_id: str, user=Depends(require_auth)):
     doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -781,7 +783,7 @@ async def export_patient_pdf(plan_id: str):
 
 
 @app.get("/api/plans/{plan_id}/export/hc")
-async def export_hc_pdf(plan_id: str):
+async def export_hc_pdf(plan_id: str, user=Depends(require_auth)):
     doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Plan not found")

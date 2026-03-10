@@ -33,8 +33,15 @@ export const login = (email, password) =>
 export const register = (email, password, name, role) =>
   request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name, role }) });
 
-export const getMe = (token) =>
-  request(`/auth/me?token=${token}`);
+export const getMe = (token) => {
+  const url = `${API_BASE}/auth/me`;
+  return fetch(url, {
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+  }).then(res => {
+    if (!res.ok) throw new Error('Not authenticated');
+    return res.json();
+  });
+};
 
 // Supplements
 export const getSupplements = (search = '', activeOnly = true) =>
