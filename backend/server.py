@@ -5,6 +5,7 @@ import os
 import math
 from datetime import datetime, timedelta
 from typing import Optional
+from pydantic import BaseModel as PydanticBaseModel
 
 from fastapi import FastAPI, HTTPException, Query, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -500,19 +501,31 @@ async def list_plans(
 ):
     query = {}
     if search:
-        query["patient_name"] = {"$regex": search, "$options": "i"}
+        # Search by patient name — need to find matching patient IDs
+        patient_cursor = db.patients.find({"name": {"$regex": search, "$options": "i"}}, {"_id": 1})
+        patient_ids = [str(p["_id"]) async for p in patient_cursor]
+        query["$or"] = [
+            {"patient_id": {"$in": patient_ids}},
+            {"patient_name": {"$regex": search, "$options": "i"}},
+        ]
     if program:
         query["program_name"] = program
     if status:
         query["status"] = status
     
-    # All authenticated users see all plans
-    # (Admin and HC both need visibility into all patient plans)
-    
     cursor = db.plans.find(query).sort("updated_at", -1).skip(skip).limit(limit)
     docs = await cursor.to_list(length=limit)
     total = await db.plans.count_documents(query)
-    return {"plans": serialize_doc(docs), "total": total}
+    
+    # Resolve patient names from patient records
+    plans = serialize_doc(docs)
+    for p in plans:
+        if p.get("patient_id"):
+            patient = await db.patients.find_one({"_id": ObjectId(p["patient_id"])})
+            if patient:
+                p["patient_name"] = patient.get("name", p.get("patient_name", ""))
+    
+    return {"plans": plans, "total": total}
 
 
 @app.get("/api/plans/{plan_id}")
@@ -520,7 +533,13 @@ async def get_plan(plan_id: str):
     doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Plan not found")
-    return serialize_doc(doc)
+    plan = serialize_doc(doc)
+    # Resolve patient name from patient record
+    if plan.get("patient_id"):
+        patient = await db.patients.find_one({"_id": ObjectId(plan["patient_id"])})
+        if patient:
+            plan["patient_name"] = patient.get("name", plan.get("patient_name", ""))
+    return plan
 
 
 @app.post("/api/plans")
@@ -628,25 +647,58 @@ async def delete_plan(plan_id: str):
     return {"message": "Deleted"}
 
 
+class DuplicateRequest(PydanticBaseModel):
+    target: str = "same"  # "same", "existing", "new"
+    patient_id: Optional[str] = None
+    new_patient_name: Optional[str] = None
+    new_patient_email: Optional[str] = None
+    new_patient_phone: Optional[str] = None
+
 @app.post("/api/plans/{plan_id}/duplicate")
-async def duplicate_plan(plan_id: str, authorization: str = Header(None)):
-    """Duplicate an existing plan (for returning patients)."""
+async def duplicate_plan(plan_id: str, body: DuplicateRequest = None, authorization: str = Header(None)):
+    """Duplicate a plan — same patient, existing patient, or new patient."""
     doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Plan not found")
     
+    user = await get_current_user(authorization)
+    
     # Create new plan based on existing
     new_doc = {k: v for k, v in doc.items() if k != "_id"}
-    new_doc["patient_name"] = f"{doc.get('patient_name', 'Copy')} (Copy)"
     new_doc["status"] = "draft"
     new_doc["date"] = datetime.utcnow().strftime("%Y-%m-%d")
     new_doc["created_at"] = datetime.utcnow()
     new_doc["updated_at"] = datetime.utcnow()
-    
-    user = await get_current_user(authorization)
     if user:
         new_doc["created_by"] = user.get("sub")
         new_doc["created_by_name"] = user.get("name", "")
+    
+    if body and body.target == "existing" and body.patient_id:
+        # Link to existing patient
+        patient = await db.patients.find_one({"_id": ObjectId(body.patient_id)})
+        if patient:
+            new_doc["patient_id"] = body.patient_id
+            new_doc["patient_name"] = patient.get("name", "")
+    elif body and body.target == "new" and body.new_patient_name:
+        # Create new patient
+        new_patient = {
+            "name": body.new_patient_name,
+            "email": body.new_patient_email or "",
+            "phone": body.new_patient_phone or "",
+            "date_of_birth": "",
+            "notes": "",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+        }
+        if user:
+            new_patient["created_by"] = user.get("sub")
+            new_patient["created_by_name"] = user.get("name", "")
+        result = await db.patients.insert_one(new_patient)
+        new_doc["patient_id"] = str(result.inserted_id)
+        new_doc["patient_name"] = body.new_patient_name
+    else:
+        # Same patient (default)
+        new_doc["patient_name"] = doc.get("patient_name", "Copy") + " (Copy)"
     
     result = await db.plans.insert_one(new_doc)
     new_doc["_id"] = result.inserted_id

@@ -1,10 +1,18 @@
 [
   {
-    "content": "Style table headers with dark/light teal personality",
+    "content": "Decouple patient_name from plan — always pull from linked patient record",
     "status": "completed"
   },
   {
-    "content": "Plan page: merge name into toolbar, move buttons to Actions dropdown on action row",
+    "content": "Build duplicate dialog with 3 options: Same patient, Existing patient, New patient",
+    "status": "completed"
+  },
+  {
+    "content": "Remove editable patient name from plan editor, show read-only from patient record",
+    "status": "completed"
+  },
+  {
+    "content": "Update backend duplicate endpoint to accept patient assignment",
     "status": "completed"
   }
 ]

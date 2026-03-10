@@ -75,8 +75,8 @@ export const updatePlan = (id, data) =>
 export const deletePlan = (id) =>
   request(`/plans/${id}`, { method: 'DELETE' });
 
-export const duplicatePlan = (id) =>
-  request(`/plans/${id}/duplicate`, { method: 'POST' });
+export const duplicatePlan = (id, body = {}) =>
+  request(`/plans/${id}/duplicate`, { method: 'POST', body: JSON.stringify(body) });
 
 export const finalizePlan = (id) =>
   request(`/plans/${id}/finalize`, { method: 'POST' });

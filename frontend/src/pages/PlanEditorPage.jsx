@@ -5,6 +5,7 @@ import { formatCurrency, recalculateMonthCosts, downloadBlob } from '../lib/util
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import {
@@ -20,6 +21,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '../components/ui/alert-dialog';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '../components/ui/dialog';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
@@ -363,7 +367,7 @@ export default function PlanEditorPage() {
     recalcAndUpdate(np);
   };
   const updatePatientName = (name) => {
-    if (!plan || isFinalized) return;
+    if (!plan || isFinalized || plan.patient_id) return;
     const np = { ...plan, patient_name: name }; setPlan(np); debouncedSave(np);
   };
 
@@ -391,7 +395,30 @@ export default function PlanEditorPage() {
   };
   const handleFinalize = async () => { try { await savePlan(plan); const r = await finalizePlan(planId); setPlan(prev => ({ ...prev, ...r })); toast.success('Plan finalized'); setConfirmFinalize(false); } catch { toast.error('Failed to finalize'); } };
   const handleReopen = async () => { try { const r = await reopenPlan(planId); setPlan(prev => ({ ...prev, ...r })); toast.success('Plan reopened'); } catch { toast.error('Failed to reopen'); } };
-  const handleDuplicate = async () => { try { const r = await duplicatePlan(planId); toast.success('Plan duplicated'); navigate(`/plans/${r._id}`); } catch { toast.error('Failed to duplicate'); } };
+
+  // Duplicate dialog
+  const [dupOpen, setDupOpen] = useState(false);
+  const [dupTarget, setDupTarget] = useState('same');
+  const [dupPatients, setDupPatients] = useState([]);
+  const [dupSelectedPatientId, setDupSelectedPatientId] = useState('');
+  const [dupNewName, setDupNewName] = useState('');
+  const [dupLoading, setDupLoading] = useState(false);
+
+  const openDuplicateDialog = () => {
+    setDupTarget('same'); setDupNewName(''); setDupSelectedPatientId(''); setDupOpen(true);
+    import('../lib/api').then(api => api.getPatients('')).then(res => setDupPatients(res.patients || [])).catch(() => {});
+  };
+  const handleDuplicate = async () => {
+    setDupLoading(true);
+    try {
+      const body = { target: dupTarget };
+      if (dupTarget === 'existing') body.patient_id = dupSelectedPatientId;
+      if (dupTarget === 'new') body.new_patient_name = dupNewName;
+      const r = await duplicatePlan(planId, body);
+      toast.success('Plan duplicated'); setDupOpen(false); navigate(`/plans/${r._id}`);
+    } catch (err) { toast.error(err.message || 'Failed to duplicate'); }
+    finally { setDupLoading(false); }
+  };
 
   const addMonth = () => {
     if (!plan || isFinalized) return;
@@ -437,14 +464,16 @@ export default function PlanEditorPage() {
         <Button variant="ghost" size="sm" onClick={goBack} className="text-[#94A3B8] hover:text-[#0B0D10] h-9 w-9 p-0 rounded-lg shrink-0">
           <ArrowLeft size={18} />
         </Button>
-        <Input
-          value={plan.patient_name || ''}
-          onChange={(e) => updatePatientName(e.target.value)}
-          className="text-xl font-bold border border-[#C8E6E0] bg-white rounded-lg h-9 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.02em] max-w-[260px]"
-          placeholder="Patient Name"
-          data-testid="plan-editor-patient-name"
-          disabled={isFinalized}
-        />
+        {plan.patient_id ? (
+          <button onClick={() => navigate(`/patients/${plan.patient_id}`)}
+            className="text-xl font-bold text-[#0B0D10] tracking-[-0.02em] hover:text-[#0D5F68] transition-colors" data-testid="plan-editor-patient-name">
+            {plan.patient_name}
+          </button>
+        ) : (
+          <Input value={plan.patient_name || ''} onChange={(e) => updatePatientName(e.target.value)}
+            className="text-xl font-bold border border-[#C8E6E0] bg-white rounded-lg h-9 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.02em] max-w-[260px]"
+            placeholder="Patient Name" data-testid="plan-editor-patient-name" disabled={isFinalized} />
+        )}
         <span className="text-sm text-[#718096]">
           {plan.program_name} / {plan.step_label || `Step ${plan.step_number}`} / {plan.date}
           {plan.created_by_name ? ` / ${plan.created_by_name}` : ''}
@@ -462,7 +491,7 @@ export default function PlanEditorPage() {
           <span className="text-sm text-amber-800 font-semibold">This plan is finalized.</span>
           <div className="ml-auto flex gap-2">
             <Button size="sm" onClick={handleReopen} className="gap-2 h-9 px-4 text-xs font-semibold bg-[#B26A00] hover:bg-[#9A5B00] text-white"><Unlock size={14} /> Reopen</Button>
-            <Button variant="outline" size="sm" onClick={handleDuplicate} className="gap-2 h-9 px-4 text-xs font-semibold"><Copy size={14} /> Duplicate</Button>
+            <Button variant="outline" size="sm" onClick={openDuplicateDialog} className="gap-2 h-9 px-4 text-xs font-semibold"><Copy size={14} /> Duplicate</Button>
           </div>
         </div>
       )}
@@ -553,7 +582,7 @@ export default function PlanEditorPage() {
                     Save to Google Drive
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleDuplicate}>
+                  <DropdownMenuItem onClick={openDuplicateDialog}>
                     <Copy size={14} className="mr-2" /> Duplicate Plan
                   </DropdownMenuItem>
                   {!isFinalized && !patientViewMode && (
@@ -609,6 +638,56 @@ export default function PlanEditorPage() {
           </div>
         )}
       </div>
+
+      {/* Duplicate Dialog */}
+      <Dialog open={dupOpen} onOpenChange={setDupOpen}>
+        <DialogContent className="max-w-[440px] p-7">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Duplicate Plan</DialogTitle>
+            <DialogDescription className="text-sm mt-1">Choose where to place the duplicated plan.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Assign to</Label>
+              <Select value={dupTarget} onValueChange={setDupTarget}>
+                <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="same">Same patient</SelectItem>
+                  <SelectItem value="existing">Existing patient</SelectItem>
+                  <SelectItem value="new">New patient</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {dupTarget === 'existing' && (
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Select patient</Label>
+                <Select value={dupSelectedPatientId} onValueChange={setDupSelectedPatientId}>
+                  <SelectTrigger className="h-11"><SelectValue placeholder="Choose a patient..." /></SelectTrigger>
+                  <SelectContent>
+                    {dupPatients.map(p => (
+                      <SelectItem key={p._id} value={p._id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {dupTarget === 'new' && (
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">New patient name</Label>
+                <Input value={dupNewName} onChange={(e) => setDupNewName(e.target.value)}
+                  className="h-11" placeholder="e.g. Jane Smith" autoFocus />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-3">
+            <Button variant="outline" onClick={() => setDupOpen(false)} className="h-10 px-5">Cancel</Button>
+            <Button onClick={handleDuplicate} disabled={dupLoading || (dupTarget === 'existing' && !dupSelectedPatientId) || (dupTarget === 'new' && !dupNewName.trim())}
+              className="h-10 px-6 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold">
+              {dupLoading ? 'Duplicating...' : 'Duplicate'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmFinalize} onOpenChange={setConfirmFinalize}>
         <AlertDialogContent className="p-7">
