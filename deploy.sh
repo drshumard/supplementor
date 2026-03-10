@@ -7,7 +7,7 @@ set -e
 # ============================================
 
 APP_NAME="drshumard-protocol"
-APP_DIR="/var/www/drshumard-protocol"
+APP_DIR="/var/www/supplemetor"
 FRONTEND_PORT=3847
 BACKEND_PORT=8047
 DOMAIN="fm.drshumard.com"
