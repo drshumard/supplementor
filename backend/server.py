@@ -262,10 +262,21 @@ async def list_patients(search: str = "", skip: int = 0, limit: int = 100, autho
     cursor = db.patients.find(query).sort("name", 1).skip(skip).limit(limit)
     docs = await cursor.to_list(length=limit)
     total = await db.patients.count_documents(query)
-    # Add plan count for each patient
     patients = serialize_doc(docs)
-    for p in patients:
-        p["plan_count"] = await db.plans.count_documents({"patient_id": p["_id"]})
+    
+    # Batch: get plan counts for all patients in ONE aggregation query
+    if patients:
+        patient_ids = [p["_id"] for p in patients]
+        pipeline = [
+            {"$match": {"patient_id": {"$in": patient_ids}}},
+            {"$group": {"_id": "$patient_id", "count": {"$sum": 1}}},
+        ]
+        counts = {}
+        async for doc in db.plans.aggregate(pipeline):
+            counts[doc["_id"]] = doc["count"]
+        for p in patients:
+            p["plan_count"] = counts.get(p["_id"], 0)
+    
     return {"patients": patients, "total": total}
 
 
@@ -517,13 +528,20 @@ async def list_plans(
     docs = await cursor.to_list(length=limit)
     total = await db.plans.count_documents(query)
     
-    # Resolve patient names from patient records
+    # Batch: resolve all patient names in ONE query
     plans = serialize_doc(docs)
-    for p in plans:
-        if p.get("patient_id"):
-            patient = await db.patients.find_one({"_id": ObjectId(p["patient_id"])})
-            if patient:
-                p["patient_name"] = patient.get("name", p.get("patient_name", ""))
+    patient_ids = list(set(p["patient_id"] for p in plans if p.get("patient_id")))
+    if patient_ids:
+        patient_cursor = db.patients.find(
+            {"_id": {"$in": [ObjectId(pid) for pid in patient_ids]}},
+            {"_id": 1, "name": 1}
+        )
+        name_map = {}
+        async for pdoc in patient_cursor:
+            name_map[str(pdoc["_id"])] = pdoc.get("name", "")
+        for p in plans:
+            if p.get("patient_id") and p["patient_id"] in name_map:
+                p["patient_name"] = name_map[p["patient_id"]]
     
     return {"plans": plans, "total": total}
 
@@ -851,7 +869,17 @@ async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
 
 @app.on_event("startup")
 async def startup():
-    """Auto-seed on startup if database is empty."""
+    """Create indexes + auto-seed on startup if database is empty."""
+    # Indexes for query performance
+    await db.plans.create_index("patient_id")
+    await db.plans.create_index("updated_at")
+    await db.plans.create_index("program_name")
+    await db.plans.create_index("status")
+    await db.patients.create_index("name")
+    await db.patients.create_index("email")
+    await db.users.create_index("email", unique=True)
+    await db.supplements.create_index("supplement_name")
+    
     supp_count = await db.supplements.count_documents({})
     if supp_count == 0:
         print("Database empty, auto-seeding...")
