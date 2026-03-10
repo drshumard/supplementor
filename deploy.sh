@@ -95,14 +95,6 @@ echo ""
 # ── 5. PM2 processes ──
 echo -e "${GREEN}[5/7] Configuring PM2...${NC}"
 
-# Read backend .env and build env string for PM2
-ENV_ARGS=""
-while IFS='=' read -r key value; do
-    if [ -n "$key" ] && [[ ! "$key" =~ ^# ]]; then
-        ENV_ARGS="$ENV_ARGS $key=$value"
-    fi
-done < "$APP_DIR/backend/.env"
-
 # Install serve if needed
 which serve > /dev/null 2>&1 || npm install -g serve
 
@@ -110,19 +102,16 @@ which serve > /dev/null 2>&1 || npm install -g serve
 pm2 delete ${APP_NAME}-backend 2>/dev/null || true
 pm2 delete ${APP_NAME}-frontend 2>/dev/null || true
 
-# Start backend with env vars from .env
+# Start backend with env vars from .env cleanly loaded
 cd $APP_DIR/backend
+set -a
+source .env
+set +a
+
 pm2 start venv/bin/uvicorn \
     --name "${APP_NAME}-backend" \
     --interpreter none \
     -- server:app --host 127.0.0.1 --port $BACKEND_PORT --workers 2
-
-# Apply env vars
-while IFS='=' read -r key value; do
-    if [ -n "$key" ] && [[ ! "$key" =~ ^# ]]; then
-        pm2 env ${APP_NAME}-backend --update "$key=$value" 2>/dev/null || true
-    fi
-done < "$APP_DIR/backend/.env"
 
 # Start frontend
 cd $APP_DIR/frontend
