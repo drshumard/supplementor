@@ -75,22 +75,22 @@ function MonthPage({
       data-testid={`month-page-${month.month_number}`}>
 
       {/* Month header */}
-      <div className="flex items-center justify-between px-8 py-4 bg-[#FAFBFC] border-b-2 border-[#E2E8F0]">
+      <div className="flex items-center justify-between px-8 py-4 bg-[#0D5F68] rounded-t-xl">
         <div className="flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[#0D5F68] flex items-center justify-center shadow-sm">
+          <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shadow-sm">
             <Calendar size={18} className="text-white" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-[#0B0D10]">Month {month.month_number}</h3>
-            <p className="text-xs text-[#61746E] mt-0.5">
+            <h3 className="text-base font-bold text-white">Month {month.month_number}</h3>
+            <p className="text-xs text-white/60 mt-0.5">
               {(month.supplements || []).length} supplement{(month.supplements || []).length !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
         {showCosts && !patientView && (
-          <div className="flex items-center gap-3 bg-[#FAFAFA] px-5 py-2.5 rounded-xl border border-[#C8E6E0] shadow-sm">
-            <span className="text-xs text-[#61746E] font-semibold uppercase tracking-wider">Monthly Total</span>
-            <span className="font-mono tabular-nums text-lg font-bold text-[#147D5A]">
+          <div className="flex items-center gap-3 bg-white/15 px-5 py-2.5 rounded-xl">
+            <span className="text-xs text-white/70 font-semibold uppercase tracking-wider">Monthly Total</span>
+            <span className="font-mono tabular-nums text-lg font-bold text-white">
               {formatCurrency(month.monthly_total_cost)}
             </span>
           </div>
