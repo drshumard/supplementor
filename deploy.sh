@@ -42,9 +42,11 @@ deactivate
 echo "  Done."
 echo ""
 
-# ── 3. Backend .env ──
+# ── 3. Environment files ──
+echo "[3/7] Setting up .env files..."
+
+# Backend .env
 if [ ! -f "$APP_DIR/backend/.env" ]; then
-    echo "[3/7] Creating backend .env..."
     JWT_SECRET=$(openssl rand -hex 32)
     cat > $APP_DIR/backend/.env << EOF
 MONGO_URL=mongodb://localhost:27017/$MONGO_DB
@@ -52,10 +54,16 @@ JWT_SECRET=$JWT_SECRET
 GOOGLE_DRIVE_ID=0AGikKY7QHD7NUk9PVA
 GOOGLE_DRIVE_IMPERSONATE_USER=drjason@drshumard.com
 EOF
-    echo "  Created .env with random JWT secret."
+    echo "  Created backend/.env with random JWT secret."
 else
-    echo "[3/7] Backend .env exists, skipping."
+    echo "  backend/.env exists, keeping current."
 fi
+
+# Frontend .env
+cat > $APP_DIR/frontend/.env << EOF
+REACT_APP_BACKEND_URL=https://$DOMAIN
+EOF
+echo "  Created frontend/.env (REACT_APP_BACKEND_URL=https://$DOMAIN)"
 echo ""
 
 # ── 4. Frontend build ──
@@ -74,34 +82,52 @@ echo ""
 
 # ── 5. PM2 ecosystem ──
 echo "[5/7] Configuring PM2..."
-cat > $APP_DIR/ecosystem.config.js << EOF
+cat > $APP_DIR/ecosystem.config.js << 'JSEOF'
+const fs = require('fs');
+const path = require('path');
+
+// Load backend .env
+const envPath = path.join(__dirname, 'backend', '.env');
+const envVars = {};
+if (fs.existsSync(envPath)) {
+  fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+    const [key, ...val] = line.split('=');
+    if (key && key.trim() && !key.startsWith('#')) {
+      envVars[key.trim()] = val.join('=').trim();
+    }
+  });
+}
+
 module.exports = {
   apps: [
     {
-      name: '${APP_NAME}-backend',
-      cwd: '${APP_DIR}/backend',
+      name: 'APPNAME-backend',
+      cwd: 'APPDIR/backend',
       script: 'venv/bin/uvicorn',
-      args: 'server:app --host 127.0.0.1 --port ${BACKEND_PORT} --workers 2',
+      args: 'server:app --host 127.0.0.1 --port BPORT --workers 2',
       interpreter: 'none',
-      env_file: '${APP_DIR}/backend/.env',
-      env: {
-        MONGO_URL: 'mongodb://localhost:27017/${MONGO_DB}',
-      },
+      env: envVars,
       max_restarts: 10,
       restart_delay: 3000,
     },
     {
-      name: '${APP_NAME}-frontend',
-      cwd: '${APP_DIR}/frontend',
+      name: 'APPNAME-frontend',
+      cwd: 'APPDIR/frontend',
       script: 'npx',
-      args: 'serve -s build -l ${FRONTEND_PORT}',
+      args: 'serve -s build -l FPORT',
       interpreter: 'none',
       max_restarts: 10,
       restart_delay: 3000,
     },
   ],
 };
-EOF
+JSEOF
+
+# Replace placeholders
+sed -i "s|APPNAME|${APP_NAME}|g" $APP_DIR/ecosystem.config.js
+sed -i "s|APPDIR|${APP_DIR}|g" $APP_DIR/ecosystem.config.js
+sed -i "s|BPORT|${BACKEND_PORT}|g" $APP_DIR/ecosystem.config.js
+sed -i "s|FPORT|${FRONTEND_PORT}|g" $APP_DIR/ecosystem.config.js
 echo "  Done."
 echo ""
 
