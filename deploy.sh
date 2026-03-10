@@ -85,11 +85,8 @@ echo ""
 echo -e "${GREEN}[4/7] Building frontend...${NC}"
 cd $APP_DIR/frontend
 
-if [ ! -d "node_modules" ]; then
-    echo "  Installing Node dependencies..."
-    yarn install --silent
-fi
-
+echo "  Installing Node dependencies..."
+yarn install --silent
 echo "  Building React app..."
 yarn build --silent 2>/dev/null || yarn build
 echo "  ✓ Frontend built"
@@ -142,7 +139,7 @@ echo ""
 echo -e "${GREEN}[6/7] Configuring Nginx...${NC}"
 
 if [ ! -f "$NGINX_CONF" ]; then
-    cat > $NGINX_CONF << NGINXEOF
+    sudo tee $NGINX_CONF > /dev/null << NGINXEOF
 server {
     listen 80;
     server_name $DOMAIN;
@@ -170,14 +167,14 @@ server {
     }
 }
 NGINXEOF
-    ln -sf $NGINX_CONF /etc/nginx/sites-enabled/$DOMAIN
+    sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/$DOMAIN
     echo "  ✓ Nginx config created: $NGINX_CONF"
     echo -e "  ${YELLOW}NOTE: Run 'sudo certbot --nginx -d $DOMAIN' for SSL${NC}"
 else
     echo "  ✓ Nginx config exists (not overwriting)"
 fi
 
-nginx -t 2>/dev/null && systemctl reload nginx
+sudo nginx -t 2>/dev/null && sudo systemctl reload nginx
 echo "  ✓ Nginx reloaded"
 echo ""
 
