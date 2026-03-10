@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getTemplates, createPlan } from '../lib/api';
+import { getTemplates, createPlan, createPatient } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -52,9 +52,16 @@ export default function NewPlanPage() {
   const handleCreate = async () => {
     setCreating(true);
     try {
+      // If no patient linked, create one first
+      let patientId = prePatientId || null;
+      if (!patientId && patientName.trim()) {
+        const newPatient = await createPatient({ name: patientName.trim() });
+        patientId = newPatient._id;
+      }
+      
       const data = {
         patient_name: patientName.trim(),
-        patient_id: prePatientId || null,
+        patient_id: patientId,
         date: planDate,
         program_name: selectedProgram,
         step_label: `Step ${selectedStep}`,
