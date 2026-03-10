@@ -123,15 +123,15 @@ export default function SupplementsPage() {
       <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="admin-supplements-table">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent bg-[#0D5F68] rounded-t-xl">
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4 px-6">Name</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Brand</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Size</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Default Dosage</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4 text-right">Price</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Btls/Mo</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Status</TableHead>
-              <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4 w-[110px]"></TableHead>
+            <TableRow className="bg-[#0D5F68] hover:bg-[#0D5F68] rounded-t-xl">
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 px-6">Name</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Brand</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Size</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Default Dosage</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 text-right">Price</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Btls/Mo</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Status</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 w-[110px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

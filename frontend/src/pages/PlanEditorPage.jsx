@@ -517,8 +517,14 @@ export default function PlanEditorPage() {
               </>
             )}
 
-            {/* Actions dropdown — always visible, far right */}
-            <div className="ml-auto">
+            {/* Actions area — far right */}
+            <div className="ml-auto flex items-center gap-2">
+              {!patientViewMode && (
+                <Button variant="outline" size="sm" onClick={() => setShowCosts(!showCosts)}
+                  className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-toggle-costs">
+                  {showCosts ? <EyeOff size={14} /> : <Eye size={14} />} {showCosts ? 'Hide Costs' : 'Show Costs'}
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2 h-9 px-4 text-xs font-semibold">
@@ -530,10 +536,6 @@ export default function PlanEditorPage() {
                     <>
                       <DropdownMenuItem onClick={() => setPatientViewMode(true)} data-testid="plan-editor-patient-view-toggle">
                         <User size={14} className="mr-2" /> Patient View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setShowCosts(!showCosts)} data-testid="plan-editor-toggle-costs">
-                        {showCosts ? <EyeOff size={14} className="mr-2" /> : <Eye size={14} className="mr-2" />}
-                        {showCosts ? 'Hide Costs' : 'Show Costs'}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                     </>
