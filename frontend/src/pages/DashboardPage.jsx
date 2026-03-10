@@ -100,7 +100,7 @@ export default function DashboardPage() {
       <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="plans-table">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-b-2 border-[#E2E8F0]">
+            <TableRow className="hover:bg-transparent bg-[#EAF4F3] border-b-2 border-[#E2E8F0]">
               <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 px-6">Patient</TableHead>
               <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5">Program</TableHead>
               <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5">Step</TableHead>

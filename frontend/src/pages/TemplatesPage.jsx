@@ -117,7 +117,7 @@ export default function TemplatesPage() {
         <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="admin-templates-table">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent bg-[#FAFAFA]">
+              <TableRow className="hover:bg-transparent bg-[#EAF4F3] border-b-2 border-[#E2E8F0]">
                 <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4 px-6">Supplement</TableHead>
                 <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Brand</TableHead>
                 <TableHead className="text-[11px] font-bold tracking-[0.1em] uppercase text-muted-foreground py-4">Default Dosage</TableHead>
