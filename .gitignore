@@ -25,3 +25,7 @@ test_reports/
 
 # PM2
 ecosystem.config.js
+-e 
+# Environment files
+*.env
+*.env.*
