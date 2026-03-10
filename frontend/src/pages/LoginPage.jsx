@@ -64,7 +64,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@clarity.com"
+                placeholder="admin@drshumard.com"
                 data-testid="login-email-input"
                 required
                 autoFocus
