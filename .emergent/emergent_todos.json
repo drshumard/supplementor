@@ -1,14 +1,10 @@
 [
   {
-    "content": "Rewrite PDF to match inspo: time groupings, With Food, Notes, Month Order, fix text wrapping",
+    "content": "Style table headers with dark/light teal personality",
     "status": "completed"
   },
   {
-    "content": "Add time_of_day field to plan supplements + plan editor UI",
-    "status": "completed"
-  },
-  {
-    "content": "Update plan editor to show With Food and Notes columns matching PDF",
+    "content": "Plan page: merge name into toolbar, move buttons to Actions dropdown on action row",
     "status": "completed"
   }
 ]

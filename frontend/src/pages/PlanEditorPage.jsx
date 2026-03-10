@@ -21,8 +21,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import {
   ArrowLeft, Plus, Minus, Trash2, Download, FileText, Eye, EyeOff, Save,
   Snowflake, ChevronsUpDown, Lock, Unlock, Copy, User, CopyPlus, Calendar,
+  MoreHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -428,100 +432,61 @@ export default function PlanEditorPage() {
         <span className="text-[#334155] font-medium">{plan?.program_name} - {plan?.step_label}</span>
       </div>
 
-      {/* ── Header card ── */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated mb-8 overflow-hidden">
-        {/* Top row: back + actions */}
-        <div className="flex items-center justify-between px-8 py-3 border-b-2 border-[#E2E8F0]">
-          <Button variant="ghost" size="sm" onClick={goBack} className="gap-2 text-muted-foreground hover:text-[#0B0D10] h-10 px-3 rounded-lg">
-            <ArrowLeft size={18} /> Back
-          </Button>
-          <div className="flex items-center gap-2">
-            {!patientViewMode && (
-              <>
-                <Button variant="outline" size="sm" onClick={() => setPatientViewMode(true)} className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-patient-view-toggle"><User size={14} /> Patient View</Button>
-                <Button variant="outline" size="sm" onClick={() => setShowCosts(!showCosts)} className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-toggle-costs">
-                  {showCosts ? <EyeOff size={14} /> : <Eye size={14} />} {showCosts ? 'Hide Costs' : 'Show Costs'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExportPatient} disabled={exporting} className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-export-patient-pdf"><Download size={14} /> Patient PDF</Button>
-                <Button variant="outline" size="sm" onClick={handleExportHC} disabled={exporting} className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-export-hc-pdf"><FileText size={14} /> HC PDF</Button>
-                <Button variant="outline" size="sm" onClick={handleSaveToDrive} disabled={savingDrive}
-                  className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-save-drive"
-                  title="Save to Google Drive">
-                  <svg width="14" height="14" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066DA"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z" fill="#00AC47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 9.65z" fill="#EA4335"/><path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832D"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h22.9c1.6 0 3.15-.45 4.5-1.2z" fill="#2684FC"/><path d="M73.4 26.5 60.65 3.3c-.8-1.4-1.95-2.5-3.3-3.3L43.6 25l16.15 28h27.5c0-1.55-.4-3.1-1.2-4.5z" fill="#FFBA00"/></svg>
-                  {savingDrive ? 'Saving...' : ''}
-                </Button>
-                {!isFinalized && (<>
-                  <Button variant="outline" size="sm" onClick={handleDuplicate} className="gap-2 h-9 px-4 text-xs font-semibold"><Copy size={14} /> Duplicate</Button>
-                  <Button size="sm" onClick={() => setConfirmFinalize(true)} className="gap-2 h-9 px-4 text-xs font-bold bg-[#B26A00] hover:bg-[#9A5B00] text-white" data-testid="plan-editor-finalize-button"><Lock size={14} /> Finalize</Button>
-                  <Button size="sm" onClick={() => savePlan(plan)} disabled={saving} className="gap-2 h-9 px-5 text-xs font-bold bg-[#0D5F68] hover:bg-[#0A4E55] text-white" data-testid="plan-editor-save-button"><Save size={14} /> {saving ? 'Saving...' : 'Save'}</Button>
-                </>)}
-              </>
-            )}
-            {patientViewMode && (
-              <>
-                <Button variant="outline" size="sm" onClick={handleExportPatient} disabled={exporting} className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-export-patient-pdf"><Download size={14} /> Patient PDF</Button>
-                <Button size="sm" onClick={() => setPatientViewMode(false)} className="gap-2 h-9 px-4 text-xs font-bold bg-[#0D5F68] hover:bg-[#0A4E55] text-white">Exit Patient View</Button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Patient name + meta */}
-        <div className="px-8 py-8 text-center">
-          <Input
-            value={plan.patient_name || ''}
-            onChange={(e) => updatePatientName(e.target.value)}
-            className="text-3xl font-bold border border-[#C8E6E0] bg-[#FAFAFA] rounded-lg h-10 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.02em] text-center max-w-[480px] mx-auto"
-            placeholder="Patient Name"
-            data-testid="plan-editor-patient-name"
-            disabled={isFinalized}
-          />
-          <p className="text-sm text-muted-foreground mt-3">
-              {plan.program_name} / {plan.step_label || `Step ${plan.step_number}`} / {plan.date}
-              {plan.created_by_name ? ` / ${plan.created_by_name}` : ''}
-          </p>
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <Badge className={`px-3 py-1 text-xs font-bold ${isFinalized ? 'bg-[#147D5A] text-white hover:bg-[#147D5A]' : 'bg-[#EEF1F1] text-[#61746E] hover:bg-[#EEF1F1]'}`}>
-              {plan.status || 'draft'}
-            </Badge>
-            {saving && <span className="text-xs text-[#0D5F68] animate-pulse font-semibold">Saving...</span>}
-          </div>
-        </div>
+      {/* ── Top bar: name + meta ── */}
+      <div className="flex items-center gap-4 mb-4">
+        <Button variant="ghost" size="sm" onClick={goBack} className="text-[#94A3B8] hover:text-[#0B0D10] h-9 w-9 p-0 rounded-lg shrink-0">
+          <ArrowLeft size={18} />
+        </Button>
+        <Input
+          value={plan.patient_name || ''}
+          onChange={(e) => updatePatientName(e.target.value)}
+          className="text-xl font-bold border border-[#C8E6E0] bg-white rounded-lg h-9 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.02em] max-w-[260px]"
+          placeholder="Patient Name"
+          data-testid="plan-editor-patient-name"
+          disabled={isFinalized}
+        />
+        <span className="text-sm text-[#718096]">
+          {plan.program_name} / {plan.step_label || `Step ${plan.step_number}`} / {plan.date}
+          {plan.created_by_name ? ` / ${plan.created_by_name}` : ''}
+        </span>
+        <Badge className={`px-2.5 py-1 text-[10px] font-bold rounded-md ${isFinalized ? 'bg-[#0D5F68] text-white hover:bg-[#0D5F68]' : 'bg-[#FEF3C7] text-[#92400E] hover:bg-[#FEF3C7]'}`}>
+          {plan.status || 'draft'}
+        </Badge>
+        {saving && <span className="text-xs text-[#0D5F68] animate-pulse font-semibold">Saving...</span>}
       </div>
 
-      {/* Finalized / Patient View banners */}
+      {/* Banners */}
       {isFinalized && (
-        <div className="mb-8 rounded-2xl bg-amber-50 border border-amber-200 p-5 flex items-center gap-4">
-          <Lock size={18} className="text-amber-600 shrink-0" />
-          <div>
-            <span className="text-sm text-amber-800 font-bold">This plan is finalized and locked.</span>
-            <p className="text-xs text-amber-600 mt-0.5">Reopen to make changes.</p>
-          </div>
-          <div className="ml-auto flex gap-3">
-            <Button size="sm" onClick={handleReopen} className="gap-2 h-10 px-5 text-sm font-semibold bg-[#B26A00] hover:bg-[#9A5B00] text-white"><Unlock size={15} /> Reopen</Button>
-            <Button variant="outline" size="sm" onClick={handleDuplicate} className="gap-2 h-10 px-5 text-sm font-semibold"><Copy size={15} /> Duplicate</Button>
+        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-3">
+          <Lock size={16} className="text-amber-600 shrink-0" />
+          <span className="text-sm text-amber-800 font-semibold">This plan is finalized.</span>
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" onClick={handleReopen} className="gap-2 h-9 px-4 text-xs font-semibold bg-[#B26A00] hover:bg-[#9A5B00] text-white"><Unlock size={14} /> Reopen</Button>
+            <Button variant="outline" size="sm" onClick={handleDuplicate} className="gap-2 h-9 px-4 text-xs font-semibold"><Copy size={14} /> Duplicate</Button>
           </div>
         </div>
       )}
       {patientViewMode && (
-        <div className="mb-8 rounded-2xl bg-[#EAF4F3] border border-[#C8E6E0] p-5 flex items-center gap-4">
-          <User size={18} className="text-[#0D5F68] shrink-0" />
-          <span className="text-sm text-[#0D5F68] font-bold">Patient View — Costs and internal data are hidden.</span>
+        <div className="mb-4 rounded-xl bg-[#EAF4F3] border border-[#C8E6E0] p-4 flex items-center gap-3">
+          <User size={16} className="text-[#0D5F68] shrink-0" />
+          <span className="text-sm text-[#0D5F68] font-semibold">Patient View — Costs hidden.</span>
+          <Button size="sm" onClick={() => setPatientViewMode(false)} className="ml-auto gap-2 h-9 px-4 text-xs font-semibold bg-[#0D5F68] hover:bg-[#0A4E55] text-white">Exit</Button>
         </div>
       )}
 
       <div className="flex gap-8">
         <div className="flex-1 min-w-0">
-          {/* Quick actions */}
-          {!isFinalized && !patientViewMode && (
-            <div className="flex items-center gap-3 mb-8">
-              <Popover open={globalSearchOpen} onOpenChange={setGlobalSearchOpen}>
-                <PopoverTrigger asChild>
-                  <Button size="sm" className="gap-2 h-10 px-5 text-sm font-semibold bg-[#0D5F68] hover:bg-[#0A4E55] text-white shadow-sm"
-                    data-testid="plan-editor-add-all-months">
-                    <CopyPlus size={15} /> Add to all months
-                  </Button>
-                </PopoverTrigger>
+          {/* Action row: add buttons left, Actions dropdown right */}
+          <div className="flex items-center gap-3 mb-6">
+            {!isFinalized && !patientViewMode && (
+              <>
+                <Popover open={globalSearchOpen} onOpenChange={setGlobalSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button size="sm" className="gap-2 h-9 px-4 text-xs font-semibold bg-[#0D5F68] hover:bg-[#0A4E55] text-white shadow-sm"
+                      data-testid="plan-editor-add-all-months">
+                      <CopyPlus size={14} /> Add to all months
+                    </Button>
+                  </PopoverTrigger>
                 <PopoverContent className="w-[460px] p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Search supplements..." value={globalSearchQuery} onValueChange={setGlobalSearchQuery} />
@@ -540,17 +505,70 @@ export default function PlanEditorPage() {
                   </Command>
                 </PopoverContent>
               </Popover>
-              <Button variant="outline" size="sm" onClick={addMonth} className="gap-2 h-10 px-5 text-sm font-semibold" data-testid="plan-editor-add-month">
-                <Plus size={15} /> Add Month
+              <Button variant="outline" size="sm" onClick={addMonth} className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-add-month">
+                <Plus size={14} /> Add Month
               </Button>
               {(plan.months?.length || 0) > 1 && (
                 <Button variant="ghost" size="sm" onClick={() => removeMonth(plan.months[plan.months.length - 1].month_number)}
-                  className="gap-2 h-10 px-5 text-sm font-medium text-[#C53B3B] hover:text-[#A52E2E] hover:bg-red-50">
-                  <Trash2 size={15} /> Remove Last Month
+                  className="gap-2 h-9 px-4 text-xs font-medium text-[#C53B3B] hover:text-[#A52E2E] hover:bg-red-50">
+                  <Trash2 size={14} /> Remove Last
                 </Button>
               )}
+              </>
+            )}
+
+            {/* Actions dropdown — always visible, far right */}
+            <div className="ml-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 h-9 px-4 text-xs font-semibold">
+                    <MoreHorizontal size={14} /> Actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  {!patientViewMode && (
+                    <>
+                      <DropdownMenuItem onClick={() => setPatientViewMode(true)} data-testid="plan-editor-patient-view-toggle">
+                        <User size={14} className="mr-2" /> Patient View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowCosts(!showCosts)} data-testid="plan-editor-toggle-costs">
+                        {showCosts ? <EyeOff size={14} className="mr-2" /> : <Eye size={14} className="mr-2" />}
+                        {showCosts ? 'Hide Costs' : 'Show Costs'}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  <DropdownMenuItem onClick={handleExportPatient} disabled={exporting} data-testid="plan-editor-export-patient-pdf">
+                    <Download size={14} className="mr-2" /> Export Patient PDF
+                  </DropdownMenuItem>
+                  {!patientViewMode && (
+                    <DropdownMenuItem onClick={handleExportHC} disabled={exporting} data-testid="plan-editor-export-hc-pdf">
+                      <FileText size={14} className="mr-2" /> Export HC PDF
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={handleSaveToDrive} disabled={savingDrive} data-testid="plan-editor-save-drive">
+                    <svg width="14" height="14" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg" className="mr-2 shrink-0"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066DA"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z" fill="#00AC47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 9.65z" fill="#EA4335"/><path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832D"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h22.9c1.6 0 3.15-.45 4.5-1.2z" fill="#2684FC"/><path d="M73.4 26.5 60.65 3.3c-.8-1.4-1.95-2.5-3.3-3.3L43.6 25l16.15 28h27.5c0-1.55-.4-3.1-1.2-4.5z" fill="#FFBA00"/></svg>
+                    Save to Google Drive
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleDuplicate}>
+                    <Copy size={14} className="mr-2" /> Duplicate Plan
+                  </DropdownMenuItem>
+                  {!isFinalized && !patientViewMode && (
+                    <>
+                      <DropdownMenuItem onClick={() => savePlan(plan)} disabled={saving} data-testid="plan-editor-save-button">
+                        <Save size={14} className="mr-2" /> {saving ? 'Saving...' : 'Save Plan'}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setConfirmFinalize(true)} className="text-[#B26A00]" data-testid="plan-editor-finalize-button">
+                        <Lock size={14} className="mr-2" /> Finalize Plan
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          )}
+          </div>
 
           {(plan.months || []).map((month) => (
             <MonthPage key={month.month_number} month={month}

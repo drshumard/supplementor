@@ -140,14 +140,14 @@ export default function PatientDetailPage() {
       <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent bg-[#EAF4F3] border-b-2 border-[#E2E8F0]">
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4 px-6">Program</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Step</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Months</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Total Cost</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Status</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4">Last Updated</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-4 w-[100px]"></TableHead>
+            <TableRow className="hover:bg-transparent bg-[#0D5F68] rounded-t-xl">
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 px-6">Program</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Step</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Months</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Total Cost</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Status</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Last Updated</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

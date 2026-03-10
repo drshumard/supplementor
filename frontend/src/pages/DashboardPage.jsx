@@ -100,15 +100,15 @@ export default function DashboardPage() {
       <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="plans-table">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent bg-[#EAF4F3] border-b-2 border-[#E2E8F0]">
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 px-6">Patient</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5">Program</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5">Step</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 w-[70px]">Months</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 w-[130px]">Total Cost</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 w-[120px]">Status</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5">Updated</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] py-3.5 w-[100px]"></TableHead>
+            <TableRow className="hover:bg-transparent bg-[#0D5F68] rounded-t-xl">
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 px-6">Patient</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Program</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Step</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[70px]">Months</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[130px]">Total Cost</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[120px]">Status</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Updated</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
