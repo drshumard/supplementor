@@ -3,6 +3,8 @@ Supplement Protocol Web App — FastAPI Backend
 """
 import os
 import math
+import json
+import requests
 from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import BaseModel as PydanticBaseModel
@@ -12,8 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
-from passlib.context import CryptContext
-from jose import jwt, JWTError
+import jwt as pyjwt
+from jwt import PyJWKClient
 
 from models import (
     serialize_doc, SupplementCreate, SupplementUpdate,
@@ -53,39 +55,65 @@ client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 
 
-# ─── Auth Helpers ────────────────────────────────────────────────────────────
+# ─── Clerk Auth Helpers ───────────────────────────────────────────────────────
 
-SECRET_KEY = os.environ.get("JWT_SECRET", "drshumard-protocol-secret-change-me-in-production-2026")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 12
+CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")
+CLERK_PK = os.environ.get("CLERK_PUBLISHABLE_KEY", "")
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def create_access_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
-def verify_token(token: str):
+# Extract Clerk frontend API domain from publishable key
+# pk_test_xxx -> xxx is base64 of the domain
+import base64
+_pk_parts = CLERK_PK.split("_")
+if len(_pk_parts) >= 3:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        _clerk_domain = base64.b64decode(_pk_parts[-1] + "==").decode().rstrip("$")
+        CLERK_JWKS_URL = f"https://{_clerk_domain}/.well-known/jwks.json"
+    except Exception:
+        CLERK_JWKS_URL = ""
+else:
+    CLERK_JWKS_URL = ""
+
+_jwks_client = PyJWKClient(CLERK_JWKS_URL) if CLERK_JWKS_URL else None
+
+
+def verify_clerk_token(token: str):
+    """Verify a Clerk JWT and return the payload."""
+    if not _jwks_client:
+        return None
+    try:
+        signing_key = _jwks_client.get_signing_key_from_jwt(token)
+        payload = pyjwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256"],
+            options={"verify_aud": False},
+        )
         return payload
-    except JWTError:
+    except Exception:
         return None
 
 
 async def get_current_user(authorization: str = Header(None)):
-    """Extract and validate user from Authorization header."""
+    """Extract Clerk user from Authorization header, look up local DB user."""
     if not authorization:
         return None
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
-    payload = verify_token(token)
+    payload = verify_clerk_token(token)
     if not payload:
         return None
-    return payload
+    
+    # Look up local user by clerk_user_id
+    clerk_id = payload.get("sub", "")
+    local_user = await db.users.find_one({"clerk_user_id": clerk_id})
+    if local_user:
+        return {
+            "sub": str(local_user["_id"]),
+            "clerk_user_id": clerk_id,
+            "email": local_user.get("email", ""),
+            "name": local_user.get("name", ""),
+            "role": local_user.get("role", "hc"),
+        }
+    return {"sub": clerk_id, "clerk_user_id": clerk_id, "role": "hc"}
 
 
 async def require_auth(authorization: str = Header(None)):
@@ -113,48 +141,53 @@ async def health():
     return {"status": "healthy", "service": "supplement-protocol-manager"}
 
 
-# ─── Auth Endpoints ──────────────────────────────────────────────────────────
+# ─── Auth Endpoints (Clerk) ───────────────────────────────────────────────────
 
-@app.post("/api/auth/register")
-async def register(user: UserCreate, admin=Depends(require_admin)):
-    """Create a new user — admin only."""
-    existing = await db.users.find_one({"email": user.email.lower()})
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    hashed = pwd_context.hash(user.password)
-    doc = {
-        "email": user.email.lower(),
-        "password_hash": hashed,
-        "name": user.name,
-        "role": user.role,
-        "created_at": datetime.utcnow(),
-    }
-    result = await db.users.insert_one(doc)
-    doc["_id"] = result.inserted_id
-    token = create_access_token({"sub": str(result.inserted_id), "email": user.email.lower(), "role": user.role, "name": user.name})
-    return {"token": token, "user": serialize_doc(doc)}
+class SyncRequest(PydanticBaseModel):
+    clerk_user_id: str
+    email: str = ""
+    name: str = ""
 
-
-@app.post("/api/auth/login")
-async def login(creds: UserLogin):
-    user = await db.users.find_one({"email": creds.email.lower()})
-    if not user or not pwd_context.verify(creds.password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    token = create_access_token({"sub": str(user["_id"]), "email": user["email"], "role": user["role"], "name": user["name"]})
-    safe_user = serialize_doc(user)
-    safe_user.pop("password_hash", None)
-    return {"token": token, "user": safe_user}
-
-
-@app.get("/api/auth/me")
-async def get_me(authorization: str = Header(None)):
-    user = await get_current_user(authorization)
-    if not user:
+@app.post("/api/auth/sync")
+async def sync_user(data: SyncRequest, authorization: str = Header(None)):
+    """Sync Clerk user with local DB. Creates local user if first login."""
+    # Verify the Clerk token
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
+    payload = verify_clerk_token(token)
+    if not payload:
         raise HTTPException(status_code=401, detail="Invalid token")
-    doc = await db.users.find_one({"_id": ObjectId(user["sub"])})
-    if not doc:
-        raise HTTPException(status_code=404, detail="User not found")
-    safe = serialize_doc(doc)
+    
+    # Look up by clerk_user_id first
+    local_user = await db.users.find_one({"clerk_user_id": data.clerk_user_id})
+    
+    if not local_user:
+        # Try matching by email (for pre-existing users)
+        local_user = await db.users.find_one({"email": data.email.lower()})
+        if local_user:
+            # Link existing user to Clerk
+            await db.users.update_one(
+                {"_id": local_user["_id"]},
+                {"$set": {"clerk_user_id": data.clerk_user_id, "name": data.name or local_user.get("name", ""), "updated_at": datetime.utcnow()}}
+            )
+            local_user = await db.users.find_one({"_id": local_user["_id"]})
+        else:
+            # First-time user — check if this is the very first user (make admin)
+            user_count = await db.users.count_documents({})
+            role = "admin" if user_count == 0 else "hc"
+            doc = {
+                "clerk_user_id": data.clerk_user_id,
+                "email": data.email.lower(),
+                "name": data.name,
+                "role": role,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            }
+            result = await db.users.insert_one(doc)
+            local_user = await db.users.find_one({"_id": result.inserted_id})
+    
+    safe = serialize_doc(local_user)
     safe.pop("password_hash", None)
     return safe
 
@@ -187,13 +220,12 @@ async def list_users(
 
 @app.post("/api/users")
 async def create_user(data: UserCreate, user=Depends(require_admin)):
+    """Pre-register a user with email and role. They'll be linked on first Clerk sign-in."""
     existing = await db.users.find_one({"email": data.email.lower()})
     if existing:
         raise HTTPException(status_code=400, detail="Email already exists")
-    hashed = pwd_context.hash(data.password)
     doc = {
         "email": data.email.lower(),
-        "password_hash": hashed,
         "name": data.name,
         "role": data.role,
         "created_at": datetime.utcnow(),
@@ -201,9 +233,7 @@ async def create_user(data: UserCreate, user=Depends(require_admin)):
     }
     result = await db.users.insert_one(doc)
     doc["_id"] = result.inserted_id
-    safe = serialize_doc(doc)
-    safe.pop("password_hash", None)
-    return safe
+    return serialize_doc(doc)
 
 
 @app.put("/api/users/{user_id}")
@@ -213,7 +243,6 @@ async def update_user(user_id: str, data: UserUpdate, user=Depends(require_admin
         raise HTTPException(status_code=404, detail="User not found")
     updates = {}
     if data.email is not None:
-        # Check email uniqueness
         dup = await db.users.find_one({"email": data.email.lower(), "_id": {"$ne": ObjectId(user_id)}})
         if dup:
             raise HTTPException(status_code=400, detail="Email already in use")
@@ -222,8 +251,6 @@ async def update_user(user_id: str, data: UserUpdate, user=Depends(require_admin
         updates["name"] = data.name
     if data.role is not None:
         updates["role"] = data.role
-    if data.password is not None and data.password.strip():
-        updates["password_hash"] = pwd_context.hash(data.password)
     if updates:
         updates["updated_at"] = datetime.utcnow()
         await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": updates})
@@ -365,25 +392,8 @@ async def seed_data(user=Depends(require_admin)):
             t["updated_at"] = datetime.utcnow()
         await db.templates.insert_many(TEMPLATES)
     
-    # Create default admin if no users
-    user_count = await db.users.count_documents({})
-    if user_count == 0:
-        hashed = pwd_context.hash("admin123")
-        await db.users.insert_one({
-            "email": "admin@clarity.com",
-            "password_hash": hashed,
-            "name": "Dr. Jason",
-            "role": "admin",
-            "created_at": datetime.utcnow(),
-        })
-        hashed_hc = pwd_context.hash("hc123")
-        await db.users.insert_one({
-            "email": "hc@clarity.com",
-            "password_hash": hashed_hc,
-            "name": "Sarah (HC)",
-            "role": "hc",
-            "created_at": datetime.utcnow(),
-        })
+    # No default users needed — Clerk handles auth
+    # First user to sign in gets admin role (handled in /api/auth/sync)
     
     final_supp = await db.supplements.count_documents({})
     final_tmpl = await db.templates.count_documents({})
@@ -901,24 +911,7 @@ async def startup():
             t["updated_at"] = datetime.utcnow()
         await db.templates.insert_many(tmpls)
         
-        # Create default users
-        hashed = pwd_context.hash("admin123")
-        await db.users.insert_one({
-            "email": "admin@clarity.com",
-            "password_hash": hashed,
-            "name": "Dr. Jason",
-            "role": "admin",
-            "created_at": datetime.utcnow(),
-        })
-        hashed_hc = pwd_context.hash("hc123")
-        await db.users.insert_one({
-            "email": "hc@clarity.com",
-            "password_hash": hashed_hc,
-            "name": "Sarah (HC)",
-            "role": "hc",
-            "created_at": datetime.utcnow(),
-        })
-        print("Seed complete!")
+        print("Seed complete! First user to sign in gets admin role.")
 
 
 if __name__ == "__main__":

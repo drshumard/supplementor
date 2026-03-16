@@ -20,7 +20,7 @@ import {
 import { Plus, Search, Pencil, Trash2, Users, ShieldCheck, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
 
-const emptyUser = { email: '', name: '', role: 'hc', password: '' };
+const emptyUser = { email: '', name: '', role: 'hc' };
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -52,7 +52,7 @@ export default function UsersPage() {
   const openAdd = () => { setEditId(null); setEditData({ ...emptyUser }); setEditOpen(true); };
   const openEdit = (u) => {
     setEditId(u._id);
-    setEditData({ email: u.email || '', name: u.name || '', role: u.role || 'hc', password: '' });
+    setEditData({ email: u.email || '', name: u.name || '', role: u.role || 'hc' });
     setEditOpen(true);
   };
 
@@ -61,22 +61,14 @@ export default function UsersPage() {
       toast.error('Name and email are required');
       return;
     }
-    if (!editId && !editData.password.trim()) {
-      toast.error('Password is required for new users');
-      return;
-    }
     setSaving(true);
     try {
-      const payload = { ...editData };
-      if (editId && !payload.password.trim()) {
-        delete payload.password;
-      }
       if (editId) {
-        await updateUser(editId, payload);
+        await updateUser(editId, editData);
         toast.success('User updated');
       } else {
-        await createUser(payload);
-        toast.success('User created');
+        await createUser(editData);
+        toast.success('User pre-registered. They can now sign in via Clerk.');
       }
       setEditOpen(false);
       fetchData();
@@ -216,9 +208,9 @@ export default function UsersPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-[480px] p-7">
           <DialogHeader>
-            <DialogTitle className="text-lg">{editId ? 'Edit User' : 'Add User'}</DialogTitle>
+            <DialogTitle className="text-lg">{editId ? 'Edit User' : 'Pre-Register User'}</DialogTitle>
             <DialogDescription className="text-sm mt-1">
-              {editId ? 'Update user details. Leave password blank to keep current.' : 'Create a new user account.'}
+              {editId ? 'Update user details.' : 'Pre-register with email and role. User signs in via Clerk.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-5 py-4">
@@ -243,12 +235,6 @@ export default function UsersPage() {
                   <SelectItem value="hc">Health Coach</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">{editId ? 'New Password (leave blank to keep)' : 'Password *'}</Label>
-              <Input type="password" value={editData.password} onChange={(e) => setEditData({...editData, password: e.target.value})}
-                className="h-12" placeholder={editId ? 'Leave blank to keep current' : 'Enter password'}
-                data-testid="user-form-password" />
             </div>
           </div>
           <DialogFooter className="gap-3 mt-2">

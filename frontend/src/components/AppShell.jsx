@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
 import { LayoutDashboard, FilePlus, Pill, LogOut, Layers, Users, PanelLeftClose, PanelLeftOpen, UserRound } from 'lucide-react';
+import { UserButton } from '@clerk/clerk-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -85,9 +86,7 @@ export default function AppShell({ children }) {
         <div className="p-3 border-t border-[#E8ECF0] bg-[#FAFBFC]">
           <motion.div layout transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
             className={`flex flex-col items-center gap-2 ${collapsed ? 'py-2' : 'px-2 py-3'}`}>
-            <div className="w-9 h-9 rounded-full bg-[#EAF4F3] flex items-center justify-center text-sm font-bold text-[#0D5F68] shrink-0">
-              {user?.name?.charAt(0) || 'U'}
-            </div>
+            <UserButton afterSignOutUrl="/" />
             <AnimatePresence mode="wait">
               {!collapsed && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
@@ -99,10 +98,6 @@ export default function AppShell({ children }) {
                 </motion.div>
               )}
             </AnimatePresence>
-            <Button variant="ghost" size="sm" onClick={logout} data-testid="logout-button" title="Sign out"
-              className="h-8 w-8 p-0 text-[#94A3B8] hover:text-[#C53B3B] hover:bg-red-50 rounded-lg shrink-0">
-              <LogOut size={16} />
-            </Button>
           </motion.div>
         </div>
       </motion.aside>

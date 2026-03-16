@@ -1,10 +1,13 @@
 const API_BASE = (process.env.REACT_APP_BACKEND_URL || '') + '/api';
 
+// Token is set by the app after Clerk auth
+let _authToken = null;
+export function setAuthToken(token) { _authToken = token; }
+
 function getHeaders() {
   const headers = { 'Content-Type': 'application/json' };
-  const token = localStorage.getItem('auth_token');
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (_authToken) {
+    headers['Authorization'] = `Bearer ${_authToken}`;
   }
   return headers;
 }
@@ -26,21 +29,13 @@ async function request(path, options = {}) {
   return res.json();
 }
 
-// Auth
-export const login = (email, password) =>
-  request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-
-export const register = (email, password, name, role) =>
-  request('/auth/register', { method: 'POST', body: JSON.stringify({ email, password, name, role }) });
-
-export const getMe = (token) => {
-  const url = `${API_BASE}/auth/me`;
-  return fetch(url, {
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-  }).then(res => {
-    if (!res.ok) throw new Error('Not authenticated');
-    return res.json();
-  });
+// Auth — handled by Clerk now, sync endpoint only
+export const syncUser = (token, data) => {
+  return fetch(`${API_BASE}/auth/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify(data),
+  }).then(r => { if (!r.ok) throw new Error('Sync failed'); return r.json(); });
 };
 
 // Supplements
@@ -94,8 +89,7 @@ export const reopenPlan = (id) =>
 // PDF Export
 export const exportPatientPDF = (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/patient`;
-  const token = localStorage.getItem('auth_token');
-  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  const headers = _authToken ? { 'Authorization': `Bearer ${_authToken}` } : {};
   return fetch(url, { headers }).then(r => {
     if (!r.ok) throw new Error('Export failed');
     return r.blob();
@@ -104,8 +98,7 @@ export const exportPatientPDF = (planId) => {
 
 export const exportHCPDF = (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/hc`;
-  const token = localStorage.getItem('auth_token');
-  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  const headers = _authToken ? { 'Authorization': `Bearer ${_authToken}` } : {};
   return fetch(url, { headers }).then(r => {
     if (!r.ok) throw new Error('Export failed');
     return r.blob();

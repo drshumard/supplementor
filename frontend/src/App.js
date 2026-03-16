@@ -1,7 +1,8 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { SignIn, useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { Toaster } from 'sonner';
-import LoginPage from './pages/LoginPage';
+import { setAuthToken } from './lib/api';
 import DashboardPage from './pages/DashboardPage';
 import PlanEditorPage from './pages/PlanEditorPage';
 import NewPlanPage from './pages/NewPlanPage';
@@ -11,97 +12,154 @@ import UsersPage from './pages/UsersPage';
 import PatientsPage from './pages/PatientsPage';
 import PatientDetailPage from './pages/PatientDetailPage';
 import AppShell from './components/AppShell';
-import { getMe } from './lib/api';
 import './App.css';
 
-// Auth Context
-const AuthContext = createContext(null);
-export const useAuth = () => useContext(AuthContext);
+// App user context — holds the local DB user (with role)
+const AppUserContext = createContext(null);
+export const useAppUser = () => useContext(AppUserContext);
 
-function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+// Also export useAuth for backward compat (maps to app user)
+export const useAuth = () => {
+  const ctx = useContext(AppUserContext);
+  return {
+    user: ctx?.appUser,
+    loading: ctx?.loading,
+    logout: ctx?.signOut,
+  };
+};
+
+function AppUserProvider({ children }) {
+  const { isSignedIn, isLoaded: clerkLoaded } = useClerkAuth();
+  const { user: clerkUser } = useUser();
+  const { getToken, signOut } = useClerkAuth();
+  const [appUser, setAppUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      getMe(token)
-        .then(u => setUser(u))
-        .catch(() => localStorage.removeItem('auth_token'))
-        .finally(() => setLoading(false));
-    } else {
+    if (!clerkLoaded) return;
+    if (!isSignedIn) {
+      setAppUser(null);
       setLoading(false);
+      return;
     }
-  }, []);
 
-  const loginUser = (token, userData) => {
-    localStorage.setItem('auth_token', token);
-    setUser(userData);
-  };
+    // Sync with our backend — get or create local user
+    const syncUser = async () => {
+      try {
+        const token = await getToken();
+        setAuthToken(token); // Set for all API calls
+        const backendUrl = (process.env.REACT_APP_BACKEND_URL || '') + '/api/auth/sync';
+        const res = await fetch(backendUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            clerk_user_id: clerkUser.id,
+            email: clerkUser.primaryEmailAddress?.emailAddress || '',
+            name: clerkUser.fullName || clerkUser.firstName || '',
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAppUser(data);
+        }
+      } catch (err) {
+        console.error('Failed to sync user:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    syncUser();
 
-  const logout = () => {
-    localStorage.removeItem('auth_token');
-    setUser(null);
-  };
+    // Keep API token fresh
+    const interval = setInterval(async () => {
+      try { const t = await getToken(); setAuthToken(t); } catch {}
+    }, 50000); // refresh every 50s (Clerk tokens last ~60s)
+    return () => clearInterval(interval);
+  }, [isSignedIn, clerkLoaded, clerkUser, getToken]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginUser, logout }}>
+    <AppUserContext.Provider value={{ appUser, loading, signOut }}>
       {children}
-    </AuthContext.Provider>
+    </AppUserContext.Provider>
+  );
+}
+
+function LoginPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA]">
+      <div className="text-center">
+        <img src="https://portal-drshumard.b-cdn.net/logo.png" alt="Dr. Shumard" className="h-10 w-auto mx-auto mb-8" />
+        <SignIn routing="hash" />
+      </div>
+    </div>
   );
 }
 
 function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
+  const { appUser, loading } = useContext(AppUserContext);
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-white">
+      <div className="flex items-center justify-center h-screen bg-[#F7F8FA]">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-[hsl(187,79%,23%)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-8 h-8 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
-  if (!user) return <Navigate to="/login" replace />;
+  if (!appUser) return <Navigate to="/login" replace />;
   return children;
 }
 
 function AppRoutes() {
+  const { isSignedIn, isLoaded } = useClerkAuth();
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#F7F8FA]">
+        <div className="w-8 h-8 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin mx-auto" />
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <AppShell>
-              <Routes>
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/patients" element={<PatientsPage />} />
-                <Route path="/patients/:patientId" element={<PatientDetailPage />} />
-                <Route path="/plans/new" element={<NewPlanPage />} />
-                <Route path="/plans/:planId" element={<PlanEditorPage />} />
-                <Route path="/admin/supplements" element={<SupplementsPage />} />
-                <Route path="/admin/templates" element={<TemplatesPage />} />
-                <Route path="/admin/users" element={<UsersPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </AppShell>
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <ProtectedRoute>
+      <AppShell>
+        <Routes>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/patients" element={<PatientsPage />} />
+          <Route path="/patients/:patientId" element={<PatientDetailPage />} />
+          <Route path="/plans/new" element={<NewPlanPage />} />
+          <Route path="/plans/:planId" element={<PlanEditorPage />} />
+          <Route path="/admin/supplements" element={<SupplementsPage />} />
+          <Route path="/admin/templates" element={<TemplatesPage />} />
+          <Route path="/admin/users" element={<UsersPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppShell>
+    </ProtectedRoute>
   );
 }
 
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
+      <AppUserProvider>
         <Toaster position="top-right" richColors closeButton />
         <AppRoutes />
-      </AuthProvider>
+      </AppUserProvider>
     </BrowserRouter>
   );
 }

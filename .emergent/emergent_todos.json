@@ -1,18 +1,22 @@
 [
   {
-    "content": "Decouple patient_name from plan — always pull from linked patient record",
+    "content": "Install @clerk/clerk-react, add ClerkProvider to index.js",
     "status": "completed"
   },
   {
-    "content": "Build duplicate dialog with 3 options: Same patient, Existing patient, New patient",
+    "content": "Replace LoginPage with Clerk auth flow",
     "status": "completed"
   },
   {
-    "content": "Remove editable patient name from plan editor, show read-only from patient record",
+    "content": "Update backend to verify Clerk JWT tokens",
     "status": "completed"
   },
   {
-    "content": "Update backend duplicate endpoint to accept patient assignment",
+    "content": "Update Users page: role management + Clerk invite",
+    "status": "completed"
+  },
+  {
+    "content": "Update AppShell with Clerk UserButton",
     "status": "completed"
   }
 ]
