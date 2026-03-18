@@ -19,7 +19,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '../components/ui/alert-dialog';
-import { Plus, Search, Pencil, Trash2, Snowflake, Pill } from 'lucide-react';
+import { Plus, Search, Snowflake, Pill, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const emptySupp = {
@@ -46,8 +46,7 @@ export default function SupplementsPage() {
       const [suppRes, compRes] = await Promise.all([getSupplements(search, false), getSuppliers()]);
       setSupplements(suppRes.supplements || []); setTotal(suppRes.total || 0);
       setSupplierList(compRes.suppliers || []);
-    }
-    catch (err) { toast.error('Failed to load supplements'); }
+    } catch (err) { toast.error('Failed to load supplements'); }
     finally { setLoading(false); }
   }, [search]);
 
@@ -93,7 +92,7 @@ export default function SupplementsPage() {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    try { await deleteSupplement(deleteId); toast.success('Deleted'); fetchData(); }
+    try { await deleteSupplement(deleteId); toast.success('Deleted'); setEditOpen(false); fetchData(); }
     catch (err) { toast.error('Delete failed'); }
     finally { setDeleteId(null); }
   };
@@ -110,7 +109,6 @@ export default function SupplementsPage() {
         </Button>
       </div>
 
-      {/* Summary bar */}
       <div className="flex items-center gap-5 mb-6">
         <div className="rounded-xl bg-[#EAF4F3] border border-[#C8E6E0] px-5 py-3 flex items-center gap-3">
           <Pill size={16} className="text-[#0D5F68]" />
@@ -132,50 +130,39 @@ export default function SupplementsPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-[#0D5F68] hover:bg-[#0D5F68] rounded-t-xl">
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 px-6">Name</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Brand</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Size</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Default Dosage</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 text-right">Price</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Btls/Mo</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Status</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 w-[110px]"></TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 px-6">Name</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Brand</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Size</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Dosage</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 text-right">Price</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="h-40 text-center text-muted-foreground">
+              <TableRow><TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
                 <div className="flex items-center justify-center gap-3"><div className="w-5 h-5 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin" /> Loading...</div>
               </TableCell></TableRow>
             ) : supplements.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="h-40 text-center text-muted-foreground text-base">No supplements found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="h-40 text-center text-muted-foreground text-base">No supplements found</TableCell></TableRow>
             ) : (
               supplements.map(supp => (
-                <TableRow key={supp._id} className="hover:bg-[#F0FAFA]">
-                  <TableCell className="py-5 px-6">
+                <TableRow key={supp._id} className="hover:bg-[#F0FAFA] cursor-pointer transition-colors duration-150" onClick={() => openEdit(supp)}>
+                  <TableCell className="py-4 px-6">
                     <div className="flex items-center gap-2.5">
-                      <span className="font-bold text-sm text-[#0B0D10]">{supp.supplement_name}</span>
+                      <span className="font-semibold text-sm text-[#0B0D10]">{supp.supplement_name}</span>
                       {supp.refrigerate && <Snowflake size={13} className="text-blue-500" />}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground py-5">{supp.company}</TableCell>
-                  <TableCell className="font-mono tabular-nums text-sm py-5">{supp.units_per_bottle || '-'} {supp.unit_type}</TableCell>
-                  <TableCell className="text-sm py-5">{supp.default_dosage_display || '-'}</TableCell>
-                  <TableCell className="text-right font-mono tabular-nums text-sm font-bold text-[#147D5A] py-5">{formatCurrency(supp.cost_per_bottle)}</TableCell>
-                  <TableCell className="font-mono tabular-nums text-sm py-5">{supp.bottles_per_month ?? '-'}</TableCell>
-                  <TableCell className="py-5">
-                    <Badge className={`px-3 py-1.5 text-[10px] font-bold ${
-                      supp.active !== false
-                        ? 'bg-[#147D5A] text-white hover:bg-[#147D5A]'
-                        : 'bg-gray-200 text-gray-600 hover:bg-gray-200'}`}>
+                  <TableCell className="text-sm text-[#718096] py-4">{supp.company || supp.manufacturer}</TableCell>
+                  <TableCell className="font-mono tabular-nums text-sm py-4">{supp.units_per_bottle || '-'} {supp.unit_type}</TableCell>
+                  <TableCell className="text-sm py-4">{supp.default_dosage_display || '-'}</TableCell>
+                  <TableCell className="text-right font-mono tabular-nums text-sm font-bold text-[#147D5A] py-4">{formatCurrency(supp.cost_per_bottle)}</TableCell>
+                  <TableCell className="py-4">
+                    <Badge className={`px-2.5 py-1 text-[10px] font-bold rounded-md ${
+                      supp.active !== false ? 'bg-[#0D5F68] text-white hover:bg-[#0D5F68]' : 'bg-gray-200 text-gray-600 hover:bg-gray-200'}`}>
                       {supp.active !== false ? 'Active' : 'Inactive'}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="py-5">
-                    <div className="flex items-center gap-1.5">
-                      <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg hover:bg-[#E0F2F1] text-muted-foreground hover:text-[#0D5F68]" onClick={() => openEdit(supp)}><Pencil size={15} /></Button>
-                      <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg text-muted-foreground hover:text-[#C53030] hover:bg-red-50" onClick={() => setDeleteId(supp._id)}><Trash2 size={15} /></Button>
-                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -184,61 +171,96 @@ export default function SupplementsPage() {
         </Table>
       </div>
 
-      {/* Edit/Add Dialog */}
+      {/* Edit/Add Dialog — compact layout */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-[600px] max-h-[85vh] overflow-y-auto p-7">
-          <DialogHeader>
-            <DialogTitle className="text-lg">{editId ? 'Edit Supplement' : 'Add Supplement'}</DialogTitle>
-            <DialogDescription className="text-sm mt-1">Fill in the supplement details below.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-5 py-4">
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-2 col-span-2">
-                <Label className="text-sm font-semibold">Supplement Name *</Label>
-                <Input value={editData.supplement_name} onChange={(e) => setEditData({...editData, supplement_name: e.target.value})} className="h-12" />
-              </div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Manufacturer</Label><Input value={editData.company} onChange={(e) => setEditData({...editData, company: e.target.value})} className="h-12" placeholder="e.g. Quicksilver" /></div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Supplier (for freight)</Label>
-                <Select value={editData.supplier || ''} onValueChange={(v) => setEditData({...editData, supplier: v})}>
-                  <SelectTrigger className="h-12"><SelectValue placeholder="Select supplier" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No supplier</SelectItem>
-                    {supplierList.map(s => <SelectItem key={s._id} value={s.name}>{s.name} (${s.freight_charge})</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Unit Type</Label>
-                <Select value={editData.unit_type} onValueChange={(v) => setEditData({...editData, unit_type: v})}>
-                  <SelectTrigger className="h-12"><SelectValue placeholder="Select unit" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="caps">Capsules (caps)</SelectItem>
-                    <SelectItem value="ml">Milliliters (ml)</SelectItem>
-                    <SelectItem value="serving">Serving</SelectItem>
-                    <SelectItem value="scoop">Scoop</SelectItem>
-                    <SelectItem value="pump">Pump</SelectItem>
-                    <SelectItem value="drop">Drop</SelectItem>
-                    <SelectItem value="tablet">Tablet</SelectItem>
-                    <SelectItem value="packet">Packet</SelectItem>
-                    <SelectItem value="g">Grams (g)</SelectItem>
-                    <SelectItem value="lozenge">Lozenge</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Units Per Bottle</Label><Input type="number" value={editData.units_per_bottle} onChange={(e) => setEditData({...editData, units_per_bottle: e.target.value})} className="h-12 font-mono" /></div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Cost Per Bottle ($)</Label><Input type="number" step="0.01" value={editData.cost_per_bottle} onChange={(e) => setEditData({...editData, cost_per_bottle: e.target.value})} className="h-12 font-mono" /></div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Default Qty Per Dose</Label><Input type="number" value={editData.default_quantity_per_dose} onChange={(e) => setEditData({...editData, default_quantity_per_dose: e.target.value})} className="h-12 font-mono" /></div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Default Freq Per Day</Label><Input type="number" value={editData.default_frequency_per_day} onChange={(e) => setEditData({...editData, default_frequency_per_day: e.target.value})} className="h-12 font-mono" /></div>
-              <div className="space-y-2 col-span-2"><Label className="text-sm font-semibold">Default Dosage Display</Label><Input value={editData.default_dosage_display} onChange={(e) => setEditData({...editData, default_dosage_display: e.target.value})} className="h-12" placeholder="e.g., 2 caps 3x/day" /></div>
-              <div className="space-y-2 col-span-2"><Label className="text-sm font-semibold">Default Instructions</Label><Input value={editData.default_instructions} onChange={(e) => setEditData({...editData, default_instructions: e.target.value})} className="h-12" placeholder="e.g., With food" /></div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Bottles Per Month</Label><Input type="number" step="0.01" value={editData.bottles_per_month} onChange={(e) => setEditData({...editData, bottles_per_month: e.target.value})} className="h-12 font-mono" placeholder="Override" /></div>
-              <div className="space-y-2 col-span-2"><Label className="text-sm font-semibold">Notes</Label><Input value={editData.notes} onChange={(e) => setEditData({...editData, notes: e.target.value})} className="h-12" /></div>
-              <div className="flex items-center gap-4 py-1"><Switch checked={editData.refrigerate} onCheckedChange={(v) => setEditData({...editData, refrigerate: v})} /><Label className="text-sm font-medium">Requires Refrigeration</Label></div>
-              <div className="flex items-center gap-4 py-1"><Switch checked={editData.active} onCheckedChange={(v) => setEditData({...editData, active: v})} /><Label className="text-sm font-medium">Active</Label></div>
+        <DialogContent className="max-w-[640px] p-6">
+          <DialogHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-base font-bold">{editId ? editData.supplement_name || 'Edit Supplement' : 'Add Supplement'}</DialogTitle>
+              {editId && (
+                <Button variant="ghost" size="sm" onClick={() => setDeleteId(editId)}
+                  className="h-8 px-3 text-xs text-[#C53B3B] hover:bg-red-50 hover:text-[#A52E2E] gap-1.5">
+                  <Trash2 size={13} /> Delete
+                </Button>
+              )}
             </div>
+            <DialogDescription className="text-xs">Fill in supplement details.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+            <div className="col-span-2 space-y-1">
+              <Label className="text-xs font-semibold">Name *</Label>
+              <Input value={editData.supplement_name} onChange={(e) => setEditData({...editData, supplement_name: e.target.value})} className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Unit Type</Label>
+              <Select value={editData.unit_type} onValueChange={(v) => setEditData({...editData, unit_type: v})}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="caps">Capsules</SelectItem>
+                  <SelectItem value="ml">ml</SelectItem>
+                  <SelectItem value="serving">Serving</SelectItem>
+                  <SelectItem value="scoop">Scoop</SelectItem>
+                  <SelectItem value="pump">Pump</SelectItem>
+                  <SelectItem value="drop">Drop</SelectItem>
+                  <SelectItem value="tablet">Tablet</SelectItem>
+                  <SelectItem value="packet">Packet</SelectItem>
+                  <SelectItem value="g">Grams</SelectItem>
+                  <SelectItem value="lozenge">Lozenge</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Manufacturer</Label>
+              <Input value={editData.company} onChange={(e) => setEditData({...editData, company: e.target.value})} className="h-9 text-sm" placeholder="e.g. Quicksilver" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Supplier</Label>
+              <Select value={editData.supplier || 'none'} onValueChange={(v) => setEditData({...editData, supplier: v})}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No supplier</SelectItem>
+                  {supplierList.map(s => <SelectItem key={s._id} value={s.name}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Units/Bottle</Label>
+              <Input type="number" value={editData.units_per_bottle} onChange={(e) => setEditData({...editData, units_per_bottle: e.target.value})} className="h-9 text-sm font-mono" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Cost/Bottle ($)</Label>
+              <Input type="number" step="0.01" value={editData.cost_per_bottle} onChange={(e) => setEditData({...editData, cost_per_bottle: e.target.value})} className="h-9 text-sm font-mono" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Default Qty/Dose</Label>
+              <Input type="number" value={editData.default_quantity_per_dose} onChange={(e) => setEditData({...editData, default_quantity_per_dose: e.target.value})} className="h-9 text-sm font-mono" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Default Freq/Day</Label>
+              <Input type="number" value={editData.default_frequency_per_day} onChange={(e) => setEditData({...editData, default_frequency_per_day: e.target.value})} className="h-9 text-sm font-mono" />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label className="text-xs font-semibold">Default Dosage Display</Label>
+              <Input value={editData.default_dosage_display} onChange={(e) => setEditData({...editData, default_dosage_display: e.target.value})} className="h-9 text-sm" placeholder="e.g. 2 caps 3x/day" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Btls/Month</Label>
+              <Input type="number" step="0.01" value={editData.bottles_per_month} onChange={(e) => setEditData({...editData, bottles_per_month: e.target.value})} className="h-9 text-sm font-mono" placeholder="Override" />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label className="text-xs font-semibold">Default Instructions</Label>
+              <Input value={editData.default_instructions} onChange={(e) => setEditData({...editData, default_instructions: e.target.value})} className="h-9 text-sm" placeholder="e.g. With food" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Notes</Label>
+              <Input value={editData.notes} onChange={(e) => setEditData({...editData, notes: e.target.value})} className="h-9 text-sm" />
+            </div>
+            <div className="flex items-center gap-3 pt-2"><Switch checked={editData.refrigerate} onCheckedChange={(v) => setEditData({...editData, refrigerate: v})} /><Label className="text-xs font-medium">Refrigerate</Label></div>
+            <div className="flex items-center gap-3 pt-2"><Switch checked={editData.active} onCheckedChange={(v) => setEditData({...editData, active: v})} /><Label className="text-xs font-medium">Active</Label></div>
           </div>
-          <DialogFooter className="gap-3 mt-2">
-            <Button variant="outline" onClick={() => setEditOpen(false)} className="h-11 px-5">Cancel</Button>
-            <Button onClick={handleSave} disabled={saving} className="h-11 px-6 bg-[#0B0D10] hover:bg-[#1a1d21] text-white font-semibold">{saving ? 'Saving...' : (editId ? 'Update' : 'Add')}</Button>
+          <DialogFooter className="gap-3 mt-4 pt-3 border-t">
+            <Button variant="outline" onClick={() => setEditOpen(false)} className="h-9 px-4 text-sm">Cancel</Button>
+            <Button onClick={handleSave} disabled={saving} className="h-9 px-5 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold text-sm">{saving ? 'Saving...' : (editId ? 'Update' : 'Add')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -251,7 +273,7 @@ export default function SupplementsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 gap-3">
             <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-[#C53030] text-white hover:bg-[#9B2C2C] h-10 px-5 font-semibold">Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

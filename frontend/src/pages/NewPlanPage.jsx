@@ -53,7 +53,7 @@ export default function NewPlanPage() {
 
   const canProceed = () => {
     if (step === 1) return selectedProgram && selectedStep;
-    if (step === 2) return monthCount >= 1;
+    if (step === 2) return monthCount >= 0.5;
     if (step === 3) return patientName.trim().length > 0;
     return true;
   };
@@ -76,8 +76,8 @@ export default function NewPlanPage() {
         step_label: `Step ${selectedStep}`,
         step_number: Number(selectedStep),
         template_id: selectedTemplate?._id || null,
-        months: Array.from({ length: monthCount }, (_, i) => ({
-          month_number: i + 1,
+        months: Array.from({ length: Math.ceil(monthCount) }, (_, i) => ({
+          month_number: monthCount === 0.5 ? 0.5 : i + 1,
           supplements: (selectedTemplate?.supplements || []).map(s => ({
             supplement_id: s.supplement_id || '',
             supplement_name: s.supplement_name,
@@ -197,18 +197,19 @@ export default function NewPlanPage() {
           {step === 2 && (
             <div className="space-y-7">
               <div className="space-y-2.5">
-                <Label className="text-sm font-semibold">Number of Months</Label>
+                <Label className="text-sm font-semibold">Duration</Label>
                 <Input
                   type="number"
-                  min={1}
+                  min={0.5}
                   max={12}
+                  step={0.5}
                   value={monthCount}
-                  onChange={(e) => setMonthCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) => setMonthCount(Math.max(0.5, parseFloat(e.target.value) || 1))}
                   data-testid="wizard-month-count-input"
                   className="h-12 w-36 font-mono text-lg"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Pre-filled from template defaults. Adjust as needed.
+                  In months. Use 0.5 for 2 weeks. Pre-filled from template.
                 </p>
               </div>
             </div>
