@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, finalizePlan, reopenPlan, duplicatePlan, saveToDrive, getCompanies } from '../lib/api';
 import { formatCurrency, recalculateMonthCosts, downloadBlob } from '../lib/utils';
+import { parseDosage, buildDosageText } from '../lib/dosageParser';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -353,18 +354,26 @@ export default function PlanEditorPage() {
     if (!plan || isFinalized) return;
     const np = { ...plan }; const m = np.months?.find(x => x.month_number === monthNum);
     if (m && m.supplements[suppIndex]) {
-      m.supplements[suppIndex][field] = value;
-      // Auto-update dosage_display when qty or frequency changes
+      const s = m.supplements[suppIndex];
+      s[field] = value;
+      
+      // Find unit type from master supplement list
+      const master = supplements.find(ms => ms._id === s.supplement_id);
+      const unit = master?.unit_type || 'caps';
+      
       if (field === 'quantity_per_dose' || field === 'frequency_per_day') {
-        const s = m.supplements[suppIndex];
+        // Steppers changed → rebuild dosage text
         const qty = field === 'quantity_per_dose' ? value : s.quantity_per_dose;
         const freq = field === 'frequency_per_day' ? value : s.frequency_per_day;
         if (qty && freq) {
-          // Find unit type from master supplement list
-          const master = supplements.find(ms => ms._id === s.supplement_id);
-          const unit = master?.unit_type || 'caps';
-          const unitLabel = qty === 1 ? unit.replace(/s$/, '') : unit;
-          m.supplements[suppIndex].dosage_display = `${qty} ${unitLabel} ${freq}x/day`;
+          s.dosage_display = buildDosageText(qty, freq, unit);
+        }
+      } else if (field === 'dosage_display') {
+        // Dosage text changed → try to parse into qty + freq
+        const parsed = parseDosage(value);
+        if (parsed) {
+          s.quantity_per_dose = parsed.qty;
+          s.frequency_per_day = parsed.freq;
         }
       }
     }
