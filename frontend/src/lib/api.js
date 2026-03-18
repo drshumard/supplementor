@@ -139,6 +139,10 @@ export const updatePatient = (id, data) =>
 export const deletePatient = (id) =>
   request(`/patients/${id}`, { method: 'DELETE' });
 
+export const saveAllPlansToDrive = (patientId) =>
+  request(`/patients/${patientId}/save-all-to-drive`, { method: 'POST' });
+
+
 // Companies
 export const getCompanies = () =>
   request('/companies');

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPatient, updatePatient, deletePlan, duplicatePlan } from '../lib/api';
+import { getPatient, updatePatient, deletePlan, duplicatePlan, saveAllPlansToDrive } from '../lib/api';
 import { formatCurrency } from '../lib/utils';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -25,6 +25,16 @@ export default function PatientDetailPage() {
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [savingDrive, setSavingDrive] = useState(false);
+
+  const handleSaveAllToDrive = async () => {
+    setSavingDrive(true);
+    try {
+      const result = await saveAllPlansToDrive(patientId);
+      toast.success(result.message);
+    } catch (err) { toast.error(err.message || 'Drive save failed'); }
+    finally { setSavingDrive(false); }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -131,10 +141,19 @@ export default function PatientDetailPage() {
       {/* Plans Section */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-[#0B0D10]">Plans ({plans.length})</h2>
-        <Button onClick={() => navigate(`/plans/new?patient_id=${patientId}&patient_name=${encodeURIComponent(patient.name)}`)}
-          className="gap-2 h-11 px-6 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold text-sm" data-testid="new-plan-for-patient">
-          <Plus size={16} /> New Plan
-        </Button>
+        <div className="flex items-center gap-3">
+          {plans.length > 0 && (
+            <Button variant="outline" onClick={handleSaveAllToDrive} disabled={savingDrive}
+              className="gap-2 h-11 px-5 text-sm font-semibold" data-testid="save-all-drive">
+              <svg width="16" height="16" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066DA"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z" fill="#00AC47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 9.65z" fill="#EA4335"/><path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832D"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h22.9c1.6 0 3.15-.45 4.5-1.2z" fill="#2684FC"/><path d="M73.4 26.5 60.65 3.3c-.8-1.4-1.95-2.5-3.3-3.3L43.6 25l16.15 28h27.5c0-1.55-.4-3.1-1.2-4.5z" fill="#FFBA00"/></svg>
+              {savingDrive ? 'Saving...' : 'Save All to Drive'}
+            </Button>
+          )}
+          <Button onClick={() => navigate(`/plans/new?patient_id=${patientId}&patient_name=${encodeURIComponent(patient.name)}`)}
+            className="gap-2 h-11 px-6 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold text-sm" data-testid="new-plan-for-patient">
+            <Plus size={16} /> New Plan
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden">

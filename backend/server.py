@@ -949,6 +949,72 @@ async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
         raise HTTPException(status_code=500, detail=f"Google Drive upload failed: {str(e)}")
 
 
+@app.post("/api/patients/{patient_id}/save-all-to-drive")
+async def save_all_plans_to_drive(patient_id: str, user=Depends(require_auth)):
+    """Save ALL plans for a patient to their Google Drive folder."""
+    patient = await db.patients.find_one({"_id": ObjectId(patient_id)})
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    patient_name = patient.get("name", "Unknown")
+    
+    # Get all plans for this patient
+    plan_cursor = db.plans.find({"patient_id": patient_id}).sort("updated_at", -1)
+    plans = await plan_cursor.to_list(length=100)
+    
+    if not plans:
+        raise HTTPException(status_code=400, detail="No plans found for this patient")
+    
+    try:
+        from google_drive import get_or_create_patient_folder, upload_pdf_to_folder
+        
+        # Get/create folder ONCE
+        folder_id = get_or_create_patient_folder(patient_name)
+        
+        freight_map = await get_company_freight_map()
+        uploaded = []
+        
+        for doc in plans:
+            plan = serialize_doc(doc)
+            plan = recalculate_plan_costs(plan, freight_map)
+            
+            # Ensure dosage_display
+            for month in plan.get("months", []):
+                for supp in month.get("supplements", []):
+                    if not supp.get("dosage_display"):
+                        q = supp.get("quantity_per_dose", 0) or 0
+                        f = supp.get("frequency_per_day", 0) or 0
+                        if q and f:
+                            supp["dosage_display"] = f"{q} cap{'s' if q > 1 else ''}, {f}x/day"
+            
+            program = plan.get("program_name", "Protocol")
+            step = plan.get("step_label", "")
+            status = plan.get("status", "draft")
+            
+            # Patient PDF
+            patient_pdf = bytes(generate_patient_pdf(plan))
+            patient_filename = f"{patient_name} - {program} {step} (Patient).pdf"
+            p_result = upload_pdf_to_folder(folder_id, patient_filename, patient_pdf)
+            uploaded.append(p_result)
+            
+            # HC PDF
+            hc_pdf = bytes(generate_hc_pdf(plan))
+            hc_filename = f"{patient_name} - {program} {step} (HC).pdf"
+            h_result = upload_pdf_to_folder(folder_id, hc_filename, hc_pdf)
+            uploaded.append(h_result)
+        
+        return {
+            "success": True,
+            "files_uploaded": len(uploaded),
+            "plans_exported": len(plans),
+            "folder_id": folder_id,
+            "message": f"Saved {len(plans)} plan(s) ({len(uploaded)} PDFs) to '{patient_name}' folder",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Google Drive upload failed: {str(e)}")
+
+
+
 
 # ─── Startup ─────────────────────────────────────────────────────────────────
 
