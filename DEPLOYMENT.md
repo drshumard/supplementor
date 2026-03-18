@@ -130,6 +130,50 @@ mongodump --db drshumard_protocol --out /backup/$(date +%Y%m%d)
 mongorestore --db drshumard_protocol /backup/YYYYMMDD/drshumard_protocol/
 ```
 
+## User Management CLI
+
+Manage user roles directly from the command line — useful when you can't access the admin UI or need to bootstrap the first admin.
+
+```bash
+cd /var/www/supplemetor/backend
+source venv/bin/activate
+```
+
+### List all users
+```bash
+python3 manage_users.py list
+```
+Output:
+```
+  drjason@drshumard.com             admin  Dr. Jason            (linked)
+  sarah@drshumard.com               hc     Sarah Johnson        (linked)
+  admin@clarity.com                 admin  Dr. Jason            (not linked)
+```
+
+### Set a user as Admin
+```bash
+python3 manage_users.py set-admin drjason@drshumard.com
+```
+
+### Set a user as Health Coach
+```bash
+python3 manage_users.py set-hc sarah@drshumard.com
+```
+
+### Delete a user
+```bash
+python3 manage_users.py delete admin@clarity.com
+```
+
+### Import data (templates + supplements)
+```bash
+python3 import_data.py mongodb://localhost:27017/drshumard_protocol
+```
+
+> **Note:** User roles are stored in MongoDB, not Clerk. Clerk handles authentication (sign-in), your database handles authorization (admin vs HC). The `manage_users.py` script reads connection details from `backend/.env` automatically.
+
+
+
 ## Troubleshooting
 
 ```bash
