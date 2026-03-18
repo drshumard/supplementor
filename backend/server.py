@@ -153,6 +153,39 @@ async def get_company_freight_map() -> dict:
     return freight
 
 
+async def get_user_drive_folder(user: dict) -> str:
+    """Get the user's Google Drive folder ID. Creates and persists on first use."""
+    from google_drive import _get_drive_service, _find_or_create_folder, DRIVE_ID
+    
+    user_id = user.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID not found")
+    
+    # Check if user already has a drive folder stored
+    local_user = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not local_user:
+        # Try by clerk_user_id
+        local_user = await db.users.find_one({"clerk_user_id": user.get("clerk_user_id")})
+    
+    if local_user and local_user.get("drive_folder_id"):
+        return local_user["drive_folder_id"]
+    
+    # Create folder named after the user
+    user_name = user.get("name") or (local_user or {}).get("name") or user.get("email", "Unknown User")
+    service = _get_drive_service()
+    folder_id = _find_or_create_folder(service, user_name, DRIVE_ID)
+    
+    # Persist the folder ID on the user record
+    if local_user:
+        await db.users.update_one(
+            {"_id": local_user["_id"]},
+            {"$set": {"drive_folder_id": folder_id}}
+        )
+    
+    return folder_id
+
+
+
 
 # ─── Health ──────────────────────────────────────────────────────────────────
 
@@ -924,11 +957,11 @@ async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
     step = plan.get("step_label", "")
     
     try:
-        from google_drive import upload_pdf_to_folder, get_upload_folder
+        from google_drive import upload_pdf_to_folder, get_patient_folder
         
-        # Nested folder: User > Patient
-        user_name = user.get("name", "Unknown User")
-        folder_id = get_upload_folder(user_name, patient_name)
+        # Get user's persistent Drive folder, then patient subfolder
+        user_folder_id = await get_user_drive_folder(user)
+        folder_id = get_patient_folder(user_folder_id, patient_name)
         
         # Generate and upload patient PDF
         patient_pdf = bytes(generate_patient_pdf(plan))
@@ -967,11 +1000,11 @@ async def save_all_plans_to_drive(patient_id: str, user=Depends(require_auth)):
         raise HTTPException(status_code=400, detail="No plans found for this patient")
     
     try:
-        from google_drive import get_upload_folder, upload_pdf_to_folder
+        from google_drive import get_patient_folder, upload_pdf_to_folder
         
-        # Nested folder: User > Patient
-        user_name = user.get("name", "Unknown User")
-        folder_id = get_upload_folder(user_name, patient_name)
+        # Get user's persistent Drive folder, then patient subfolder
+        user_folder_id = await get_user_drive_folder(user)
+        folder_id = get_patient_folder(user_folder_id, patient_name)
         
         freight_map = await get_company_freight_map()
         uploaded = []

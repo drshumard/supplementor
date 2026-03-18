@@ -65,12 +65,10 @@ def _find_or_create_folder(service, name: str, parent_id: str) -> str:
     return folder["id"]
 
 
-def get_upload_folder(user_name: str, patient_name: str) -> str:
-    """Get or create the nested folder: Shared Drive > User > Patient. Returns patient folder ID."""
+def get_patient_folder(user_folder_id: str, patient_name: str) -> str:
+    """Get or create a patient folder inside the user's folder. Returns patient folder ID."""
     service = _get_drive_service()
-    user_folder_id = _find_or_create_folder(service, user_name, DRIVE_ID)
-    patient_folder_id = _find_or_create_folder(service, patient_name, user_folder_id)
-    return patient_folder_id
+    return _find_or_create_folder(service, patient_name, user_folder_id)
 
 
 def upload_pdf_to_folder(folder_id: str, filename: str, pdf_bytes: bytes) -> dict:
