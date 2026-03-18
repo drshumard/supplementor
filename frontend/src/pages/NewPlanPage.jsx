@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getTemplates, createPlan, createPatient } from '../lib/api';
+import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -27,10 +28,18 @@ export default function NewPlanPage() {
   const [planDate, setPlanDate] = useState(new Date().toISOString().split('T')[0]);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
+  const { user: appUser } = useAuth();
 
   useEffect(() => {
-    getTemplates().then(r => setTemplates(r.templates || [])).catch(() => {});
-  }, []);
+    if (!appUser) return; // Wait for auth
+    getTemplates().then(r => {
+      const t = r.templates || [];
+      setTemplates(t);
+      console.log(`[NewPlan] Loaded ${t.length} templates, supplements: ${t.map(x => x.supplements?.length || 0).join(',')}`);
+    }).catch(err => {
+      console.error('[NewPlan] Failed to load templates:', err);
+    });
+  }, [appUser]);
 
   const selectedTemplate = templates.find(
     t => t.program_name === selectedProgram && t.step_number === Number(selectedStep)
