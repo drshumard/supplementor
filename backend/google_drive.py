@@ -1,6 +1,13 @@
 """
-Google Drive integration - upload PDFs to patient folders.
+Google Drive integration - upload PDFs to user > patient folder structure.
 Uses service account with domain-wide delegation.
+
+Structure:
+  Shared Drive/
+  ├── {User Name}/
+  │   ├── {Patient Name}/
+  │   │   ├── Patient - Program Step (Patient).pdf
+  │   │   └── Patient - Program Step (HC).pdf
 """
 import os
 import io
@@ -23,16 +30,13 @@ def _get_drive_service():
     return build("drive", "v3", credentials=delegated)
 
 
-def get_or_create_patient_folder(patient_name: str) -> str:
-    """Find or create a single folder for the patient. Returns folder ID."""
-    service = _get_drive_service()
-    
-    # Search for existing folder
-    safe_name = patient_name.replace("'", "\\'")
+def _find_or_create_folder(service, name: str, parent_id: str) -> str:
+    """Find or create a folder by name under a parent. Returns folder ID."""
+    safe_name = name.replace("'", "\\'")
     query = (
         f"name = '{safe_name}' and "
         f"mimeType = 'application/vnd.google-apps.folder' and "
-        f"'{DRIVE_ID}' in parents and "
+        f"'{parent_id}' in parents and "
         f"trashed = false"
     )
     results = service.files().list(
@@ -48,11 +52,10 @@ def get_or_create_patient_folder(patient_name: str) -> str:
     if files:
         return files[0]["id"]
 
-    # Create new folder
     folder_metadata = {
-        "name": patient_name,
+        "name": name,
         "mimeType": "application/vnd.google-apps.folder",
-        "parents": [DRIVE_ID],
+        "parents": [parent_id],
     }
     folder = service.files().create(
         body=folder_metadata,
@@ -60,6 +63,14 @@ def get_or_create_patient_folder(patient_name: str) -> str:
         fields="id",
     ).execute()
     return folder["id"]
+
+
+def get_upload_folder(user_name: str, patient_name: str) -> str:
+    """Get or create the nested folder: Shared Drive > User > Patient. Returns patient folder ID."""
+    service = _get_drive_service()
+    user_folder_id = _find_or_create_folder(service, user_name, DRIVE_ID)
+    patient_folder_id = _find_or_create_folder(service, patient_name, user_folder_id)
+    return patient_folder_id
 
 
 def upload_pdf_to_folder(folder_id: str, filename: str, pdf_bytes: bytes) -> dict:

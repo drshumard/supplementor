@@ -924,10 +924,11 @@ async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
     step = plan.get("step_label", "")
     
     try:
-        from google_drive import upload_pdf_to_folder, get_or_create_patient_folder
+        from google_drive import upload_pdf_to_folder, get_upload_folder
         
-        # Get/create folder ONCE
-        folder_id = get_or_create_patient_folder(patient_name)
+        # Nested folder: User > Patient
+        user_name = user.get("name", "Unknown User")
+        folder_id = get_upload_folder(user_name, patient_name)
         
         # Generate and upload patient PDF
         patient_pdf = bytes(generate_patient_pdf(plan))
@@ -966,10 +967,11 @@ async def save_all_plans_to_drive(patient_id: str, user=Depends(require_auth)):
         raise HTTPException(status_code=400, detail="No plans found for this patient")
     
     try:
-        from google_drive import get_or_create_patient_folder, upload_pdf_to_folder
+        from google_drive import get_upload_folder, upload_pdf_to_folder
         
-        # Get/create folder ONCE
-        folder_id = get_or_create_patient_folder(patient_name)
+        # Nested folder: User > Patient
+        user_name = user.get("name", "Unknown User")
+        folder_id = get_upload_folder(user_name, patient_name)
         
         freight_map = await get_company_freight_map()
         uploaded = []
