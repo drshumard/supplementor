@@ -4,10 +4,15 @@ Supplement Protocol Web App — FastAPI Backend
 import os
 import math
 import json
+import base64
 import requests
 from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import BaseModel as PydanticBaseModel
+from dotenv import load_dotenv
+
+# Load .env file — works for both dev and production
+load_dotenv()
 
 from fastapi import FastAPI, HTTPException, Query, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,10 +62,28 @@ db = client[DB_NAME]
 
 # ─── Clerk Auth Helpers ───────────────────────────────────────────────────────
 
-CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "sk_test_ZfHaD3ZUzYGeok6kkUWz9M6YRNKbBqEGlrJ8mWLhub")
-CLERK_JWKS_URL = "https://secure-doberman-93.clerk.accounts.dev/.well-known/jwks.json"
+CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")
+CLERK_PK = os.environ.get("CLERK_PUBLISHABLE_KEY", "")
 
-_jwks_client = PyJWKClient(CLERK_JWKS_URL)
+# Derive JWKS URL from publishable key: pk_test_<base64domain> or pk_live_<base64domain>
+def _get_clerk_jwks_url():
+    parts = CLERK_PK.split("_")
+    if len(parts) >= 3:
+        try:
+            raw = parts[-1]
+            raw += "=" * (4 - len(raw) % 4) if len(raw) % 4 else ""
+            domain = base64.b64decode(raw).decode().rstrip("$")
+            url = f"https://{domain}/.well-known/jwks.json"
+            print(f"[Clerk] JWKS URL: {url}")
+            return url
+        except Exception as e:
+            print(f"[Clerk] Failed to derive JWKS URL from publishable key: {e}")
+    else:
+        print("[Clerk] WARNING: CLERK_PUBLISHABLE_KEY not set in .env")
+    return None
+
+_clerk_jwks_url = _get_clerk_jwks_url()
+_jwks_client = PyJWKClient(_clerk_jwks_url) if _clerk_jwks_url else None
 
 
 def verify_clerk_token(token: str):
