@@ -19,7 +19,7 @@ WHITE = (255, 255, 255)
 RED = (197, 59, 59)
 GREEN = (20, 125, 90)
 
-TIME_ORDER = ["AM", "Afternoon", "PM", "Bedtime"]
+TIME_ORDER = ["AM", "Afternoon", "PM"]
 
 
 class ProtocolPDF(FPDF):
@@ -41,23 +41,15 @@ def _safe(val):
 
 
 def _group_by_time(supplements):
-    """Group supplements by time_of_day."""
-    groups = {}
+    """Group supplements by time slots. A supplement with times: ["AM", "PM"] appears in both."""
+    groups = {t: [] for t in TIME_ORDER}
     for s in supplements:
-        t = s.get("time_of_day", "AM") or "AM"
-        if t not in groups:
-            groups[t] = []
-        groups[t].append(s)
-    # Return in order
-    result = []
-    for t in TIME_ORDER:
-        if t in groups:
-            result.append((t, groups[t]))
-    # Any remaining
-    for t, supps in groups.items():
-        if t not in TIME_ORDER:
-            result.append((t, supps))
-    return result
+        times = s.get("times") or [s.get("time_of_day", "AM") or "AM"]
+        for t in times:
+            if t in groups:
+                groups[t].append(s)
+    # Return only non-empty groups in order
+    return [(t, supps) for t in TIME_ORDER if (supps := groups.get(t, [])) and len(supps) > 0]
 
 
 def _draw_header(pdf, plan):

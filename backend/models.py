@@ -104,7 +104,8 @@ class PlanSupplementEntry(BaseModel):
     dosage_display: str = ""
     instructions: str = ""
     with_food: bool = True
-    time_of_day: str = "AM"  # AM, Afternoon, PM, Bedtime
+    time_of_day: str = "AM"  # Legacy single field
+    times: list = ["AM"]  # Active time slots: AM, Afternoon, PM
     hc_notes: str = ""
     units_per_bottle: Optional[int] = None
     cost_per_bottle: float = 0.0

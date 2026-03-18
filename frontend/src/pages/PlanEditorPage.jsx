@@ -106,12 +106,12 @@ function MonthPage({
       <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#FAFAFA] gap-x-4"
         style={{
           gridTemplateColumns: patientView
-            ? '0.6fr 1.6fr 1fr 0.6fr 1.6fr'
+            ? '0.8fr 1.6fr 1fr 0.6fr 1.4fr'
             : showCosts
-              ? '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.4fr 0.5fr 0.6fr 0.3fr'
-              : '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.6fr 0.3fr'
+              ? '0.8fr 1.3fr 0.6fr 0.6fr 1fr 0.6fr 1.3fr 0.5fr 0.6fr 0.3fr'
+              : '0.8fr 1.3fr 0.6fr 0.6fr 1fr 0.6fr 1.5fr 0.3fr'
         }}>
-        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Time</span>
+        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Times</span>
         <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568]">Supplement</span>
         {!patientView && (<>
           <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Qty</span>
@@ -144,20 +144,34 @@ function MonthPage({
                     ? '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.4fr 0.5fr 0.6fr 0.3fr'
                     : '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.6fr 0.3fr'
               }}>
-              {/* Time of Day */}
-              <div className="flex justify-center">
+              {/* Time slots — 3 toggle chips */}
+              <div className="flex justify-center gap-1">
                 {patientView ? (
-                  <span className="text-xs font-semibold text-[#0D5F68]">{supp.time_of_day || 'AM'}</span>
+                  <span className="text-xs font-semibold text-[#0D5F68]">{(supp.times || ['AM']).join(', ')}</span>
                 ) : (
-                  <Select value={supp.time_of_day || 'AM'} onValueChange={(v) => onUpdateField(month.month_number, idx, 'time_of_day', v)} disabled={isFinalized}>
-                    <SelectTrigger className="h-9 text-xs border-[#C8E6E0] w-full"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AM">AM</SelectItem>
-                      <SelectItem value="Afternoon">Afternoon</SelectItem>
-                      <SelectItem value="PM">PM</SelectItem>
-                      <SelectItem value="Bedtime">Bedtime</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  ['AM', 'Aft', 'PM'].map((label, ti) => {
+                    const fullName = ['AM', 'Afternoon', 'PM'][ti];
+                    const times = supp.times || ['AM'];
+                    const active = times.includes(fullName);
+                    return (
+                      <button key={label} type="button" disabled={isFinalized}
+                        onClick={() => {
+                          const newTimes = active
+                            ? times.filter(t => t !== fullName)
+                            : [...times, fullName].sort((a, b) => ['AM','Afternoon','PM'].indexOf(a) - ['AM','Afternoon','PM'].indexOf(b));
+                          if (newTimes.length === 0) return; // Must have at least one
+                          onUpdateField(month.month_number, idx, 'times', newTimes);
+                        }}
+                        className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${
+                          active
+                            ? 'bg-[#0D5F68] text-white'
+                            : 'bg-[#EAF4F3] text-[#94A3B8] hover:text-[#0D5F68]'
+                        } ${isFinalized ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })
                 )}
               </div>
               {/* Supplement */}
@@ -321,16 +335,26 @@ export default function PlanEditorPage() {
     setPlan({ ...newPlan }); debouncedSave(newPlan);
   };
 
-  const makeEntry = (supp) => ({
-    supplement_id: supp._id, supplement_name: supp.supplement_name, company: supp.company || '',
-    quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: supp.default_frequency_per_day || null,
-    dosage_display: supp.default_dosage_display || '', instructions: supp.default_instructions || '',
-    with_food: supp.default_instructions?.toLowerCase().includes('food') || true,
-    time_of_day: 'AM', hc_notes: '',
-    units_per_bottle: supp.units_per_bottle || null, cost_per_bottle: supp.cost_per_bottle || 0,
-    refrigerate: supp.refrigerate || false, bottles_needed: null, calculated_cost: null,
-    bottles_per_month_override: supp.bottles_per_month || null,
-  });
+  // Map frequency to default time slots
+  const freqToTimes = (freq) => {
+    if (freq >= 3) return ['AM', 'Afternoon', 'PM'];
+    if (freq === 2) return ['AM', 'PM'];
+    return ['AM'];
+  };
+
+  const makeEntry = (supp) => {
+    const freq = supp.default_frequency_per_day || 1;
+    return {
+      supplement_id: supp._id, supplement_name: supp.supplement_name, company: supp.company || '',
+      quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: freq,
+      dosage_display: supp.default_dosage_display || '', instructions: supp.default_instructions || '',
+      with_food: supp.default_instructions?.toLowerCase().includes('food') || true,
+      times: freqToTimes(freq), hc_notes: '',
+      units_per_bottle: supp.units_per_bottle || null, cost_per_bottle: supp.cost_per_bottle || 0,
+      refrigerate: supp.refrigerate || false, bottles_needed: null, calculated_cost: null,
+      bottles_per_month_override: supp.bottles_per_month || null,
+    };
+  };
 
   const addSupplementToMonth = (monthNum, supp) => {
     if (!plan || isFinalized) return;
@@ -362,18 +386,22 @@ export default function PlanEditorPage() {
       const unit = master?.unit_type || 'caps';
       
       if (field === 'quantity_per_dose' || field === 'frequency_per_day') {
-        // Steppers changed → rebuild dosage text
+        // Steppers changed → rebuild dosage text + update times
         const qty = field === 'quantity_per_dose' ? value : s.quantity_per_dose;
         const freq = field === 'frequency_per_day' ? value : s.frequency_per_day;
         if (qty && freq) {
           s.dosage_display = buildDosageText(qty, freq, unit);
         }
+        if (field === 'frequency_per_day' && value) {
+          s.times = freqToTimes(value);
+        }
       } else if (field === 'dosage_display') {
-        // Dosage text changed → try to parse into qty + freq
+        // Dosage text changed → try to parse into qty + freq + times
         const parsed = parseDosage(value);
         if (parsed) {
           s.quantity_per_dose = parsed.qty;
           s.frequency_per_day = parsed.freq;
+          s.times = freqToTimes(parsed.freq);
         }
       }
     }
