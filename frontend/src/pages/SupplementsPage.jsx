@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSupplements, createSupplement, updateSupplement, deleteSupplement } from '../lib/api';
+import { getSupplements, createSupplement, updateSupplement, deleteSupplement, getCompanies } from '../lib/api';
 import { formatCurrency } from '../lib/utils';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -38,10 +38,15 @@ export default function SupplementsPage() {
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [companyList, setCompanyList] = useState([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    try { const res = await getSupplements(search, false); setSupplements(res.supplements || []); setTotal(res.total || 0); }
+    try {
+      const [suppRes, compRes] = await Promise.all([getSupplements(search, false), getCompanies()]);
+      setSupplements(suppRes.supplements || []); setTotal(suppRes.total || 0);
+      setCompanyList(compRes.companies || []);
+    }
     catch (err) { toast.error('Failed to load supplements'); }
     finally { setLoading(false); }
   }, [search]);
@@ -189,7 +194,14 @@ export default function SupplementsPage() {
                 <Label className="text-sm font-semibold">Supplement Name *</Label>
                 <Input value={editData.supplement_name} onChange={(e) => setEditData({...editData, supplement_name: e.target.value})} className="h-12" />
               </div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Company / Brand</Label><Input value={editData.company} onChange={(e) => setEditData({...editData, company: e.target.value})} className="h-12" /></div>
+              <div className="space-y-2"><Label className="text-sm font-semibold">Company / Brand</Label>
+                <Select value={editData.company} onValueChange={(v) => setEditData({...editData, company: v})}>
+                  <SelectTrigger className="h-12"><SelectValue placeholder="Select company" /></SelectTrigger>
+                  <SelectContent>
+                    {companyList.map(c => <SelectItem key={c._id} value={c.name}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2"><Label className="text-sm font-semibold">Unit Type</Label>
                 <Select value={editData.unit_type} onValueChange={(v) => setEditData({...editData, unit_type: v})}>
                   <SelectTrigger className="h-12"><SelectValue placeholder="Select unit" /></SelectTrigger>

@@ -27,7 +27,8 @@ from models import (
     TemplateCreate, TemplateUpdate, TemplateSupplementEntry,
     PlanCreate, PlanUpdate, PlanMonth, PlanSupplementEntry,
     UserCreate, UserLogin, UserUpdate,
-    PatientCreate, PatientUpdate
+    PatientCreate, PatientUpdate,
+    CompanyCreate, CompanyUpdate
 )
 from calculations import (
     calculate_daily_dosage, calculate_bottles_needed,
@@ -141,6 +142,16 @@ async def require_admin(authorization: str = Header(None)):
     if user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
+
+
+async def get_company_freight_map() -> dict:
+    """Load company freight charges from DB. Returns {company_name: freight_charge}."""
+    freight = {}
+    async for c in db.companies.find({}, {"name": 1, "freight_charge": 1}):
+        if c.get("freight_charge", 0) > 0:
+            freight[c["name"]] = c["freight_charge"]
+    return freight
+
 
 
 # ─── Health ──────────────────────────────────────────────────────────────────
@@ -377,6 +388,56 @@ async def delete_patient(patient_id: str, user=Depends(require_admin)):
     result = await db.patients.delete_one({"_id": ObjectId(patient_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Patient not found")
+    return {"deleted": True}
+
+
+
+# ─── Company Management (Admin only) ─────────────────────────────────────────
+
+@app.get("/api/companies")
+async def list_companies(user=Depends(require_auth)):
+    cursor = db.companies.find({}).sort("name", 1)
+    docs = await cursor.to_list(length=200)
+    return {"companies": serialize_doc(docs)}
+
+
+@app.post("/api/companies")
+async def create_company(data: CompanyCreate, user=Depends(require_admin)):
+    existing = await db.companies.find_one({"name": {"$regex": f"^{data.name}$", "$options": "i"}})
+    if existing:
+        raise HTTPException(status_code=400, detail="Company already exists")
+    doc = {
+        "name": data.name.strip(),
+        "freight_charge": data.freight_charge,
+        "notes": data.notes,
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+    result = await db.companies.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return serialize_doc(doc)
+
+
+@app.put("/api/companies/{company_id}")
+async def update_company(company_id: str, data: CompanyUpdate, user=Depends(require_admin)):
+    existing = await db.companies.find_one({"_id": ObjectId(company_id)})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Company not found")
+    updates = {k: v for k, v in data.dict().items() if v is not None}
+    if "name" in updates:
+        updates["name"] = updates["name"].strip()
+    if updates:
+        updates["updated_at"] = datetime.utcnow()
+        await db.companies.update_one({"_id": ObjectId(company_id)}, {"$set": updates})
+    doc = await db.companies.find_one({"_id": ObjectId(company_id)})
+    return serialize_doc(doc)
+
+
+@app.delete("/api/companies/{company_id}")
+async def delete_company(company_id: str, user=Depends(require_admin)):
+    result = await db.companies.delete_one({"_id": ObjectId(company_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Company not found")
     return {"deleted": True}
 
 
@@ -630,8 +691,9 @@ async def create_plan(data: PlanCreate, authorization: str = Header(None)):
                     })
                 doc["months"] = months
     
-    # Recalculate costs
-    doc = recalculate_plan_costs(doc)
+    # Recalculate costs with freight
+    freight_map = await get_company_freight_map()
+    doc = recalculate_plan_costs(doc, freight_map)
     
     doc["status"] = "draft"
     doc["created_at"] = datetime.utcnow()
@@ -664,7 +726,8 @@ async def update_plan(plan_id: str, data: PlanUpdate, user=Depends(require_auth)
     if data.months is not None:
         months_data = [m.model_dump() for m in data.months]
         plan_data = {"months": months_data}
-        plan_data = recalculate_plan_costs(plan_data)
+        freight_map = await get_company_freight_map()
+        plan_data = recalculate_plan_costs(plan_data, freight_map)
         updates["months"] = plan_data["months"]
         updates["total_program_cost"] = plan_data["total_program_cost"]
     
@@ -808,8 +871,8 @@ async def export_hc_pdf(plan_id: str, user=Depends(require_auth)):
         raise HTTPException(status_code=404, detail="Plan not found")
     
     plan = serialize_doc(doc)
-    # Ensure calculations are done
-    plan = recalculate_plan_costs(plan)
+    freight_map = await get_company_freight_map()
+    plan = recalculate_plan_costs(plan, freight_map)
     
     # Ensure dosage_display
     for month in plan.get("months", []):
@@ -844,7 +907,8 @@ async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
         raise HTTPException(status_code=404, detail="Plan not found")
     
     plan = serialize_doc(doc)
-    plan = recalculate_plan_costs(plan)
+    freight_map = await get_company_freight_map()
+    plan = recalculate_plan_costs(plan, freight_map)
     
     # Ensure dosage_display
     for month in plan.get("months", []):
@@ -900,6 +964,23 @@ async def startup():
     await db.patients.create_index("email")
     await db.users.create_index("email", unique=True)
     await db.supplements.create_index("supplement_name")
+    await db.companies.create_index("name", unique=True)
+    
+    # Auto-seed companies from existing supplement data if companies collection is empty
+    company_count = await db.companies.count_documents({})
+    if company_count == 0:
+        existing_companies = set()
+        async for s in db.supplements.find({}, {"company": 1}):
+            c = (s.get("company") or "").strip()
+            if c:
+                existing_companies.add(c)
+        if existing_companies:
+            company_docs = [
+                {"name": name, "freight_charge": 0.0, "notes": "", "created_at": datetime.utcnow(), "updated_at": datetime.utcnow()}
+                for name in sorted(existing_companies)
+            ]
+            await db.companies.insert_many(company_docs)
+            print(f"Seeded {len(company_docs)} companies from supplement data")
     
     supp_count = await db.supplements.count_documents({})
     if supp_count == 0:

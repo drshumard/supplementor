@@ -178,3 +178,18 @@ class PatientUpdate(BaseModel):
     phone: Optional[str] = None
     date_of_birth: Optional[str] = None
     notes: Optional[str] = None
+
+
+
+# ─── Company Models ──────────────────────────────────────────────────────
+
+class CompanyCreate(BaseModel):
+    name: str
+    freight_charge: float = 0.0
+    notes: str = ""
+
+
+class CompanyUpdate(BaseModel):
+    name: Optional[str] = None
+    freight_charge: Optional[float] = None
+    notes: Optional[str] = None

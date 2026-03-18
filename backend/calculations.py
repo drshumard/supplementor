@@ -31,11 +31,15 @@ def calculate_monthly_total(supplements: list) -> float:
     return round(sum(s.get("calculated_cost", 0) or 0 for s in supplements), 2)
 
 
-def recalculate_plan_costs(plan_data: dict) -> dict:
-    """Recalculate all bottle counts and costs for a plan."""
+def recalculate_plan_costs(plan_data: dict, company_freight: dict = None) -> dict:
+    """Recalculate all bottle counts and costs for a plan.
+    company_freight: {company_name: freight_charge} — if provided, adds one freight per unique company per month.
+    """
+    company_freight = company_freight or {}
     total_program_cost = 0.0
     for month in plan_data.get("months", []):
         monthly_total = 0.0
+        month_companies = set()
         for supp in month.get("supplements", []):
             daily = calculate_daily_dosage(
                 supp.get("quantity_per_dose") or 0,
@@ -50,7 +54,19 @@ def recalculate_plan_costs(plan_data: dict) -> dict:
             supp["bottles_needed"] = bottles
             supp["calculated_cost"] = cost
             monthly_total += cost
-        month["monthly_total_cost"] = round(monthly_total, 2)
-        total_program_cost += monthly_total
+            # Track unique companies for freight
+            company = (supp.get("company") or "").strip()
+            if company:
+                month_companies.add(company)
+        # Add freight per unique company (deduplicated)
+        freight_total = 0.0
+        for company in month_companies:
+            freight = company_freight.get(company, 0)
+            if freight > 0:
+                freight_total += freight
+        month["freight_total"] = round(freight_total, 2)
+        month["monthly_total_cost"] = round(monthly_total + freight_total, 2)
+        month["supplement_cost"] = round(monthly_total, 2)
+        total_program_cost += monthly_total + freight_total
     plan_data["total_program_cost"] = round(total_program_cost, 2)
     return plan_data

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, finalizePlan, reopenPlan, duplicatePlan, saveToDrive } from '../lib/api';
+import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, finalizePlan, reopenPlan, duplicatePlan, saveToDrive, getCompanies } from '../lib/api';
 import { formatCurrency, recalculateMonthCosts, downloadBlob } from '../lib/utils';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
@@ -280,6 +280,7 @@ export default function PlanEditorPage() {
   const [showCosts, setShowCosts] = useState(false);
   const [patientViewMode, setPatientViewMode] = useState(false);
   const [supplements, setSupplements] = useState([]);
+  const [companyFreight, setCompanyFreight] = useState({});
   const [exporting, setExporting] = useState(false);
   const [confirmFinalize, setConfirmFinalize] = useState(false);
   const saveTimerRef = useRef(null);
@@ -289,8 +290,11 @@ export default function PlanEditorPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [p, s] = await Promise.all([getPlan(planId), getSupplements('', true)]);
+        const [p, s, c] = await Promise.all([getPlan(planId), getSupplements('', true), getCompanies()]);
         setPlan(p); setSupplements(s.supplements || []);
+        const freightMap = {};
+        for (const co of (c.companies || [])) { if (co.freight_charge > 0) freightMap[co.name] = co.freight_charge; }
+        setCompanyFreight(freightMap);
       } catch (err) { toast.error('Failed to load plan'); navigate(-1); }
       finally { setLoading(false); }
     };
@@ -311,7 +315,7 @@ export default function PlanEditorPage() {
 
   const recalcAndUpdate = (newPlan) => {
     let t = 0;
-    for (const m of newPlan.months || []) { recalculateMonthCosts(m); t += m.monthly_total_cost || 0; }
+    for (const m of newPlan.months || []) { recalculateMonthCosts(m, companyFreight); t += m.monthly_total_cost || 0; }
     newPlan.total_program_cost = Math.round(t * 100) / 100;
     setPlan({ ...newPlan }); debouncedSave(newPlan);
   };

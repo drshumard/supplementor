@@ -25,17 +25,28 @@ export function calculateSupplementCost(bottlesNeeded, costPerBottle) {
   return Math.round(bottlesNeeded * costPerBottle * 100) / 100;
 }
 
-export function recalculateMonthCosts(month) {
-  let total = 0;
+export function recalculateMonthCosts(month, companyFreight = {}) {
+  let suppTotal = 0;
+  const monthCompanies = new Set();
   for (const supp of month.supplements || []) {
     const daily = calculateDailyDosage(supp.quantity_per_dose, supp.frequency_per_day);
     const bottles = calculateBottlesNeeded(daily, supp.units_per_bottle, supp.bottles_per_month_override);
     const cost = calculateSupplementCost(bottles, supp.cost_per_bottle || 0);
     supp.bottles_needed = bottles;
     supp.calculated_cost = cost;
-    total += cost;
+    suppTotal += cost;
+    const company = (supp.company || '').trim();
+    if (company) monthCompanies.add(company);
   }
-  month.monthly_total_cost = Math.round(total * 100) / 100;
+  // Add freight per unique company (deduplicated)
+  let freightTotal = 0;
+  for (const company of monthCompanies) {
+    const freight = companyFreight[company] || 0;
+    if (freight > 0) freightTotal += freight;
+  }
+  month.supplement_cost = Math.round(suppTotal * 100) / 100;
+  month.freight_total = Math.round(freightTotal * 100) / 100;
+  month.monthly_total_cost = Math.round((suppTotal + freightTotal) * 100) / 100;
   return month;
 }
 

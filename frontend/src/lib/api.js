@@ -139,6 +139,20 @@ export const updatePatient = (id, data) =>
 export const deletePatient = (id) =>
   request(`/patients/${id}`, { method: 'DELETE' });
 
+// Companies
+export const getCompanies = () =>
+  request('/companies');
+
+export const createCompany = (data) =>
+  request('/companies', { method: 'POST', body: JSON.stringify(data) });
+
+export const updateCompany = (id, data) =>
+  request(`/companies/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+export const deleteCompany = (id) =>
+  request(`/companies/${id}`, { method: 'DELETE' });
+
+
 
 // Seed
 export const seedData = () =>

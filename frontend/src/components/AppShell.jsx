@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { LayoutDashboard, FilePlus, Pill, LogOut, Layers, Users, PanelLeftClose, PanelLeftOpen, UserRound } from 'lucide-react';
+import { LayoutDashboard, FilePlus, Pill, LogOut, Layers, Users, PanelLeftClose, PanelLeftOpen, UserRound, Building2 } from 'lucide-react';
 import { UserButton } from '@clerk/clerk-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -13,6 +13,7 @@ const navItems = [
   { label: 'New Plan', icon: FilePlus, path: '/plans/new', roles: ['admin', 'hc'] },
   { label: 'Supplements', icon: Pill, path: '/admin/supplements', roles: ['admin'] },
   { label: 'Templates', icon: Layers, path: '/admin/templates', roles: ['admin'] },
+  { label: 'Companies', icon: Building2, path: '/admin/companies', roles: ['admin'] },
   { label: 'Users', icon: Users, path: '/admin/users', roles: ['admin'] },
 ];
 

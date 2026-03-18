@@ -1,22 +1,18 @@
 [
   {
-    "content": "Install @clerk/clerk-react, add ClerkProvider to index.js",
+    "content": "Backend: Create companies collection + CRUD endpoints + seed from existing data",
     "status": "completed"
   },
   {
-    "content": "Replace LoginPage with Clerk auth flow",
+    "content": "Backend: Update cost calculation to include per-company freight (deduplicated)",
     "status": "completed"
   },
   {
-    "content": "Update backend to verify Clerk JWT tokens",
+    "content": "Frontend: Companies admin page with freight charges",
     "status": "completed"
   },
   {
-    "content": "Update Users page: role management + Clerk invite",
-    "status": "completed"
-  },
-  {
-    "content": "Update AppShell with Clerk UserButton",
+    "content": "Frontend: Supplement form company field as dropdown",
     "status": "completed"
   }
 ]
