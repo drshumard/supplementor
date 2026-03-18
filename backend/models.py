@@ -182,15 +182,15 @@ class PatientUpdate(BaseModel):
 
 
 
-# ─── Company Models ──────────────────────────────────────────────────────
+# ─── Supplier Models ──────────────────────────────────────────────────────
 
-class CompanyCreate(BaseModel):
+class SupplierCreate(BaseModel):
     name: str
     freight_charge: float = 0.0
     notes: str = ""
 
 
-class CompanyUpdate(BaseModel):
+class SupplierUpdate(BaseModel):
     name: Optional[str] = None
     freight_charge: Optional[float] = None
     notes: Optional[str] = None

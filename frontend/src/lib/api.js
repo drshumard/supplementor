@@ -144,17 +144,17 @@ export const saveAllPlansToDrive = (patientId) =>
 
 
 // Companies
-export const getCompanies = () =>
-  request('/companies');
+export const getSuppliers = () =>
+  request('/suppliers');
 
-export const createCompany = (data) =>
-  request('/companies', { method: 'POST', body: JSON.stringify(data) });
+export const createSupplier = (data) =>
+  request('/suppliers', { method: 'POST', body: JSON.stringify(data) });
 
-export const updateCompany = (id, data) =>
-  request(`/companies/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const updateSupplier = (id, data) =>
+  request(`/suppliers/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 
-export const deleteCompany = (id) =>
-  request(`/companies/${id}`, { method: 'DELETE' });
+export const deleteSupplier = (id) =>
+  request(`/suppliers/${id}`, { method: 'DELETE' });
 
 
 

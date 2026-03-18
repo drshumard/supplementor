@@ -1,18 +1,14 @@
 [
   {
-    "content": "Backend: Create companies collection + CRUD endpoints + seed from existing data",
+    "content": "Restructure: companies → suppliers (5 only), add supplier field to supplements, map existing data",
     "status": "completed"
   },
   {
-    "content": "Backend: Update cost calculation to include per-company freight (deduplicated)",
+    "content": "Update frontend: Companies page → Suppliers page, supplement form gets supplier dropdown",
     "status": "completed"
   },
   {
-    "content": "Frontend: Companies admin page with freight charges",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: Supplement form company field as dropdown",
+    "content": "Update freight calculation to use supplier not company",
     "status": "completed"
   }
 ]

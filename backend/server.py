@@ -28,7 +28,7 @@ from models import (
     PlanCreate, PlanUpdate, PlanMonth, PlanSupplementEntry,
     UserCreate, UserLogin, UserUpdate,
     PatientCreate, PatientUpdate,
-    CompanyCreate, CompanyUpdate
+    SupplierCreate, SupplierUpdate
 )
 from calculations import (
     calculate_daily_dosage, calculate_bottles_needed,
@@ -145,11 +145,11 @@ async def require_admin(authorization: str = Header(None)):
 
 
 async def get_company_freight_map() -> dict:
-    """Load company freight charges from DB. Returns {company_name: freight_charge}."""
+    """Load supplier freight charges from DB. Returns {supplier_name: freight_charge}."""
     freight = {}
-    async for c in db.companies.find({}, {"name": 1, "freight_charge": 1}):
-        if c.get("freight_charge", 0) > 0:
-            freight[c["name"]] = c["freight_charge"]
+    async for s in db.suppliers.find({}, {"name": 1, "freight_charge": 1}):
+        if s.get("freight_charge", 0) > 0:
+            freight[s["name"]] = s["freight_charge"]
     return freight
 
 
@@ -446,18 +446,18 @@ async def delete_patient(patient_id: str, user=Depends(require_admin)):
 
 # ─── Company Management (Admin only) ─────────────────────────────────────────
 
-@app.get("/api/companies")
+@app.get("/api/suppliers")
 async def list_companies(user=Depends(require_auth)):
-    cursor = db.companies.find({}).sort("name", 1)
+    cursor = db.suppliers.find({}).sort("name", 1)
     docs = await cursor.to_list(length=200)
     return {"companies": serialize_doc(docs)}
 
 
-@app.post("/api/companies")
-async def create_company(data: CompanyCreate, user=Depends(require_admin)):
-    existing = await db.companies.find_one({"name": {"$regex": f"^{data.name}$", "$options": "i"}})
+@app.post("/api/suppliers")
+async def create_company(data: SupplierCreate, user=Depends(require_admin)):
+    existing = await db.suppliers.find_one({"name": {"$regex": f"^{data.name}$", "$options": "i"}})
     if existing:
-        raise HTTPException(status_code=400, detail="Company already exists")
+        raise HTTPException(status_code=400, detail="Supplier already exists")
     doc = {
         "name": data.name.strip(),
         "freight_charge": data.freight_charge,
@@ -465,31 +465,31 @@ async def create_company(data: CompanyCreate, user=Depends(require_admin)):
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
     }
-    result = await db.companies.insert_one(doc)
+    result = await db.suppliers.insert_one(doc)
     doc["_id"] = result.inserted_id
     return serialize_doc(doc)
 
 
-@app.put("/api/companies/{company_id}")
-async def update_company(company_id: str, data: CompanyUpdate, user=Depends(require_admin)):
-    existing = await db.companies.find_one({"_id": ObjectId(company_id)})
+@app.put("/api/suppliers/{company_id}")
+async def update_company(company_id: str, data: SupplierUpdate, user=Depends(require_admin)):
+    existing = await db.suppliers.find_one({"_id": ObjectId(company_id)})
     if not existing:
-        raise HTTPException(status_code=404, detail="Company not found")
+        raise HTTPException(status_code=404, detail="Supplier not found")
     updates = {k: v for k, v in data.dict().items() if v is not None}
     if "name" in updates:
         updates["name"] = updates["name"].strip()
     if updates:
         updates["updated_at"] = datetime.utcnow()
-        await db.companies.update_one({"_id": ObjectId(company_id)}, {"$set": updates})
-    doc = await db.companies.find_one({"_id": ObjectId(company_id)})
+        await db.suppliers.update_one({"_id": ObjectId(company_id)}, {"$set": updates})
+    doc = await db.suppliers.find_one({"_id": ObjectId(company_id)})
     return serialize_doc(doc)
 
 
-@app.delete("/api/companies/{company_id}")
+@app.delete("/api/suppliers/{company_id}")
 async def delete_company(company_id: str, user=Depends(require_admin)):
-    result = await db.companies.delete_one({"_id": ObjectId(company_id)})
+    result = await db.suppliers.delete_one({"_id": ObjectId(company_id)})
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Company not found")
+        raise HTTPException(status_code=404, detail="Supplier not found")
     return {"deleted": True}
 
 
@@ -1084,10 +1084,10 @@ async def startup():
     await db.patients.create_index("email")
     await db.users.create_index("email", unique=True)
     await db.supplements.create_index("supplement_name")
-    await db.companies.create_index("name", unique=True)
+    await db.suppliers.create_index("name", unique=True)
     
     # Auto-seed companies from existing supplement data if companies collection is empty
-    company_count = await db.companies.count_documents({})
+    company_count = await db.suppliers.count_documents({})
     if company_count == 0:
         existing_companies = set()
         async for s in db.supplements.find({}, {"company": 1}):
@@ -1099,7 +1099,7 @@ async def startup():
                 {"name": name, "freight_charge": 0.0, "notes": "", "created_at": datetime.utcnow(), "updated_at": datetime.utcnow()}
                 for name in sorted(existing_companies)
             ]
-            await db.companies.insert_many(company_docs)
+            await db.suppliers.insert_many(company_docs)
             print(f"Seeded {len(company_docs)} companies from supplement data")
     
     supp_count = await db.supplements.count_documents({})

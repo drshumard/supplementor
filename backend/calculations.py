@@ -31,15 +31,15 @@ def calculate_monthly_total(supplements: list) -> float:
     return round(sum(s.get("calculated_cost", 0) or 0 for s in supplements), 2)
 
 
-def recalculate_plan_costs(plan_data: dict, company_freight: dict = None) -> dict:
+def recalculate_plan_costs(plan_data: dict, supplier_freight: dict = None) -> dict:
     """Recalculate all bottle counts and costs for a plan.
-    company_freight: {company_name: freight_charge} — if provided, adds one freight per unique company per month.
+    supplier_freight: {supplier_name: freight_charge} — adds one freight per unique supplier per month.
     """
-    company_freight = company_freight or {}
+    supplier_freight = supplier_freight or {}
     total_program_cost = 0.0
     for month in plan_data.get("months", []):
         monthly_total = 0.0
-        month_companies = set()
+        month_suppliers = set()
         for supp in month.get("supplements", []):
             daily = calculate_daily_dosage(
                 supp.get("quantity_per_dose") or 0,
@@ -54,14 +54,14 @@ def recalculate_plan_costs(plan_data: dict, company_freight: dict = None) -> dic
             supp["bottles_needed"] = bottles
             supp["calculated_cost"] = cost
             monthly_total += cost
-            # Track unique companies for freight
-            company = (supp.get("company") or "").strip()
-            if company:
-                month_companies.add(company)
-        # Add freight per unique company (deduplicated)
+            # Track unique suppliers for freight
+            supplier = (supp.get("supplier") or "").strip()
+            if supplier:
+                month_suppliers.add(supplier)
+        # Add freight per unique supplier (deduplicated)
         freight_total = 0.0
-        for company in month_companies:
-            freight = company_freight.get(company, 0)
+        for supplier in month_suppliers:
+            freight = supplier_freight.get(supplier, 0)
             if freight > 0:
                 freight_total += freight
         month["freight_total"] = round(freight_total, 2)

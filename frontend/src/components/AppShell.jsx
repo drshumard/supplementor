@@ -13,7 +13,7 @@ const navItems = [
   { label: 'New Plan', icon: FilePlus, path: '/plans/new', roles: ['admin', 'hc'] },
   { label: 'Supplements', icon: Pill, path: '/admin/supplements', roles: ['admin'] },
   { label: 'Templates', icon: Layers, path: '/admin/templates', roles: ['admin'] },
-  { label: 'Companies', icon: Building2, path: '/admin/companies', roles: ['admin'] },
+  { label: 'Suppliers', icon: Building2, path: '/admin/suppliers', roles: ['admin'] },
   { label: 'Users', icon: Users, path: '/admin/users', roles: ['admin'] },
 ];
 

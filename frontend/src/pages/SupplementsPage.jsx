@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSupplements, createSupplement, updateSupplement, deleteSupplement, getCompanies } from '../lib/api';
+import { getSupplements, createSupplement, updateSupplement, deleteSupplement, getSuppliers } from '../lib/api';
 import { formatCurrency } from '../lib/utils';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -23,7 +23,7 @@ import { Plus, Search, Pencil, Trash2, Snowflake, Pill } from 'lucide-react';
 import { toast } from 'sonner';
 
 const emptySupp = {
-  supplement_name: '', company: '', units_per_bottle: '', unit_type: 'caps',
+  supplement_name: '', company: '', supplier: '', units_per_bottle: '', unit_type: 'caps',
   default_quantity_per_dose: '', default_frequency_per_day: '', default_dosage_display: '',
   cost_per_bottle: '', default_instructions: '', refrigerate: false, notes: '', bottles_per_month: '', active: true,
 };
@@ -38,14 +38,14 @@ export default function SupplementsPage() {
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
-  const [companyList, setCompanyList] = useState([]);
+  const [supplierList, setSupplierList] = useState([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [suppRes, compRes] = await Promise.all([getSupplements(search, false), getCompanies()]);
+      const [suppRes, compRes] = await Promise.all([getSupplements(search, false), getSuppliers()]);
       setSupplements(suppRes.supplements || []); setTotal(suppRes.total || 0);
-      setCompanyList(compRes.companies || []);
+      setSupplierList(compRes.suppliers || []);
     }
     catch (err) { toast.error('Failed to load supplements'); }
     finally { setLoading(false); }
@@ -57,7 +57,8 @@ export default function SupplementsPage() {
   const openEdit = (supp) => {
     setEditId(supp._id);
     setEditData({
-      supplement_name: supp.supplement_name || '', company: supp.company || '',
+      supplement_name: supp.supplement_name || '', company: supp.company || supp.manufacturer || '',
+      supplier: supp.supplier || '',
       units_per_bottle: supp.units_per_bottle ?? '', unit_type: supp.unit_type || 'caps',
       default_quantity_per_dose: supp.default_quantity_per_dose ?? '',
       default_frequency_per_day: supp.default_frequency_per_day ?? '',
@@ -75,6 +76,8 @@ export default function SupplementsPage() {
     try {
       const payload = {
         ...editData,
+        supplier: editData.supplier === 'none' ? '' : editData.supplier,
+        manufacturer: editData.company,
         units_per_bottle: editData.units_per_bottle ? parseInt(editData.units_per_bottle) : null,
         default_quantity_per_dose: editData.default_quantity_per_dose ? parseInt(editData.default_quantity_per_dose) : null,
         default_frequency_per_day: editData.default_frequency_per_day ? parseInt(editData.default_frequency_per_day) : null,
@@ -194,11 +197,13 @@ export default function SupplementsPage() {
                 <Label className="text-sm font-semibold">Supplement Name *</Label>
                 <Input value={editData.supplement_name} onChange={(e) => setEditData({...editData, supplement_name: e.target.value})} className="h-12" />
               </div>
-              <div className="space-y-2"><Label className="text-sm font-semibold">Company / Brand</Label>
-                <Select value={editData.company} onValueChange={(v) => setEditData({...editData, company: v})}>
-                  <SelectTrigger className="h-12"><SelectValue placeholder="Select company" /></SelectTrigger>
+              <div className="space-y-2"><Label className="text-sm font-semibold">Manufacturer</Label><Input value={editData.company} onChange={(e) => setEditData({...editData, company: e.target.value})} className="h-12" placeholder="e.g. Quicksilver" /></div>
+              <div className="space-y-2"><Label className="text-sm font-semibold">Supplier (for freight)</Label>
+                <Select value={editData.supplier || ''} onValueChange={(v) => setEditData({...editData, supplier: v})}>
+                  <SelectTrigger className="h-12"><SelectValue placeholder="Select supplier" /></SelectTrigger>
                   <SelectContent>
-                    {companyList.map(c => <SelectItem key={c._id} value={c.name}>{c.name}</SelectItem>)}
+                    <SelectItem value="none">No supplier</SelectItem>
+                    {supplierList.map(s => <SelectItem key={s._id} value={s.name}>{s.name} (${s.freight_charge})</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

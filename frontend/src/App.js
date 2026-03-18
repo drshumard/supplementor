@@ -9,7 +9,7 @@ import NewPlanPage from './pages/NewPlanPage';
 import SupplementsPage from './pages/SupplementsPage';
 import TemplatesPage from './pages/TemplatesPage';
 import UsersPage from './pages/UsersPage';
-import CompaniesPage from './pages/CompaniesPage';
+import SuppliersPage from './pages/SuppliersPage';
 import PatientsPage from './pages/PatientsPage';
 import PatientDetailPage from './pages/PatientDetailPage';
 import AppShell from './components/AppShell';
@@ -155,7 +155,7 @@ function AppRoutes() {
           <Route path="/plans/:planId" element={<PlanEditorPage />} />
           <Route path="/admin/supplements" element={<SupplementsPage />} />
           <Route path="/admin/templates" element={<TemplatesPage />} />
-          <Route path="/admin/companies" element={<CompaniesPage />} />
+          <Route path="/admin/suppliers" element={<SuppliersPage />} />
           <Route path="/admin/users" element={<UsersPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
