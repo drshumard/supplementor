@@ -57,29 +57,14 @@ db = client[DB_NAME]
 
 # ─── Clerk Auth Helpers ───────────────────────────────────────────────────────
 
-CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")
-CLERK_PK = os.environ.get("CLERK_PUBLISHABLE_KEY", "")
+CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "sk_test_ZfHaD3ZUzYGeok6kkUWz9M6YRNKbBqEGlrJ8mWLhub")
+CLERK_JWKS_URL = "https://secure-doberman-93.clerk.accounts.dev/.well-known/jwks.json"
 
-# Extract Clerk frontend API domain from publishable key
-# pk_test_xxx -> xxx is base64 of the domain
-import base64
-_pk_parts = CLERK_PK.split("_")
-if len(_pk_parts) >= 3:
-    try:
-        _clerk_domain = base64.b64decode(_pk_parts[-1] + "==").decode().rstrip("$")
-        CLERK_JWKS_URL = f"https://{_clerk_domain}/.well-known/jwks.json"
-    except Exception:
-        CLERK_JWKS_URL = ""
-else:
-    CLERK_JWKS_URL = ""
-
-_jwks_client = PyJWKClient(CLERK_JWKS_URL) if CLERK_JWKS_URL else None
+_jwks_client = PyJWKClient(CLERK_JWKS_URL)
 
 
 def verify_clerk_token(token: str):
     """Verify a Clerk JWT and return the payload."""
-    if not _jwks_client:
-        return None
     try:
         signing_key = _jwks_client.get_signing_key_from_jwt(token)
         payload = pyjwt.decode(
@@ -89,7 +74,8 @@ def verify_clerk_token(token: str):
             options={"verify_aud": False},
         )
         return payload
-    except Exception:
+    except Exception as e:
+        print(f"[Clerk Auth] Token verification failed: {e}")
         return None
 
 

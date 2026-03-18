@@ -37,7 +37,7 @@ function AppUserProvider({ children }) {
 
   useEffect(() => {
     if (!clerkLoaded) return;
-    if (!isSignedIn) {
+    if (!isSignedIn || !clerkUser) {
       setAppUser(null);
       setLoading(false);
       return;
@@ -47,6 +47,11 @@ function AppUserProvider({ children }) {
     const syncUser = async () => {
       try {
         const token = await getToken();
+        if (!token) {
+          console.warn('[Auth] No token from Clerk, retrying in 2s...');
+          setTimeout(syncUser, 2000);
+          return;
+        }
         setAuthToken(token); // Set for all API calls
         const backendUrl = (process.env.REACT_APP_BACKEND_URL || '') + '/api/auth/sync';
         const res = await fetch(backendUrl, {
@@ -64,6 +69,9 @@ function AppUserProvider({ children }) {
         if (res.ok) {
           const data = await res.json();
           setAppUser(data);
+        } else {
+          const err = await res.text();
+          console.error('Sync failed:', res.status, err);
         }
       } catch (err) {
         console.error('Failed to sync user:', err);
