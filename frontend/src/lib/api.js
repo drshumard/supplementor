@@ -1,25 +1,21 @@
 const API_BASE = (process.env.REACT_APP_BACKEND_URL || '') + '/api';
 
-// Token getter - set by App.js after Clerk auth
-let _getTokenFn = null;
-export function setTokenGetter(fn) { _getTokenFn = fn; }
+// Simple token store — set once after Clerk auth, used for all requests
+let _authToken = null;
+export function setAuthToken(token) { _authToken = token; }
 
-async function getHeaders() {
+function getHeaders() {
   const headers = { 'Content-Type': 'application/json' };
-  if (_getTokenFn) {
-    try {
-      const token = await _getTokenFn();
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-    } catch {}
+  if (_authToken) {
+    headers['Authorization'] = `Bearer ${_authToken}`;
   }
   return headers;
 }
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;
-  const headers = await getHeaders();
   const res = await fetch(url, {
-    headers,
+    headers: getHeaders(),
     ...options,
   });
   if (!res.ok) {
@@ -91,20 +87,18 @@ export const reopenPlan = (id) =>
   request(`/plans/${id}/reopen`, { method: 'POST' });
 
 // PDF Export
-export const exportPatientPDF = async (planId) => {
+export const exportPatientPDF = (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/patient`;
-  const headers = {};
-  if (_getTokenFn) { try { const t = await _getTokenFn(); if (t) headers['Authorization'] = `Bearer ${t}`; } catch {} }
+  const headers = _authToken ? { 'Authorization': `Bearer ${_authToken}` } : {};
   return fetch(url, { headers }).then(r => {
     if (!r.ok) throw new Error('Export failed');
     return r.blob();
   });
 };
 
-export const exportHCPDF = async (planId) => {
+export const exportHCPDF = (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/hc`;
-  const headers = {};
-  if (_getTokenFn) { try { const t = await _getTokenFn(); if (t) headers['Authorization'] = `Bearer ${t}`; } catch {} }
+  const headers = _authToken ? { 'Authorization': `Bearer ${_authToken}` } : {};
   return fetch(url, { headers }).then(r => {
     if (!r.ok) throw new Error('Export failed');
     return r.blob();
