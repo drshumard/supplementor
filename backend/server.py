@@ -171,7 +171,9 @@ async def get_user_drive_folder(user: dict) -> str:
         return local_user["drive_folder_id"]
     
     # Create folder named after the user
-    user_name = user.get("name") or (local_user or {}).get("name") or user.get("email", "Unknown User")
+    user_name = user.get("name") or (local_user or {}).get("name") or ""
+    if not user_name:
+        user_name = user.get("email", "").split("@")[0] or "Unknown User"
     service = _get_drive_service()
     folder_id = _find_or_create_folder(service, user_name, DRIVE_ID)
     
@@ -204,13 +206,26 @@ class SyncRequest(PydanticBaseModel):
 @app.post("/api/auth/sync")
 async def sync_user(data: SyncRequest, authorization: str = Header(None)):
     """Sync Clerk user with local DB. Creates local user if first login."""
-    # Verify the Clerk token
     if not authorization:
         raise HTTPException(status_code=401, detail="Not authenticated")
     token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
     payload = verify_clerk_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+    # If name is empty, try fetching from Clerk API
+    user_name = data.name.strip()
+    if not user_name and CLERK_SECRET_KEY:
+        try:
+            headers = {"Authorization": f"Bearer {CLERK_SECRET_KEY}"}
+            resp = requests.get(f"https://api.clerk.com/v1/users/{data.clerk_user_id}", headers=headers)
+            if resp.ok:
+                clerk_data = resp.json()
+                user_name = f"{clerk_data.get('first_name', '')} {clerk_data.get('last_name', '')}".strip()
+        except Exception:
+            pass
+    if not user_name:
+        user_name = data.email.split("@")[0]  # Fallback: use email prefix
     
     # Look up by clerk_user_id first
     local_user = await db.users.find_one({"clerk_user_id": data.clerk_user_id})
@@ -219,26 +234,30 @@ async def sync_user(data: SyncRequest, authorization: str = Header(None)):
         # Try matching by email (for pre-existing users)
         local_user = await db.users.find_one({"email": data.email.lower()})
         if local_user:
-            # Link existing user to Clerk
+            # Link existing user to Clerk + update name if we have one
             await db.users.update_one(
                 {"_id": local_user["_id"]},
-                {"$set": {"clerk_user_id": data.clerk_user_id, "name": data.name or local_user.get("name", ""), "updated_at": datetime.utcnow()}}
+                {"$set": {"clerk_user_id": data.clerk_user_id, "name": user_name or local_user.get("name", ""), "updated_at": datetime.utcnow()}}
             )
             local_user = await db.users.find_one({"_id": local_user["_id"]})
         else:
-            # First-time user — check if this is the very first user (make admin)
+            # First-time user
             user_count = await db.users.count_documents({})
             role = "admin" if user_count == 0 else "hc"
             doc = {
                 "clerk_user_id": data.clerk_user_id,
                 "email": data.email.lower(),
-                "name": data.name,
+                "name": user_name,
                 "role": role,
                 "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow(),
             }
             result = await db.users.insert_one(doc)
             local_user = await db.users.find_one({"_id": result.inserted_id})
+    elif not local_user.get("name") and user_name:
+        # Existing user with empty name — backfill it
+        await db.users.update_one({"_id": local_user["_id"]}, {"$set": {"name": user_name, "updated_at": datetime.utcnow()}})
+        local_user["name"] = user_name
     
     safe = serialize_doc(local_user)
     safe.pop("password_hash", None)
