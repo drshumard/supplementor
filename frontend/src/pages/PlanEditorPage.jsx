@@ -103,13 +103,13 @@ function MonthPage({
       </div>
 
       {/* Column headers */}
-      <div className="grid items-center px-8 py-4 border-b border-border/30 bg-[#FAFAFA] gap-x-4"
+      <div className="grid items-center px-6 py-4 border-b border-border/30 bg-[#FAFAFA] gap-x-3"
         style={{
           gridTemplateColumns: patientView
-            ? '0.8fr 1.6fr 1fr 0.6fr 1.4fr'
+            ? '90px 1fr 120px 60px 1fr'
             : showCosts
-              ? '0.8fr 1.3fr 0.6fr 0.6fr 1fr 0.6fr 1.3fr 0.5fr 0.6fr 0.3fr'
-              : '0.8fr 1.3fr 0.6fr 0.6fr 1fr 0.6fr 1.5fr 0.3fr'
+              ? '90px 1fr 80px 80px 120px 60px 1fr 50px 80px 32px'
+              : '90px 1fr 80px 80px 140px 60px 1fr 32px'
         }}>
         <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Times</span>
         <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568]">Supplement</span>
@@ -119,10 +119,10 @@ function MonthPage({
         </>)}
         <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Dosage</span>
         <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Food</span>
-        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Notes</span>
+        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568]">Notes</span>
         {showCosts && !patientView && (<>
-          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Bottles</span>
-          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Cost</span>
+          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Btls</span>
+          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-right">Cost</span>
         </>)}
         {!isFinalized && !patientView && <span></span>}
       </div>
@@ -136,13 +136,13 @@ function MonthPage({
         ) : (
           (month.supplements || []).map((supp, idx) => (
             <div key={idx}
-              className="grid items-center px-8 py-5 border-b border-border/15 last:border-b-0 hover:bg-[#F0FAFA] transition-colors duration-150 group gap-x-4"
+              className="grid items-center px-6 py-4 border-b border-border/15 last:border-b-0 hover:bg-[#F0FAFA] transition-colors duration-150 group gap-x-3"
               style={{
                 gridTemplateColumns: patientView
-                  ? '0.6fr 1.6fr 1fr 0.6fr 1.6fr'
+                  ? '90px 1fr 120px 60px 1fr'
                   : showCosts
-                    ? '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.4fr 0.5fr 0.6fr 0.3fr'
-                    : '0.6fr 1.4fr 0.6fr 0.6fr 1fr 0.6fr 1.6fr 0.3fr'
+                    ? '90px 1fr 80px 80px 120px 60px 1fr 50px 80px 32px'
+                    : '90px 1fr 80px 80px 140px 60px 1fr 32px'
               }}>
               {/* Time slots — 3 toggle chips */}
               <div className="flex justify-center gap-1">
@@ -210,15 +210,15 @@ function MonthPage({
                 )}
               </div>
               {/* Notes/Instructions */}
-              <div className="flex justify-center">
-                {patientView ? <span className="text-sm text-muted-foreground italic text-center">{supp.instructions || '-'}</span> :
+              <div>
+                {patientView ? <span className="text-sm text-muted-foreground italic">{supp.instructions || '-'}</span> :
                   <Input value={supp.instructions || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.value)}
                     className="h-9 text-xs w-full border-[#C8E6E0] rounded-lg" placeholder="Notes..." disabled={isFinalized} />}
               </div>
               {showCosts && !patientView && (<>
-                <div className="font-mono tabular-nums text-sm font-semibold text-[#2B3437] text-center">{supp.bottles_needed || '-'}</div>
-                <div className="font-mono tabular-nums text-sm font-bold text-[#147D5A] text-center">{formatCurrency(supp.calculated_cost)}</div>
+                <div className="font-mono tabular-nums text-xs font-semibold text-[#2B3437] text-center">{supp.bottles_needed || '-'}</div>
+                <div className="font-mono tabular-nums text-sm font-bold text-[#147D5A] text-right whitespace-nowrap">{formatCurrency(supp.calculated_cost)}</div>
               </>)}
               {!isFinalized && !patientView && (
                 <div className="flex justify-center">
