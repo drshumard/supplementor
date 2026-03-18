@@ -403,6 +403,12 @@ export default function PlanEditorPage() {
           s.frequency_per_day = parsed.freq;
           s.times = freqToTimes(parsed.freq);
         }
+      } else if (field === 'times') {
+        // Time chips toggled → update frequency + dosage text
+        s.frequency_per_day = value.length;
+        if (s.quantity_per_dose) {
+          s.dosage_display = buildDosageText(s.quantity_per_dose, value.length, unit);
+        }
       }
     }
     recalcAndUpdate(np);
