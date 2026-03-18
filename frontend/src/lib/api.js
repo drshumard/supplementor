@@ -1,21 +1,25 @@
 const API_BASE = (process.env.REACT_APP_BACKEND_URL || '') + '/api';
 
-// Token is set by the app after Clerk auth
-let _authToken = null;
-export function setAuthToken(token) { _authToken = token; }
+// Token getter - set by App.js after Clerk auth
+let _getTokenFn = null;
+export function setTokenGetter(fn) { _getTokenFn = fn; }
 
-function getHeaders() {
+async function getHeaders() {
   const headers = { 'Content-Type': 'application/json' };
-  if (_authToken) {
-    headers['Authorization'] = `Bearer ${_authToken}`;
+  if (_getTokenFn) {
+    try {
+      const token = await _getTokenFn();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    } catch {}
   }
   return headers;
 }
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;
+  const headers = await getHeaders();
   const res = await fetch(url, {
-    headers: getHeaders(),
+    headers,
     ...options,
   });
   if (!res.ok) {
@@ -87,18 +91,20 @@ export const reopenPlan = (id) =>
   request(`/plans/${id}/reopen`, { method: 'POST' });
 
 // PDF Export
-export const exportPatientPDF = (planId) => {
+export const exportPatientPDF = async (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/patient`;
-  const headers = _authToken ? { 'Authorization': `Bearer ${_authToken}` } : {};
+  const headers = {};
+  if (_getTokenFn) { try { const t = await _getTokenFn(); if (t) headers['Authorization'] = `Bearer ${t}`; } catch {} }
   return fetch(url, { headers }).then(r => {
     if (!r.ok) throw new Error('Export failed');
     return r.blob();
   });
 };
 
-export const exportHCPDF = (planId) => {
+export const exportHCPDF = async (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/hc`;
-  const headers = _authToken ? { 'Authorization': `Bearer ${_authToken}` } : {};
+  const headers = {};
+  if (_getTokenFn) { try { const t = await _getTokenFn(); if (t) headers['Authorization'] = `Bearer ${t}`; } catch {} }
   return fetch(url, { headers }).then(r => {
     if (!r.ok) throw new Error('Export failed');
     return r.blob();
