@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSuppliers, updateSupplier } from '../lib/api';
+import { getSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -9,17 +9,21 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '../components/ui/dialog';
-import { Pencil, Truck } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../components/ui/alert-dialog';
+import { Plus, Pencil, Trash2, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
-  const [editData, setEditData] = useState({ freight_charge: '', notes: '' });
+  const [editData, setEditData] = useState({ name: '', freight_charge: '', notes: '' });
   const [editId, setEditId] = useState(null);
-  const [editName, setEditName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -30,31 +34,47 @@ export default function SuppliersPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const openAdd = () => { setEditId(null); setEditData({ name: '', freight_charge: '', notes: '' }); setEditOpen(true); };
   const openEdit = (s) => {
     setEditId(s._id);
-    setEditName(s.name);
-    setEditData({ freight_charge: s.freight_charge ?? '', notes: s.notes || '' });
+    setEditData({ name: s.name, freight_charge: s.freight_charge ?? '', notes: s.notes || '' });
     setEditOpen(true);
   };
 
   const handleSave = async () => {
+    if (!editData.name.trim()) { toast.error('Supplier name is required'); return; }
     setSaving(true);
     try {
-      await updateSupplier(editId, {
+      const payload = {
+        name: editData.name.trim(),
         freight_charge: editData.freight_charge ? parseFloat(editData.freight_charge) : 0,
         notes: editData.notes,
-      });
-      toast.success('Supplier updated');
+      };
+      if (editId) { await updateSupplier(editId, payload); toast.success('Supplier updated'); }
+      else { await createSupplier(payload); toast.success('Supplier added'); }
       setEditOpen(false); fetchData();
     } catch (err) { toast.error(err.message || 'Save failed'); }
     finally { setSaving(false); }
   };
 
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try { await deleteSupplier(deleteId); toast.success('Supplier deleted'); fetchData(); }
+    catch (err) { toast.error(err.message || 'Delete failed'); }
+    finally { setDeleteId(null); }
+  };
+
   return (
     <div className="p-10 max-w-[1560px] mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-[-0.02em] text-[#0B0D10]">Suppliers</h1>
-        <p className="text-sm text-muted-foreground mt-1">5 suppliers — manage freight/shipping charges per supplier. Charged once per month when any supplement from this supplier is in a plan.</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold tracking-[-0.02em] text-[#0B0D10]">Suppliers</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage suppliers and freight charges. Freight is charged once per supplier per month.</p>
+        </div>
+        <Button onClick={openAdd} className="gap-2.5 h-12 px-7 bg-[#0B0D10] hover:bg-[#1a1d21] text-white font-bold shadow-sm text-sm"
+          data-testid="admin-suppliers-add-button">
+          <Plus size={18} /> Add Supplier
+        </Button>
       </div>
 
       <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="admin-suppliers-table">
@@ -64,7 +84,7 @@ export default function SuppliersPage() {
               <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 px-6">Supplier</TableHead>
               <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[160px]">Freight Charge</TableHead>
               <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Notes</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[80px]"></TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -73,6 +93,11 @@ export default function SuppliersPage() {
                 <div className="flex items-center justify-center gap-3">
                   <div className="w-5 h-5 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin" /> Loading...
                 </div>
+              </TableCell></TableRow>
+            ) : suppliers.length === 0 ? (
+              <TableRow><TableCell colSpan={4} className="h-40 text-center text-muted-foreground">
+                <Truck size={36} strokeWidth={1} className="mx-auto mb-3 text-muted-foreground/40" />
+                <p className="text-sm">No suppliers yet</p>
               </TableCell></TableRow>
             ) : (
               suppliers.map(s => (
@@ -92,8 +117,12 @@ export default function SuppliersPage() {
                   </TableCell>
                   <TableCell className="text-sm text-[#718096] py-5">{s.notes || '-'}</TableCell>
                   <TableCell className="py-5">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-[#EAF4F3] text-[#94A3B8] hover:text-[#0D5F68]"
-                      onClick={() => openEdit(s)}><Pencil size={14} /></Button>
+                    <div className="flex items-center gap-1.5">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-[#EAF4F3] text-[#94A3B8] hover:text-[#0D5F68]"
+                        onClick={() => openEdit(s)}><Pencil size={14} /></Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-[#94A3B8] hover:text-[#C53B3B] hover:bg-red-50"
+                        onClick={() => setDeleteId(s._id)}><Trash2 size={14} /></Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -102,14 +131,21 @@ export default function SuppliersPage() {
         </Table>
       </div>
 
-      {/* Edit Dialog */}
+      {/* Add/Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-[400px] p-7">
           <DialogHeader>
-            <DialogTitle className="text-lg">Edit {editName}</DialogTitle>
-            <DialogDescription className="text-sm mt-1">Update freight charge for this supplier.</DialogDescription>
+            <DialogTitle className="text-lg">{editId ? 'Edit Supplier' : 'Add Supplier'}</DialogTitle>
+            <DialogDescription className="text-sm mt-1">
+              {editId ? 'Update supplier details.' : 'Add a new supplier with freight charge.'}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-5 py-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Supplier Name *</Label>
+              <Input value={editData.name} onChange={(e) => setEditData({...editData, name: e.target.value})}
+                className="h-12" placeholder="e.g. Emerson" />
+            </div>
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Freight Charge ($)</Label>
               <Input type="number" step="0.01" value={editData.freight_charge}
@@ -127,11 +163,25 @@ export default function SuppliersPage() {
             <Button variant="outline" onClick={() => setEditOpen(false)} className="h-11 px-5">Cancel</Button>
             <Button onClick={handleSave} disabled={saving}
               className="h-11 px-6 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold">
-              {saving ? 'Saving...' : 'Update'}
+              {saving ? 'Saving...' : (editId ? 'Update' : 'Add Supplier')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent className="p-7">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg">Delete this supplier?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm mt-2">Supplements using this supplier will keep the name but won't have freight applied.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 gap-3">
+            <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

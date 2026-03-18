@@ -450,7 +450,7 @@ async def delete_patient(patient_id: str, user=Depends(require_admin)):
 async def list_companies(user=Depends(require_auth)):
     cursor = db.suppliers.find({}).sort("name", 1)
     docs = await cursor.to_list(length=200)
-    return {"companies": serialize_doc(docs)}
+    return {"suppliers": serialize_doc(docs)}
 
 
 @app.post("/api/suppliers")
