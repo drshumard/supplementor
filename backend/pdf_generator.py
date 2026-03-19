@@ -53,53 +53,67 @@ def _group_by_time(supplements):
 
 
 def _draw_header(pdf, plan):
-    """Draw logo + program title."""
-    y_start = pdf.get_y()
+    """Draw centered logo, program title, patient name, and date."""
+    # Logo centered
     if os.path.exists(LOGO_PATH):
-        pdf.image(LOGO_PATH, x=pdf.l_margin, y=y_start, w=40)
+        logo_w = 35
+        x = (pdf.w - logo_w) / 2
+        pdf.image(LOGO_PATH, x=x, y=pdf.get_y(), w=logo_w)
+        pdf.ln(22)
 
-    pdf.set_xy(pdf.l_margin + 45, y_start + 2)
-    pdf.set_font("Helvetica", "B", 20)
+    # Program + Step — centered, slightly smaller
+    pdf.set_font("Helvetica", "B", 16)
     pdf.set_text_color(*DARK)
     program = _safe(plan.get("program_name", ""))
     step = _safe(plan.get("step_label", ""))
-    pdf.cell(0, 10, f"{program} - {step}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, f"{program} - {step}", align="C", new_x="LMARGIN", new_y="NEXT")
 
-    pdf.set_xy(pdf.l_margin + 45, y_start + 14)
-    pdf.set_font("Helvetica", "", 11)
+    # Patient name — centered, no label
+    pdf.set_font("Helvetica", "", 12)
+    pdf.set_text_color(*DARK)
+    pdf.cell(0, 7, _safe(plan.get("patient_name", "")), align="C", new_x="LMARGIN", new_y="NEXT")
+
+    # Date — centered, lighter
+    pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(*GRAY)
-    pdf.cell(0, 8, f"Patient: {_safe(plan.get('patient_name', ''))}    Date: {_safe(plan.get('date', ''))}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, _safe(plan.get("date", "")), align="C", new_x="LMARGIN", new_y="NEXT")
 
-    pdf.set_y(y_start + 30)
+    pdf.ln(3)
     pdf.set_draw_color(*LIGHT_GRAY)
     pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-    pdf.ln(6)
+    pdf.ln(5)
 
 
 def _draw_time_table(pdf, time_label, supps, show_costs=False):
-    """Draw a time-grouped table (AM/Afternoon/PM)."""
+    """Draw a time-grouped table with a section header."""
     page_w = pdf.w - pdf.l_margin - pdf.r_margin
 
-    if show_costs:
-        cols = [25, 45, 28, 22, 22, page_w - 142]  # Time, Supplement, Dose, With Food, Btls, Notes
-        headers = ["Time", "Supplement", "Dose", "Food", "Btls", "Notes"]
-    else:
-        cols = [25, 50, 30, 25, page_w - 130]  # Time, Supplement, Dose, With Food, Notes
-        headers = ["Time", "Supplement", "Dose", "Food", "Notes"]
-
-    # Check if we need a page break (header + at least 2 rows)
-    needed = 10 + len(supps) * 8
+    # Check page break
+    needed = 20 + len(supps) * 8
     if pdf.get_y() + needed > pdf.h - 25:
         pdf.add_page()
 
-    # Table header row
+    # Section header — time label
+    pdf.set_fill_color(*TEAL)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_text_color(255, 255, 255)
+    pdf.cell(page_w, 8, f"  {time_label}", fill=True, new_x="LMARGIN", new_y="NEXT")
+
+    # Column headers
+    if show_costs:
+        cols = [55, 30, 22, 22, page_w - 129]
+        headers = ["Supplement", "Dose", "Food", "Btls", "Notes"]
+    else:
+        cols = [60, 35, 25, page_w - 120]
+        headers = ["Supplement", "Dose", "Food", "Notes"]
+
     pdf.set_fill_color(*TEAL_LIGHT)
-    pdf.set_font("Helvetica", "B", 8)
+    pdf.set_font("Helvetica", "B", 7.5)
     pdf.set_text_color(*TEAL)
     x = pdf.l_margin
     for i, h in enumerate(headers):
         pdf.set_xy(x, pdf.get_y())
-        pdf.cell(cols[i], 8, h, border=1, fill=True, new_x="RIGHT")
+        pdf.cell(cols[i], 7, h.upper(), border=0, fill=True, new_x="RIGHT")
         x += cols[i]
     pdf.ln()
 
@@ -107,78 +121,57 @@ def _draw_time_table(pdf, time_label, supps, show_costs=False):
     pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(*DARK)
 
-    for idx, s in enumerate(supps):
-        row_y = pdf.get_y()
-
-        # Page break check
-        if row_y > pdf.h - 25:
+    for s in supps:
+        if pdf.get_y() > pdf.h - 20:
             pdf.add_page()
-            row_y = pdf.get_y()
 
+        row_y = pdf.get_y()
         x = pdf.l_margin
-
-        # Time (only on first row)
-        pdf.set_xy(x, row_y)
-        if idx == 0:
-            pdf.set_font("Helvetica", "B", 9)
-            pdf.cell(cols[0], 8, time_label, border="LBR")
-            pdf.set_font("Helvetica", "", 9)
-        else:
-            pdf.cell(cols[0], 8, "", border="LBR")
-        x += cols[0]
 
         # Supplement name
         pdf.set_xy(x, row_y)
+        pdf.set_font("Helvetica", "B", 8.5)
         name = _safe(s.get("supplement_name", ""))
-        pdf.cell(cols[1], 8, name[:28], border="LBR")
-        x += cols[1]
+        pdf.cell(cols[0], 7, name[:32], border="B", new_x="RIGHT")
+        x += cols[0]
 
         # Dose
         pdf.set_xy(x, row_y)
+        pdf.set_font("Helvetica", "", 8.5)
         dose = _safe(s.get("dosage_display", ""))
-        pdf.cell(cols[2], 8, dose[:18], border="LBR")
-        x += cols[2]
+        pdf.cell(cols[1], 7, dose[:20], border="B", new_x="RIGHT")
+        x += cols[1]
 
         # With Food
         pdf.set_xy(x, row_y)
         food = "Yes" if s.get("with_food", True) else "No"
-        pdf.cell(cols[3], 8, food, border="LBR")
-        x += cols[3]
+        pdf.cell(cols[2], 7, food, border="B", new_x="RIGHT")
+        x += cols[2]
 
         if show_costs:
             # Bottles
             pdf.set_xy(x, row_y)
-            btls = _safe(s.get("bottles_needed", "-"))
-            pdf.cell(cols[4], 8, str(btls), border="LBR")
-            x += cols[4]
+            btls = s.get("bottles_needed") or "-"
+            pdf.cell(cols[3], 7, str(btls), border="B", new_x="RIGHT")
+            x += cols[3]
 
-        # Notes/Instructions - use multi_cell for wrapping
+        # Notes — wrapping
         pdf.set_xy(x, row_y)
         notes = _safe(s.get("instructions", ""))
         if s.get("refrigerate"):
-            if notes:
-                notes += ". "
-            notes += "Refrigerate"
+            notes = ("Refrigerate. " + notes).strip()
             pdf.set_text_color(*RED)
-        
-        last_col = cols[-1]
-        # Calculate height needed
-        note_lines = max(1, math.ceil(pdf.get_string_width(notes) / (last_col - 2)))
-        cell_h = max(8, note_lines * 5)
-        
-        if cell_h > 8:
-            pdf.multi_cell(last_col, 5, notes, border="LBR", max_line_height=5)
-            # Reset y to match row height
-            end_y = pdf.get_y()
-            if end_y - row_y < 8:
-                pdf.set_y(row_y + 8)
+
+        last_w = cols[-1]
+        note_lines = max(1, len(notes) // 40 + 1) if notes else 1
+        if note_lines > 1:
+            pdf.multi_cell(last_w, 4, notes, border="B", max_line_height=4)
         else:
-            pdf.cell(last_col, 8, notes[:50], border="LBR")
-            pdf.ln()
+            pdf.cell(last_w, 7, notes[:55], border="B", new_x="LMARGIN", new_y="NEXT")
 
         pdf.set_text_color(*DARK)
 
-    pdf.ln(4)
+    pdf.ln(6)
 
 
 def _draw_month_order(pdf, month, plan):
