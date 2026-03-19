@@ -35,10 +35,7 @@ export default function NewPlanPage() {
     getTemplates().then(r => {
       const t = r.templates || [];
       setTemplates(t);
-      console.log(`[NewPlan] Loaded ${t.length} templates, supplements: ${t.map(x => x.supplements?.length || 0).join(',')}`);
-    }).catch(err => {
-      console.error('[NewPlan] Failed to load templates:', err);
-    });
+    }).catch(() => {});
   }, [appUser]);
 
   const selectedTemplate = templates.find(

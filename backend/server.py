@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
+from bson.errors import InvalidId
 import jwt as pyjwt
 from jwt import PyJWKClient
 
@@ -50,6 +51,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(InvalidId)
+async def invalid_objectid_handler(request, exc):
+    return Response(
+        content='{"detail":"Invalid ID format"}',
+        status_code=400,
+        media_type="application/json"
+    )
+
+
 
 
 # ─── Database ────────────────────────────────────────────────────────────────
@@ -833,7 +844,7 @@ class DuplicateRequest(PydanticBaseModel):
     new_patient_phone: Optional[str] = None
 
 @app.post("/api/plans/{plan_id}/duplicate")
-async def duplicate_plan(plan_id: str, body: DuplicateRequest = None, authorization: str = Header(None)):
+async def duplicate_plan(plan_id: str, body: DuplicateRequest = None, user=Depends(require_auth), authorization: str = Header(None)):
     """Duplicate a plan — same patient, existing patient, or new patient."""
     doc = await db.plans.find_one({"_id": ObjectId(plan_id)})
     if not doc:
