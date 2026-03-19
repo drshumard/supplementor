@@ -310,8 +310,9 @@ export default function PlanEditorPage() {
     const load = async () => {
       try {
         const [p, s, c] = await Promise.all([getPlan(planId), getSupplements('', true), getSuppliers()]);
-        // Backfill times array from frequency for existing supplements
+        // Backfill times + supplier from master supplement list for existing plans
         let needsSave = false;
+        const masterSupps = s.supplements || [];
         for (const month of (p.months || [])) {
           for (const supp of (month.supplements || [])) {
             if (!supp.times || supp.times.length === 0) {
@@ -320,6 +321,14 @@ export default function PlanEditorPage() {
               else if (freq === 2) supp.times = ['AM', 'PM'];
               else supp.times = ['AM'];
               needsSave = true;
+            }
+            // Backfill supplier from master list if missing
+            if (!supp.supplier && supp.supplement_id) {
+              const master = masterSupps.find(ms => ms._id === supp.supplement_id);
+              if (master?.supplier) {
+                supp.supplier = master.supplier;
+                needsSave = true;
+              }
             }
           }
         }
@@ -369,6 +378,8 @@ export default function PlanEditorPage() {
     const freq = supp.default_frequency_per_day || 1;
     return {
       supplement_id: supp._id, supplement_name: supp.supplement_name, company: supp.company || '',
+      manufacturer: supp.manufacturer || supp.company || '',
+      supplier: supp.supplier || '',
       quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: freq,
       dosage_display: supp.default_dosage_display || '', instructions: supp.default_instructions || '',
       with_food: supp.default_instructions?.toLowerCase().includes('food') || true,
