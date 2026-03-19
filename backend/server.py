@@ -1029,12 +1029,12 @@ async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
         
         # Generate and upload patient PDF
         patient_pdf = bytes(generate_patient_pdf(plan))
-        patient_filename = f"{patient_name} - {program} {step} (Patient).pdf"
+        patient_filename = f"Patient - {patient_name} - {program} {step}.pdf"
         patient_result = upload_pdf_to_folder(folder_id, patient_filename, patient_pdf)
         
         # Generate and upload HC PDF
         hc_pdf = bytes(generate_hc_pdf(plan))
-        hc_filename = f"{patient_name} - {program} {step} (HC).pdf"
+        hc_filename = f"HC - {patient_name} - {program} {step}.pdf"
         hc_result = upload_pdf_to_folder(folder_id, hc_filename, hc_pdf)
         
         return {
@@ -1092,13 +1092,13 @@ async def save_all_plans_to_drive(patient_id: str, user=Depends(require_auth)):
             
             # Patient PDF
             patient_pdf = bytes(generate_patient_pdf(plan))
-            patient_filename = f"{patient_name} - {program} {step} (Patient).pdf"
+            patient_filename = f"Patient - {patient_name} - {program} {step}.pdf"
             p_result = upload_pdf_to_folder(folder_id, patient_filename, patient_pdf)
             uploaded.append(p_result)
             
             # HC PDF
             hc_pdf = bytes(generate_hc_pdf(plan))
-            hc_filename = f"{patient_name} - {program} {step} (HC).pdf"
+            hc_filename = f"HC - {patient_name} - {program} {step}.pdf"
             h_result = upload_pdf_to_folder(folder_id, hc_filename, hc_pdf)
             uploaded.append(h_result)
         
