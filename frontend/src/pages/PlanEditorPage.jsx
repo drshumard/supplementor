@@ -306,6 +306,17 @@ export default function PlanEditorPage() {
     const load = async () => {
       try {
         const [p, s, c] = await Promise.all([getPlan(planId), getSupplements('', true), getSuppliers()]);
+        // Backfill times array from frequency for existing supplements
+        for (const month of (p.months || [])) {
+          for (const supp of (month.supplements || [])) {
+            if (!supp.times || supp.times.length === 0) {
+              const freq = supp.frequency_per_day || 1;
+              if (freq >= 3) supp.times = ['AM', 'Afternoon', 'PM'];
+              else if (freq === 2) supp.times = ['AM', 'PM'];
+              else supp.times = ['AM'];
+            }
+          }
+        }
         setPlan(p); setSupplements(s.supplements || []);
         const freightMap = {};
         for (const co of (c.suppliers || [])) { if (co.freight_charge > 0) freightMap[co.name] = co.freight_charge; }

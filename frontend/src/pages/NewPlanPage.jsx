@@ -89,7 +89,7 @@ export default function NewPlanPage() {
             dosage_display: s.dosage_display || '',
             instructions: s.instructions || '',
             with_food: true,
-            times: ['AM'],
+            times: (s.frequency_per_day || 1) >= 3 ? ['AM', 'Afternoon', 'PM'] : (s.frequency_per_day || 1) === 2 ? ['AM', 'PM'] : ['AM'],
             hc_notes: '',
             units_per_bottle: s.units_per_bottle || null,
             cost_per_bottle: s.cost_per_bottle || 0,
