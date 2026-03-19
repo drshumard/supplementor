@@ -4,6 +4,7 @@ Layout matches clinic protocol style: Time groupings, With Food, Notes, Month Or
 """
 import os
 import math
+import re
 from fpdf import FPDF
 
 LOGO_PATH = os.path.join(os.path.dirname(__file__), "logo.png")
@@ -135,11 +136,34 @@ def _draw_time_table(pdf, time_label, supps, show_costs=False):
         pdf.cell(cols[0], 7, name[:32], border="B", new_x="RIGHT")
         x += cols[0]
 
-        # Dose
+        # Dose — show per-time quantity only, not the full "2 caps 2x/day"
         pdf.set_xy(x, row_y)
         pdf.set_font("Helvetica", "", 8.5)
-        dose = _safe(s.get("dosage_display", ""))
-        pdf.cell(cols[1], 7, dose[:20], border="B", new_x="RIGHT")
+        qty = s.get("quantity_per_dose") or 0
+        unit_type = s.get("unit_type") or "caps"
+        if not unit_type:
+            # Try to extract unit from dosage_display
+            dd = _safe(s.get("dosage_display", ""))
+            for u in ["caps", "cap", "pumps", "pump", "scoop", "scoops", "ml", "tablet", "packet", "drop", "lozenge"]:
+                if u in dd.lower():
+                    unit_type = u
+                    break
+            else:
+                unit_type = "caps"
+        if qty > 0:
+            unit_label = unit_type
+            if qty == 1:
+                unit_label = unit_type.rstrip("s")  # caps -> cap
+            elif not unit_type.endswith("s") and unit_type not in ("ml", "g"):
+                unit_label = unit_type + "s"  # pump -> pumps
+            dose_text = f"{qty} {unit_label}"
+        else:
+            # Fallback: try to extract just the quantity part from dosage_display
+            dose_text = _safe(s.get("dosage_display", ""))
+            # Strip frequency part like "2x/day", "3x/day", "per day"
+            dose_text = re.sub(r'\s*\d*x\s*/?\s*day.*', '', dose_text, flags=re.IGNORECASE)
+            dose_text = re.sub(r'\s*per\s*day.*', '', dose_text, flags=re.IGNORECASE)
+        pdf.cell(cols[1], 7, dose_text[:20], border="B", new_x="RIGHT")
         x += cols[1]
 
         # With Food
