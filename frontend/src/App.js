@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { SignIn, useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { SignIn, useUser, useAuth as useClerkAuth } from '@clerk/react';
 import { Toaster } from 'sonner';
 import { setAuthToken } from './lib/api';
 import DashboardPage from './pages/DashboardPage';
