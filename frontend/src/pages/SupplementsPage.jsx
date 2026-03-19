@@ -132,19 +132,18 @@ export default function SupplementsPage() {
             <TableRow className="bg-[#0D5F68] hover:bg-[#0D5F68] rounded-t-xl">
               <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 px-6">Name</TableHead>
               <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Brand</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Size</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Dosage</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 text-right">Price</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Status</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[100px]">Size</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[180px]">Dosage</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[100px] text-right">Price</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+              <TableRow><TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
                 <div className="flex items-center justify-center gap-3"><div className="w-5 h-5 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin" /> Loading...</div>
               </TableCell></TableRow>
             ) : supplements.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="h-40 text-center text-muted-foreground text-base">No supplements found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="h-40 text-center text-muted-foreground text-base">No supplements found</TableCell></TableRow>
             ) : (
               supplements.map(supp => (
                 <TableRow key={supp._id} className="hover:bg-[#F0FAFA] cursor-pointer transition-colors duration-150" onClick={() => openEdit(supp)}>
@@ -157,13 +156,7 @@ export default function SupplementsPage() {
                   <TableCell className="text-sm text-[#718096] py-4">{supp.company || supp.manufacturer}</TableCell>
                   <TableCell className="font-mono tabular-nums text-sm py-4">{supp.units_per_bottle || '-'} {supp.unit_type}</TableCell>
                   <TableCell className="text-sm py-4">{supp.default_dosage_display || '-'}</TableCell>
-                  <TableCell className="text-right font-mono tabular-nums text-sm font-bold text-[#147D5A] py-4">{formatCurrency(supp.cost_per_bottle)}</TableCell>
-                  <TableCell className="py-4">
-                    <Badge className={`px-2.5 py-1 text-[10px] font-bold rounded-md ${
-                      supp.active !== false ? 'bg-[#0D5F68] text-white hover:bg-[#0D5F68]' : 'bg-gray-200 text-gray-600 hover:bg-gray-200'}`}>
-                      {supp.active !== false ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
+                  <TableCell className="text-right font-mono tabular-nums text-sm font-bold text-[#147D5A] py-4 w-[100px]">{formatCurrency(supp.cost_per_bottle)}</TableCell>
                 </TableRow>
               ))
             )}

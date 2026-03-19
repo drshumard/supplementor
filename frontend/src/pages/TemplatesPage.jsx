@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getTemplates, updateTemplate, getSupplements } from '../lib/api';
+import { getTemplates, updateTemplate, createTemplate, deleteTemplate, getSupplements } from '../lib/api';
 import { formatCurrency } from '../lib/utils';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -19,6 +19,13 @@ import {
 } from '../components/ui/popover';
 import { Plus, Trash2, Save, ChevronsUpDown, Layers } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '../components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 
 const PROGRAMS = ['Detox 1', 'Detox 2', 'Maintenance'];
 
@@ -33,6 +40,9 @@ export default function TemplatesPage() {
   const [saving, setSaving] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({ program_name: '', step_number: 1, default_months: 1 });
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const fetchData = useCallback(async () => {
     try { const [tRes, sRes] = await Promise.all([getTemplates(), getSupplements('', true)]); setTemplates(tRes.templates || []); setSupplements(sRes.supplements || []); }
@@ -63,6 +73,28 @@ export default function TemplatesPage() {
     finally { setSaving(false); }
   };
 
+  const handleCreate = async () => {
+    if (!newTemplate.program_name.trim()) { toast.error('Program name is required'); return; }
+    try {
+      await createTemplate(newTemplate);
+      toast.success('Template created');
+      setAddOpen(false);
+      setNewTemplate({ program_name: '', step_number: 1, default_months: 1 });
+      fetchData();
+    } catch (err) { toast.error(err.message || 'Create failed'); }
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!currentTemplate) return;
+    try {
+      await deleteTemplate(currentTemplate._id);
+      toast.success('Template deleted');
+      setConfirmDelete(false);
+      fetchData();
+    } catch (err) { toast.error(err.message || 'Delete failed'); }
+  };
+
+
   const filteredSupps = supplements.filter(s =>
     s.supplement_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.company?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -75,11 +107,23 @@ export default function TemplatesPage() {
           <h1 className="text-2xl font-bold tracking-[-0.02em] text-[#0B0D10]">Protocol Templates</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage default supplement lists for each program and step</p>
         </div>
-        <Button onClick={handleSave} disabled={saving || !currentTemplate}
-          data-testid="admin-templates-save-button"
-          className="gap-2.5 h-12 px-7 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-bold shadow-sm text-sm">
-          <Save size={18} /> {saving ? 'Saving...' : 'Save Template'}
-        </Button>
+        <div className="flex items-center gap-3">
+          {currentTemplate && (
+            <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)}
+              className="gap-2 h-10 px-4 text-sm text-[#C53B3B] hover:bg-red-50">
+              <Trash2 size={15} /> Delete Template
+            </Button>
+          )}
+          <Button onClick={() => setAddOpen(true)}
+            className="gap-2.5 h-12 px-6 bg-[#0B0D10] hover:bg-[#1a1d21] text-white font-bold shadow-sm text-sm">
+            <Plus size={18} /> New Template
+          </Button>
+          <Button onClick={handleSave} disabled={saving || !currentTemplate}
+            data-testid="admin-templates-save-button"
+            className="gap-2.5 h-12 px-7 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-bold shadow-sm text-sm">
+            <Save size={18} /> {saving ? 'Saving...' : 'Save Template'}
+          </Button>
+        </div>
       </div>
 
       {/* Filter bar — warm amber tinted */}
@@ -184,6 +228,55 @@ export default function TemplatesPage() {
           <p className="text-sm text-muted-foreground mt-1">Select a program and step above</p>
         </div>
       )}
+
+      {/* Create Template Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-[400px] p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">New Protocol Template</DialogTitle>
+            <DialogDescription className="text-xs">Create a new template, then add supplements to it.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Program Name *</Label>
+              <Input value={newTemplate.program_name} onChange={(e) => setNewTemplate({...newTemplate, program_name: e.target.value})}
+                className="h-9 text-sm" placeholder="e.g. Detox 1, Maintenance" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Step Number</Label>
+                <Input type="number" min={1} value={newTemplate.step_number}
+                  onChange={(e) => setNewTemplate({...newTemplate, step_number: parseInt(e.target.value) || 1})}
+                  className="h-9 text-sm font-mono" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Default Months</Label>
+                <Input type="number" min={0.5} step={0.5} value={newTemplate.default_months}
+                  onChange={(e) => setNewTemplate({...newTemplate, default_months: parseFloat(e.target.value) || 1})}
+                  className="h-9 text-sm font-mono" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-3 pt-3 border-t">
+            <Button variant="outline" onClick={() => setAddOpen(false)} className="h-9 px-4 text-sm">Cancel</Button>
+            <Button onClick={handleCreate} className="h-9 px-5 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold text-sm">Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Template Confirm */}
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent className="p-7">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg">Delete this template?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm mt-2">This will delete "{currentTemplate?.program_name} Step {currentTemplate?.step_number}" and all its supplements.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 gap-3">
+            <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTemplate} className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

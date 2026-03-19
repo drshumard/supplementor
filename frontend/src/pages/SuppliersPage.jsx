@@ -83,25 +83,24 @@ export default function SuppliersPage() {
             <TableRow className="bg-[#0D5F68] hover:bg-[#0D5F68] rounded-t-xl">
               <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 px-6">Supplier</TableHead>
               <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[160px]">Freight Charge</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Notes</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[100px]"></TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={4} className="h-40 text-center text-muted-foreground">
+              <TableRow><TableCell colSpan={2} className="h-40 text-center text-muted-foreground">
                 <div className="flex items-center justify-center gap-3">
                   <div className="w-5 h-5 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin" /> Loading...
                 </div>
               </TableCell></TableRow>
             ) : suppliers.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="h-40 text-center text-muted-foreground">
+              <TableRow><TableCell colSpan={2} className="h-40 text-center text-muted-foreground">
                 <Truck size={36} strokeWidth={1} className="mx-auto mb-3 text-muted-foreground/40" />
                 <p className="text-sm">No suppliers yet</p>
               </TableCell></TableRow>
             ) : (
               suppliers.map(s => (
-                <TableRow key={s._id} className="hover:bg-[#F0FAFA] transition-colors duration-150">
+                <TableRow key={s._id} className="hover:bg-[#F0FAFA] cursor-pointer transition-colors duration-150" onClick={() => openEdit(s)}>
                   <TableCell className="py-5 px-6">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg bg-[#EAF4F3] flex items-center justify-center">
@@ -114,15 +113,6 @@ export default function SuppliersPage() {
                     <span className="font-mono tabular-nums text-base font-bold text-[#147D5A]">
                       ${(s.freight_charge || 0).toFixed(2)}
                     </span>
-                  </TableCell>
-                  <TableCell className="text-sm text-[#718096] py-5">{s.notes || '-'}</TableCell>
-                  <TableCell className="py-5">
-                    <div className="flex items-center gap-1.5">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-[#EAF4F3] text-[#94A3B8] hover:text-[#0D5F68]"
-                        onClick={() => openEdit(s)}><Pencil size={14} /></Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg text-[#94A3B8] hover:text-[#C53B3B] hover:bg-red-50"
-                        onClick={() => setDeleteId(s._id)}><Trash2 size={14} /></Button>
-                    </div>
                   </TableCell>
                 </TableRow>
               ))

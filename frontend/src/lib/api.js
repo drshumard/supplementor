@@ -61,6 +61,13 @@ export const getTemplate = (id) =>
 export const updateTemplate = (id, data) =>
   request(`/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 
+export const createTemplate = (data) =>
+  request('/templates', { method: 'POST', body: JSON.stringify(data) });
+
+export const deleteTemplate = (id) =>
+  request(`/templates/${id}`, { method: 'DELETE' });
+
+
 // Plans
 export const getPlans = (search = '', program = '', status = '') =>
   request(`/plans?search=${encodeURIComponent(search)}&program=${encodeURIComponent(program)}&status=${encodeURIComponent(status)}`);

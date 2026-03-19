@@ -602,6 +602,30 @@ async def list_templates(program_name: str = "", user=Depends(require_auth)):
     return {"templates": serialize_doc(docs)}
 
 
+@app.post("/api/templates")
+async def create_template(data: TemplateCreate, user=Depends(require_admin)):
+    doc = {
+        "program_name": data.program_name,
+        "step_number": data.step_number,
+        "step_label": f"Step {data.step_number}",
+        "default_months": data.default_months,
+        "supplements": [],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+    result = await db.templates.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return serialize_doc(doc)
+
+@app.delete("/api/templates/{template_id}")
+async def delete_template(template_id: str, user=Depends(require_admin)):
+    result = await db.templates.delete_one({"_id": ObjectId(template_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return {"deleted": True}
+
+
+
 @app.get("/api/templates/{template_id}")
 async def get_template(template_id: str, user=Depends(require_auth)):
     doc = await db.templates.find_one({"_id": ObjectId(template_id)})
