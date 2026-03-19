@@ -35,6 +35,8 @@ def serialize_doc(doc):
 class SupplementCreate(BaseModel):
     supplement_name: str
     company: str = ""
+    manufacturer: str = ""
+    supplier: str = ""
     units_per_bottle: Optional[int] = None
     unit_type: str = "caps"  # caps, ml, scoops, etc.
     default_quantity_per_dose: Optional[int] = None
@@ -51,6 +53,8 @@ class SupplementCreate(BaseModel):
 class SupplementUpdate(BaseModel):
     supplement_name: Optional[str] = None
     company: Optional[str] = None
+    manufacturer: Optional[str] = None
+    supplier: Optional[str] = None
     units_per_bottle: Optional[int] = None
     unit_type: Optional[str] = None
     default_quantity_per_dose: Optional[int] = None
