@@ -82,11 +82,14 @@ export default function NewPlanPage() {
             supplement_id: s.supplement_id || '',
             supplement_name: s.supplement_name,
             company: s.company || '',
+            supplier: s.supplier || '',
+            manufacturer: s.manufacturer || s.company || '',
             quantity_per_dose: s.quantity_per_dose || null,
             frequency_per_day: s.frequency_per_day || null,
             dosage_display: s.dosage_display || '',
             instructions: s.instructions || '',
             with_food: true,
+            times: ['AM'],
             hc_notes: '',
             units_per_bottle: s.units_per_bottle || null,
             cost_per_bottle: s.cost_per_bottle || 0,
@@ -102,7 +105,8 @@ export default function NewPlanPage() {
       toast.success('Plan created');
       navigate(`/plans/${result._id}`);
     } catch (err) {
-      toast.error(err.message || 'Failed to create plan');
+      const msg = typeof err === 'string' ? err : (err?.message || JSON.stringify(err?.detail || 'Failed to create plan'));
+      toast.error(msg);
     } finally {
       setCreating(false);
     }

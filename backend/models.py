@@ -96,9 +96,11 @@ class TemplateUpdate(BaseModel):
 # ─── Plan Models ────────────────────────────────────────────────────────
 
 class PlanSupplementEntry(BaseModel):
-    supplement_id: str
+    supplement_id: str = ""
     supplement_name: str
     company: str = ""
+    manufacturer: str = ""
+    supplier: str = ""
     quantity_per_dose: Optional[int] = None
     frequency_per_day: Optional[int] = None
     dosage_display: str = ""
@@ -116,9 +118,11 @@ class PlanSupplementEntry(BaseModel):
 
 
 class PlanMonth(BaseModel):
-    month_number: int
+    month_number: float
     supplements: list[PlanSupplementEntry] = []
     monthly_total_cost: float = 0.0
+    supplement_cost: float = 0.0
+    freight_total: float = 0.0
 
 
 class PlanCreate(BaseModel):
