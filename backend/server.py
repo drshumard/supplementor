@@ -164,6 +164,22 @@ async def get_company_freight_map() -> dict:
     return freight
 
 
+async def backfill_plan_suppliers(plan: dict) -> dict:
+    """Backfill supplier field on plan supplements from master supplement list."""
+    # Build lookup: supplement_id -> supplier
+    supplier_map = {}
+    async for s in db.supplements.find({}, {"_id": 1, "supplier": 1}):
+        sid = str(s["_id"])
+        if s.get("supplier"):
+            supplier_map[sid] = s["supplier"]
+    
+    for month in plan.get("months", []):
+        for supp in month.get("supplements", []):
+            if not supp.get("supplier") and supp.get("supplement_id"):
+                supp["supplier"] = supplier_map.get(supp["supplement_id"], "")
+    return plan
+
+
 async def get_user_drive_folder(user: dict) -> str:
     """Get the user's Google Drive folder ID. Creates and persists on first use.
     Verifies the folder still exists — recreates if deleted from Drive."""
@@ -790,6 +806,7 @@ async def create_plan(data: PlanCreate, authorization: str = Header(None)):
     
     # Recalculate costs with freight
     freight_map = await get_company_freight_map()
+    doc = await backfill_plan_suppliers(doc)
     doc = recalculate_plan_costs(doc, freight_map)
     
     doc["status"] = "draft"
@@ -823,6 +840,7 @@ async def update_plan(plan_id: str, data: PlanUpdate, user=Depends(require_auth)
     if data.months is not None:
         months_data = [m.model_dump() for m in data.months]
         plan_data = {"months": months_data}
+        plan_data = await backfill_plan_suppliers(plan_data)
         freight_map = await get_company_freight_map()
         plan_data = recalculate_plan_costs(plan_data, freight_map)
         updates["months"] = plan_data["months"]
@@ -969,6 +987,7 @@ async def export_hc_pdf(plan_id: str, user=Depends(require_auth)):
     
     plan = serialize_doc(doc)
     freight_map = await get_company_freight_map()
+    plan = await backfill_plan_suppliers(plan)
     plan = recalculate_plan_costs(plan, freight_map)
     
     # Ensure dosage_display
@@ -1004,6 +1023,7 @@ async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
         raise HTTPException(status_code=404, detail="Plan not found")
     
     plan = serialize_doc(doc)
+    plan = await backfill_plan_suppliers(plan)
     freight_map = await get_company_freight_map()
     plan = recalculate_plan_costs(plan, freight_map)
     
@@ -1075,6 +1095,7 @@ async def save_all_plans_to_drive(patient_id: str, user=Depends(require_auth)):
         
         for doc in plans:
             plan = serialize_doc(doc)
+            plan = await backfill_plan_suppliers(plan)
             plan = recalculate_plan_costs(plan, freight_map)
             
             # Ensure dosage_display
