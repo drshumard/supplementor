@@ -165,21 +165,31 @@ async def get_company_freight_map() -> dict:
 
 
 async def get_user_drive_folder(user: dict) -> str:
-    """Get the user's Google Drive folder ID. Creates and persists on first use."""
+    """Get the user's Google Drive folder ID. Creates and persists on first use.
+    Verifies the folder still exists — recreates if deleted from Drive."""
     from google_drive import _get_drive_service, _find_or_create_folder, DRIVE_ID
     
     user_id = user.get("sub")
     if not user_id:
         raise HTTPException(status_code=400, detail="User ID not found")
     
-    # Check if user already has a drive folder stored
     local_user = await db.users.find_one({"_id": ObjectId(user_id)})
     if not local_user:
-        # Try by clerk_user_id
         local_user = await db.users.find_one({"clerk_user_id": user.get("clerk_user_id")})
     
-    if local_user and local_user.get("drive_folder_id"):
-        return local_user["drive_folder_id"]
+    cached_id = (local_user or {}).get("drive_folder_id")
+    
+    if cached_id:
+        # Verify folder still exists on Drive
+        try:
+            service = _get_drive_service()
+            f = service.files().get(fileId=cached_id, supportsAllDrives=True, fields="id,trashed").execute()
+            if not f.get("trashed"):
+                return cached_id
+        except Exception:
+            pass
+        # Folder was deleted or inaccessible — clear cache and recreate
+        print(f"[Drive] Cached folder {cached_id} no longer exists, recreating...")
     
     # Create folder named after the user
     user_name = user.get("name") or (local_user or {}).get("name") or ""
