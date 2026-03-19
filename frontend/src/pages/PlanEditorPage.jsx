@@ -86,7 +86,11 @@ function MonthPage({
             <Calendar size={18} className="text-white" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">{month.month_number === 0.5 ? '2 Weeks' : `Month ${month.month_number}`}</h3>
+            <h3 className="text-base font-bold text-white">{
+              month.month_number === 0.5 ? '2 Weeks' :
+              month.month_number % 1 !== 0 ? `Month ${Math.floor(month.month_number)} + 2 Weeks` :
+              `Month ${month.month_number}`
+            }</h3>
             <p className="text-xs text-white/60 mt-0.5">
               {(month.supplements || []).length} supplement{(month.supplements || []).length !== 1 ? 's' : ''}
             </p>
@@ -485,6 +489,13 @@ export default function PlanEditorPage() {
     np.months = [...(np.months || []), { month_number: num, supplements: (last?.supplements || []).map(s => ({ ...s })), monthly_total_cost: 0 }];
     recalcAndUpdate(np);
   };
+  const addTwoWeeks = () => {
+    if (!plan || isFinalized) return;
+    const np = { ...plan }; const last = np.months?.[np.months.length - 1];
+    const num = (last?.month_number || 0) + 0.5;
+    np.months = [...(np.months || []), { month_number: num, supplements: (last?.supplements || []).map(s => ({ ...s })), monthly_total_cost: 0 }];
+    recalcAndUpdate(np);
+  };
   const removeMonth = (monthNum) => {
     if (!plan || isFinalized || (plan.months?.length || 0) <= 1) return;
     const np = { ...plan }; np.months = (np.months || []).filter(m => m.month_number !== monthNum);
@@ -595,6 +606,9 @@ export default function PlanEditorPage() {
               <Button variant="outline" size="sm" onClick={addMonth} className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-add-month">
                 <Plus size={14} /> Add Month
               </Button>
+              <Button variant="outline" size="sm" onClick={addTwoWeeks} className="gap-2 h-9 px-4 text-xs font-semibold">
+                <Plus size={14} /> Add 2 Weeks
+              </Button>
               {(plan.months?.length || 0) > 1 && (
                 <Button variant="ghost" size="sm" onClick={() => removeMonth(plan.months[plan.months.length - 1].month_number)}
                   className="gap-2 h-9 px-4 text-xs font-medium text-[#C53B3B] hover:text-[#A52E2E] hover:bg-red-50">
@@ -672,18 +686,32 @@ export default function PlanEditorPage() {
           <div className="w-[340px] shrink-0">
             <div className="sticky top-10">
               <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated p-7" data-testid="plan-editor-cost-summary">
-                <h3 className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] mb-6">Cost Summary</h3>
-                <div className="space-y-4">
+                <h3 className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] mb-5">Cost Summary</h3>
+                <div className="space-y-3">
                   {(plan.months || []).map(month => (
-                    <div key={month.month_number} className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground font-medium">Month {month.month_number}</span>
-                      <span className="font-mono tabular-nums text-sm font-bold">{formatCurrency(month.monthly_total_cost)}</span>
+                    <div key={month.month_number}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-[#0B0D10] font-medium">
+                          {month.month_number === 0.5 ? '2 Weeks' : month.month_number % 1 !== 0 ? `Month ${Math.floor(month.month_number)}+2W` : `Month ${month.month_number}`}
+                        </span>
+                        <span className="font-mono tabular-nums text-sm font-bold">{formatCurrency(month.monthly_total_cost)}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <span className="text-[11px] text-[#94A3B8]">Supplements</span>
+                        <span className="font-mono tabular-nums text-[11px] text-[#94A3B8]">{formatCurrency(month.supplement_cost || month.monthly_total_cost)}</span>
+                      </div>
+                      {(month.freight_total || 0) > 0 && (
+                        <div className="flex items-center justify-between mt-0.5">
+                          <span className="text-[11px] text-[#94A3B8]">Shipping</span>
+                          <span className="font-mono tabular-nums text-[11px] text-[#94A3B8]">{formatCurrency(month.freight_total)}</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                   <Separator />
-                  <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center justify-between pt-1">
                     <span className="text-sm font-bold text-[#0B0D10]">Program Total</span>
-                    <span className="font-mono tabular-nums text-2xl font-bold text-[#147D5A]" data-testid="cost-summary-total-value">
+                    <span className="font-mono tabular-nums text-xl font-bold text-[#147D5A]" data-testid="cost-summary-total-value">
                       {formatCurrency(plan.total_program_cost || 0)}
                     </span>
                   </div>
