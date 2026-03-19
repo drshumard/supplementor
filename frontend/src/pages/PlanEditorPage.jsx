@@ -323,8 +323,12 @@ export default function PlanEditorPage() {
               needsSave = true;
             }
             // Backfill supplier from master list if missing
-            if (!supp.supplier && supp.supplement_id) {
-              const master = masterSupps.find(ms => ms._id === supp.supplement_id);
+            if (!supp.supplier) {
+              // Try by ID first, then by name
+              let master = supp.supplement_id ? masterSupps.find(ms => ms._id === supp.supplement_id) : null;
+              if (!master) {
+                master = masterSupps.find(ms => ms.supplement_name?.toLowerCase() === supp.supplement_name?.toLowerCase());
+              }
               if (master?.supplier) {
                 supp.supplier = master.supplier;
                 needsSave = true;

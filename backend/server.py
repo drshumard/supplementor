@@ -165,18 +165,29 @@ async def get_company_freight_map() -> dict:
 
 
 async def backfill_plan_suppliers(plan: dict) -> dict:
-    """Backfill supplier field on plan supplements from master supplement list."""
-    # Build lookup: supplement_id -> supplier
-    supplier_map = {}
-    async for s in db.supplements.find({}, {"_id": 1, "supplier": 1}):
-        sid = str(s["_id"])
-        if s.get("supplier"):
-            supplier_map[sid] = s["supplier"]
+    """Backfill supplier field on plan supplements from master supplement list.
+    Matches by supplement_id first, then by supplement_name as fallback."""
+    # Build lookups
+    id_map = {}
+    name_map = {}
+    async for s in db.supplements.find({}, {"_id": 1, "supplement_name": 1, "supplier": 1}):
+        supplier = s.get("supplier", "")
+        if supplier:
+            id_map[str(s["_id"])] = supplier
+            name_map[s.get("supplement_name", "").lower()] = supplier
     
     for month in plan.get("months", []):
         for supp in month.get("supplements", []):
-            if not supp.get("supplier") and supp.get("supplement_id"):
-                supp["supplier"] = supplier_map.get(supp["supplement_id"], "")
+            if not supp.get("supplier"):
+                # Try by ID first
+                sid = supp.get("supplement_id", "")
+                if sid and sid in id_map:
+                    supp["supplier"] = id_map[sid]
+                else:
+                    # Fallback: match by name
+                    name = (supp.get("supplement_name") or "").lower()
+                    if name and name in name_map:
+                        supp["supplier"] = name_map[name]
     return plan
 
 
