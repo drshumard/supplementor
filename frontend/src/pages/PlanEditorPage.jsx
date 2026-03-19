@@ -86,7 +86,7 @@ function MonthPage({
             <Calendar size={18} className="text-white" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">Month {month.month_number}</h3>
+            <h3 className="text-base font-bold text-white">{month.month_number === 0.5 ? '2 Weeks' : `Month ${month.month_number}`}</h3>
             <p className="text-xs text-white/60 mt-0.5">
               {(month.supplements || []).length} supplement{(month.supplements || []).length !== 1 ? 's' : ''}
             </p>
@@ -470,7 +470,7 @@ export default function PlanEditorPage() {
   const addMonth = () => {
     if (!plan || isFinalized) return;
     const np = { ...plan }; const last = np.months?.[np.months.length - 1];
-    const num = (last?.month_number || 0) + 1;
+    const num = Math.ceil(last?.month_number || 0) + 1;
     np.months = [...(np.months || []), { month_number: num, supplements: (last?.supplements || []).map(s => ({ ...s })), monthly_total_cost: 0 }];
     recalcAndUpdate(np);
   };
