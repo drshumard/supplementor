@@ -42,14 +42,24 @@ def _safe(val):
 
 
 def _group_by_time(supplements):
-    """Group supplements by time slots. A supplement with times: ["AM", "PM"] appears in both."""
+    """Group supplements by time slots. A supplement with times: ["AM", "PM"] appears in both.
+    Backfills times from frequency_per_day if times is missing."""
     groups = {t: [] for t in TIME_ORDER}
     for s in supplements:
-        times = s.get("times") or [s.get("time_of_day", "AM") or "AM"]
+        times = s.get("times")
+        if not times or len(times) == 0:
+            # Backfill from frequency
+            freq = s.get("frequency_per_day") or 1
+            if freq >= 3:
+                times = ["AM", "Afternoon", "PM"]
+            elif freq == 2:
+                times = ["AM", "PM"]
+            else:
+                times = ["AM"]
+            s["times"] = times
         for t in times:
             if t in groups:
                 groups[t].append(s)
-    # Return only non-empty groups in order
     return [(t, supps) for t in TIME_ORDER if (supps := groups.get(t, [])) and len(supps) > 0]
 
 

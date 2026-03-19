@@ -311,6 +311,7 @@ export default function PlanEditorPage() {
       try {
         const [p, s, c] = await Promise.all([getPlan(planId), getSupplements('', true), getSuppliers()]);
         // Backfill times array from frequency for existing supplements
+        let needsSave = false;
         for (const month of (p.months || [])) {
           for (const supp of (month.supplements || [])) {
             if (!supp.times || supp.times.length === 0) {
@@ -318,6 +319,7 @@ export default function PlanEditorPage() {
               if (freq >= 3) supp.times = ['AM', 'Afternoon', 'PM'];
               else if (freq === 2) supp.times = ['AM', 'PM'];
               else supp.times = ['AM'];
+              needsSave = true;
             }
           }
         }
@@ -325,6 +327,12 @@ export default function PlanEditorPage() {
         const freightMap = {};
         for (const co of (c.suppliers || [])) { if (co.freight_charge > 0) freightMap[co.name] = co.freight_charge; }
         setCompanyFreight(freightMap);
+        // Auto-save if we backfilled times
+        if (needsSave && p.status !== 'finalized') {
+          try {
+            await updatePlan(planId, { patient_name: p.patient_name, date: p.date, months: p.months });
+          } catch {}
+        }
       } catch (err) { toast.error('Failed to load plan'); navigate(-1); }
       finally { setLoading(false); }
     };
