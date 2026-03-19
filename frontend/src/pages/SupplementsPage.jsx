@@ -130,11 +130,11 @@ export default function SupplementsPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-[#0D5F68] hover:bg-[#0D5F68] rounded-t-xl">
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 px-6">Name</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Brand</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[100px]">Size</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[180px]">Dosage</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[100px] text-right">Price</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 px-6 w-[30%]">Name</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[15%]">Brand</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[12%]">Size</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[22%]">Dosage</TableHead>
+              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[10%] text-center">Price</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -156,7 +156,7 @@ export default function SupplementsPage() {
                   <TableCell className="text-sm text-[#718096] py-4">{supp.company || supp.manufacturer}</TableCell>
                   <TableCell className="font-mono tabular-nums text-sm py-4">{supp.units_per_bottle || '-'} {supp.unit_type}</TableCell>
                   <TableCell className="text-sm py-4">{supp.default_dosage_display || '-'}</TableCell>
-                  <TableCell className="text-right font-mono tabular-nums text-sm font-bold text-[#147D5A] py-4 w-[100px]">{formatCurrency(supp.cost_per_bottle)}</TableCell>
+                  <TableCell className="text-center font-mono tabular-nums text-sm font-bold text-[#147D5A] py-4 w-[10%]">{formatCurrency(supp.cost_per_bottle)}</TableCell>
                 </TableRow>
               ))
             )}

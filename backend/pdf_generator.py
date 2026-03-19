@@ -41,6 +41,17 @@ def _safe(val):
     return str(val)
 
 
+def _month_label(num):
+    """Format month number: 0.5 -> 'Month 1 (2 Weeks)', 1.0 -> 'Month 1', 1.5 -> 'Month 1 + 2 Weeks'."""
+    if num == 0.5:
+        return "Month 1 (2 Weeks)"
+    if isinstance(num, float) and num == int(num):
+        return f"Month {int(num)}"
+    if isinstance(num, float) and num % 1 != 0:
+        return f"Month {int(num)} + 2 Weeks"
+    return f"Month {num}"
+
+
 def _group_by_time(supplements):
     """Group supplements by time slots. A supplement with times: ["AM", "PM"] appears in both.
     Backfills times from frequency_per_day if times is missing."""
@@ -221,7 +232,7 @@ def _draw_month_order(pdf, month, plan):
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(*DARK)
-    pdf.cell(0, 8, f"Month {month.get('month_number', 1)} Order", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, f"{_month_label(month.get('month_number', 1))} Order", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(2)
 
     page_w = pdf.w - pdf.l_margin - pdf.r_margin
@@ -322,7 +333,7 @@ def generate_patient_pdf(plan_data: dict) -> bytes:
         # Month label
         pdf.set_font("Helvetica", "B", 12)
         pdf.set_text_color(*DARK)
-        pdf.cell(40, 8, f"Month {month.get('month_number', 1)}")
+        pdf.cell(40, 8, _month_label(month.get('month_number', 1)))
         pdf.set_font("Helvetica", "I", 9)
         pdf.set_text_color(*RED)
         pdf.cell(0, 8, "*Keep 2 hours from all medications", new_x="LMARGIN", new_y="NEXT")
@@ -351,7 +362,7 @@ def generate_hc_pdf(plan_data: dict) -> bytes:
 
         pdf.set_font("Helvetica", "B", 12)
         pdf.set_text_color(*DARK)
-        pdf.cell(40, 8, f"Month {month.get('month_number', 1)}")
+        pdf.cell(40, 8, _month_label(month.get('month_number', 1)))
         pdf.set_font("Helvetica", "I", 9)
         pdf.set_text_color(*RED)
         pdf.cell(0, 8, "HC INTERNAL VIEW", new_x="LMARGIN", new_y="NEXT")

@@ -125,7 +125,15 @@ export default function SuppliersPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-[400px] p-7">
           <DialogHeader>
-            <DialogTitle className="text-lg">{editId ? 'Edit Supplier' : 'Add Supplier'}</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-lg">{editId ? 'Edit Supplier' : 'Add Supplier'}</DialogTitle>
+              {editId && (
+                <Button variant="ghost" size="sm" onClick={() => { setEditOpen(false); setDeleteId(editId); }}
+                  className="h-8 px-3 text-xs text-[#C53B3B] hover:bg-red-50 hover:text-[#A52E2E] gap-1.5">
+                  <Trash2 size={13} /> Delete
+                </Button>
+              )}
+            </div>
             <DialogDescription className="text-sm mt-1">
               {editId ? 'Update supplier details.' : 'Add a new supplier with freight charge.'}
             </DialogDescription>
