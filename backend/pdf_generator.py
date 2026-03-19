@@ -96,15 +96,16 @@ def _draw_header(pdf, plan):
 
 
 def _draw_time_table(pdf, time_label, supps, show_costs=False):
-    """Draw a time-grouped table with a section header."""
+    """Draw a time-grouped table with section header. Fixed row heights for alignment."""
     page_w = pdf.w - pdf.l_margin - pdf.r_margin
+    ROW_H = 7
 
     # Check page break
-    needed = 20 + len(supps) * 8
+    needed = 20 + len(supps) * 10
     if pdf.get_y() + needed > pdf.h - 25:
         pdf.add_page()
 
-    # Section header — time label
+    # Section header
     pdf.set_fill_color(*TEAL)
     pdf.set_font("Helvetica", "B", 10)
     pdf.set_text_color(255, 255, 255)
@@ -112,100 +113,101 @@ def _draw_time_table(pdf, time_label, supps, show_costs=False):
 
     # Column headers
     if show_costs:
-        cols = [55, 30, 22, 22, page_w - 129]
-        headers = ["Supplement", "Dose", "Food", "Btls", "Notes"]
+        cols = [48, 24, 18, 16, 24, page_w - 130]
+        headers = ["Supplement", "Dose", "Food", "Btls", "Cost", "Notes"]
     else:
-        cols = [60, 35, 25, page_w - 120]
+        cols = [55, 28, 22, page_w - 105]
         headers = ["Supplement", "Dose", "Food", "Notes"]
 
     pdf.set_fill_color(*TEAL_LIGHT)
-    pdf.set_font("Helvetica", "B", 7.5)
+    pdf.set_font("Helvetica", "B", 7)
     pdf.set_text_color(*TEAL)
-    x = pdf.l_margin
     for i, h in enumerate(headers):
-        pdf.set_xy(x, pdf.get_y())
-        pdf.cell(cols[i], 7, h.upper(), border=0, fill=True, new_x="RIGHT")
-        x += cols[i]
+        pdf.cell(cols[i], 6, f" {h.upper()}", fill=True, new_x="RIGHT")
     pdf.ln()
 
     # Data rows
-    pdf.set_font("Helvetica", "", 9)
-    pdf.set_text_color(*DARK)
-
     for s in supps:
-        if pdf.get_y() > pdf.h - 20:
+        if pdf.get_y() > pdf.h - 18:
             pdf.add_page()
+
+        # Build notes text
+        notes = _safe(s.get("instructions", ""))
+        if s.get("refrigerate"):
+            notes = ("Refrigerate. " + notes).strip() if notes else "Refrigerate"
+
+        # Calculate row height based on notes wrapping
+        pdf.set_font("Helvetica", "", 7.5)
+        notes_w = cols[-1] - 2
+        note_width = pdf.get_string_width(notes) if notes else 0
+        note_lines = max(1, math.ceil(note_width / notes_w)) if notes_w > 0 else 1
+        row_h = max(ROW_H, note_lines * 4.5 + 2)
 
         row_y = pdf.get_y()
         x = pdf.l_margin
 
         # Supplement name
         pdf.set_xy(x, row_y)
-        pdf.set_font("Helvetica", "B", 8.5)
-        name = _safe(s.get("supplement_name", ""))
-        pdf.cell(cols[0], 7, name[:32], border="B", new_x="RIGHT")
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.set_text_color(*DARK)
+        pdf.cell(cols[0], row_h, f" {_safe(s.get('supplement_name', ''))[:30]}", border="B", new_x="RIGHT")
         x += cols[0]
 
-        # Dose — show per-time quantity only, not the full "2 caps 2x/day"
+        # Dose — per-time qty only
         pdf.set_xy(x, row_y)
-        pdf.set_font("Helvetica", "", 8.5)
+        pdf.set_font("Helvetica", "", 8)
         qty = s.get("quantity_per_dose") or 0
-        unit_type = s.get("unit_type") or "caps"
+        unit_type = s.get("unit_type") or ""
         if not unit_type:
-            # Try to extract unit from dosage_display
-            dd = _safe(s.get("dosage_display", ""))
-            for u in ["caps", "cap", "pumps", "pump", "scoop", "scoops", "ml", "tablet", "packet", "drop", "lozenge"]:
-                if u in dd.lower():
+            dd = _safe(s.get("dosage_display", "")).lower()
+            for u in ["caps", "cap", "pumps", "pump", "scoop", "ml", "tablet", "packet", "drop"]:
+                if u in dd:
                     unit_type = u
                     break
             else:
                 unit_type = "caps"
         if qty > 0:
-            unit_label = unit_type
-            if qty == 1:
-                unit_label = unit_type.rstrip("s")  # caps -> cap
-            elif not unit_type.endswith("s") and unit_type not in ("ml", "g"):
-                unit_label = unit_type + "s"  # pump -> pumps
-            dose_text = f"{qty} {unit_label}"
+            ul = unit_type.rstrip("s") if qty == 1 else (unit_type if unit_type.endswith("s") or unit_type in ("ml","g") else unit_type + "s")
+            dose_text = f"{qty} {ul}"
         else:
-            # Fallback: try to extract just the quantity part from dosage_display
-            dose_text = _safe(s.get("dosage_display", ""))
-            # Strip frequency part like "2x/day", "3x/day", "per day"
-            dose_text = re.sub(r'\s*\d*x\s*/?\s*day.*', '', dose_text, flags=re.IGNORECASE)
-            dose_text = re.sub(r'\s*per\s*day.*', '', dose_text, flags=re.IGNORECASE)
-        pdf.cell(cols[1], 7, dose_text[:20], border="B", new_x="RIGHT")
+            dose_text = re.sub(r'\s*\d*x\s*/?\s*day.*', '', _safe(s.get("dosage_display", "")), flags=re.IGNORECASE).strip()
+        pdf.cell(cols[1], row_h, f" {dose_text[:14]}", border="B", new_x="RIGHT")
         x += cols[1]
 
-        # With Food
+        # Food
         pdf.set_xy(x, row_y)
-        food = "Yes" if s.get("with_food", True) else "No"
-        pdf.cell(cols[2], 7, food, border="B", new_x="RIGHT")
+        pdf.cell(cols[2], row_h, " Yes" if s.get("with_food", True) else " No", border="B", new_x="RIGHT")
         x += cols[2]
 
         if show_costs:
             # Bottles
             pdf.set_xy(x, row_y)
-            btls = s.get("bottles_needed") or "-"
-            pdf.cell(cols[3], 7, str(btls), border="B", new_x="RIGHT")
+            pdf.cell(cols[3], row_h, f" {s.get('bottles_needed') or '-'}", border="B", new_x="RIGHT")
             x += cols[3]
+            # Cost
+            pdf.set_xy(x, row_y)
+            pdf.set_font("Helvetica", "B", 7.5)
+            pdf.set_text_color(*GREEN)
+            cost = s.get("calculated_cost") or 0
+            pdf.cell(cols[4], row_h, f"${cost:.0f}" if cost else "-", border="B", new_x="RIGHT")
+            pdf.set_text_color(*DARK)
+            pdf.set_font("Helvetica", "", 7.5)
+            x += cols[4]
 
-        # Notes — wrapping
+        # Notes — multi-line safe
         pdf.set_xy(x, row_y)
-        notes = _safe(s.get("instructions", ""))
         if s.get("refrigerate"):
-            notes = ("Refrigerate. " + notes).strip()
             pdf.set_text_color(*RED)
-
-        last_w = cols[-1]
-        note_lines = max(1, len(notes) // 40 + 1) if notes else 1
         if note_lines > 1:
-            pdf.multi_cell(last_w, 4, notes, border="B", max_line_height=4)
+            pdf.multi_cell(cols[-1], 4.5, f" {notes}", border="B", new_x="LMARGIN", new_y="NEXT")
+            # Ensure we're at the correct Y after multi_cell
+            if pdf.get_y() < row_y + row_h:
+                pdf.set_y(row_y + row_h)
         else:
-            pdf.cell(last_w, 7, notes[:55], border="B", new_x="LMARGIN", new_y="NEXT")
-
+            pdf.cell(cols[-1], row_h, f" {notes[:60]}", border="B", new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(*DARK)
 
-    pdf.ln(6)
+    pdf.ln(5)
 
 
 def _draw_month_order(pdf, month, plan):
@@ -359,12 +361,32 @@ def generate_hc_pdf(plan_data: dict) -> bytes:
         for time_label, supps in groups:
             _draw_time_table(pdf, time_label, supps, show_costs=True)
 
-        # Cost summary
-        pdf.ln(4)
+        # Cost breakdown
+        pdf.ln(3)
+        supp_cost = month.get("supplement_cost") or month.get("monthly_total_cost", 0) or 0
+        freight = month.get("freight_total", 0) or 0
+        monthly_total = month.get("monthly_total_cost", 0) or 0
+
+        pdf.set_draw_color(*TEAL_LIGHT)
+        pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+        pdf.ln(3)
+
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(*GRAY)
+        pdf.cell(60, 6, "Supplement Cost:", new_x="RIGHT")
+        pdf.set_text_color(*DARK)
+        pdf.cell(40, 6, f"${supp_cost:.2f}", new_x="LMARGIN", new_y="NEXT")
+
+        if freight > 0:
+            pdf.set_text_color(*GRAY)
+            pdf.cell(60, 6, "Shipping / Freight:", new_x="RIGHT")
+            pdf.set_text_color(*DARK)
+            pdf.cell(40, 6, f"${freight:.2f}", new_x="LMARGIN", new_y="NEXT")
+
         pdf.set_font("Helvetica", "B", 10)
         pdf.set_text_color(*GREEN)
-        monthly_total = month.get("monthly_total_cost", 0) or 0
-        pdf.cell(0, 8, f"Monthly Total: ${monthly_total:.2f}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(60, 8, "Monthly Total:", new_x="RIGHT")
+        pdf.cell(40, 8, f"${monthly_total:.2f}", new_x="LMARGIN", new_y="NEXT")
 
         _draw_month_order(pdf, month, plan_data)
 
