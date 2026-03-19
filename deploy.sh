@@ -85,6 +85,15 @@ echo ""
 echo -e "${GREEN}[4/7] Building frontend...${NC}"
 cd $APP_DIR/frontend
 
+# Inject Clerk publishable key from frontend .env into index.html
+CLERK_PK=$(grep REACT_APP_CLERK_PUBLISHABLE_KEY $APP_DIR/frontend/.env 2>/dev/null | cut -d= -f2 | tr -d "'" | tr -d '"')
+if [ -n "$CLERK_PK" ]; then
+    sed -i "s|window.__CLERK_PK=\"[^\"]*\"|window.__CLERK_PK=\"${CLERK_PK}\"|" $APP_DIR/frontend/public/index.html
+    echo "  ✓ Clerk key injected into index.html"
+else
+    echo -e "  ${YELLOW}⚠ No REACT_APP_CLERK_PUBLISHABLE_KEY in frontend/.env${NC}"
+fi
+
 echo "  Installing Node dependencies..."
 yarn install --silent
 echo "  Building React app..."
