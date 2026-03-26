@@ -27,12 +27,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 
-const PROGRAMS = ['Detox 1', 'Detox 2', 'Maintenance'];
+const DEFAULT_PROGRAMS = ['Detox 1', 'Detox 2', 'Maintenance'];
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState([]);
   const [supplements, setSupplements] = useState([]);
-  const [selectedProgram, setSelectedProgram] = useState('Detox 1');
+  const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedStep, setSelectedStep] = useState('1');
   const [currentTemplate, setCurrentTemplate] = useState(null);
   const [editMonths, setEditMonths] = useState(1);
@@ -44,12 +44,26 @@ export default function TemplatesPage() {
   const [newTemplate, setNewTemplate] = useState({ program_name: '', step_number: 1, default_months: 1 });
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Derive unique program names from templates + defaults
+  const programNames = [...new Set([...DEFAULT_PROGRAMS, ...templates.map(t => t.program_name)])].sort();
+
+  // Derive available steps for the selected program
+  const availableSteps = [...new Set(templates.filter(t => t.program_name === selectedProgram).map(t => t.step_number))].sort((a, b) => a - b);
+
   const fetchData = useCallback(async () => {
     try { const [tRes, sRes] = await Promise.all([getTemplates(), getSupplements('', true)]); setTemplates(tRes.templates || []); setSupplements(sRes.supplements || []); }
     catch (err) { toast.error('Failed to load data'); }
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  
+  // Auto-select first program when templates load and nothing is selected
+  useEffect(() => {
+    if (!selectedProgram && programNames.length > 0) {
+      setSelectedProgram(programNames[0]);
+    }
+  }, [programNames, selectedProgram]);
+
   useEffect(() => {
     const tmpl = templates.find(t => t.program_name === selectedProgram && t.step_number === Number(selectedStep));
     setCurrentTemplate(tmpl || null); setEditMonths(tmpl?.default_months || 1); setEditSupps(tmpl?.supplements || []);
@@ -78,6 +92,9 @@ export default function TemplatesPage() {
     try {
       await createTemplate(newTemplate);
       toast.success('Template created');
+      // Auto-select the new template
+      setSelectedProgram(newTemplate.program_name.trim());
+      setSelectedStep(String(newTemplate.step_number));
       setAddOpen(false);
       setNewTemplate({ program_name: '', step_number: 1, default_months: 1 });
       fetchData();
@@ -132,14 +149,14 @@ export default function TemplatesPage() {
           <Label className="text-xs font-bold text-[#61746E] uppercase tracking-wider">Program</Label>
           <Select value={selectedProgram} onValueChange={setSelectedProgram}>
             <SelectTrigger className="w-[200px] h-12 text-sm" data-testid="admin-templates-program-select"><SelectValue /></SelectTrigger>
-            <SelectContent>{PROGRAMS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+            <SelectContent>{programNames.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs font-bold text-[#61746E] uppercase tracking-wider">Step</Label>
           <Select value={selectedStep} onValueChange={setSelectedStep}>
             <SelectTrigger className="w-[140px] h-12 text-sm" data-testid="admin-templates-step-select"><SelectValue /></SelectTrigger>
-            <SelectContent>{[1,2,3].map(s => <SelectItem key={s} value={String(s)}>Step {s}</SelectItem>)}</SelectContent>
+            <SelectContent>{[...new Set([1,2,3, ...availableSteps])].sort((a,b) => a-b).map(s => <SelectItem key={s} value={String(s)}>Step {s}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
