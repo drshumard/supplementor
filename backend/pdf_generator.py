@@ -107,13 +107,17 @@ def _draw_header(pdf, plan):
 
 
 def _draw_time_table(pdf, time_label, supps, show_costs=False):
-    """Draw a time-grouped table with section header. Fixed row heights for alignment."""
+    """Draw a time-grouped table with section header. Fixed row heights for alignment.
+    Keeps the table together — moves to new page if it won't fit."""
     page_w = pdf.w - pdf.l_margin - pdf.r_margin
     ROW_H = 7
 
-    # Check page break
-    needed = 20 + len(supps) * 10
-    if pdf.get_y() + needed > pdf.h - 25:
+    # Estimate total table height: header(8) + col headers(6) + rows(~9 each) + padding(8)
+    est_height = 8 + 6 + (len(supps) * 9) + 8
+    available = pdf.h - pdf.get_y() - 20
+
+    # If table won't fit here but would fit on a fresh page, start new page
+    if est_height > available and est_height < (pdf.h - 40):
         pdf.add_page()
 
     # Section header
@@ -222,12 +226,33 @@ def _draw_time_table(pdf, time_label, supps, show_costs=False):
 
 
 def _draw_month_order(pdf, month, plan):
-    """Draw the Month Order summary (bottles + duration)."""
+    """Draw the Month Order summary (bottles + duration).
+    Keeps the entire table together — starts new page if it won't fit."""
     supps = month.get("supplements", [])
     if not supps:
         return
 
     num_months = len(plan.get("months", []))
+
+    # Deduplicate supplements (only show each once in order table)
+    seen = {}
+    for s in supps:
+        name = s.get("supplement_name", "")
+        if name and name not in seen:
+            seen[name] = s
+    unique = list(seen.values())
+    if not unique:
+        return
+
+    mid = math.ceil(len(unique) / 2)
+    max_rows = math.ceil(len(unique) / 2)
+
+    # Calculate total height: title(10) + header(7) + rows(7 each) + padding(10)
+    table_height = 10 + 7 + (max_rows * 7) + 10
+
+    # If table won't fit on current page, start fresh
+    if pdf.get_y() + table_height > pdf.h - 20:
+        pdf.add_page()
 
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 11)
@@ -239,55 +264,40 @@ def _draw_month_order(pdf, month, plan):
     col_w = page_w / 2 - 2
     cols_each = [col_w * 0.4, col_w * 0.15, col_w * 0.2, col_w * 0.25]
 
-    # Header
+    # Header row
     pdf.set_fill_color(*TEAL_LIGHT)
     pdf.set_font("Helvetica", "B", 7.5)
     pdf.set_text_color(*TEAL)
 
-    # Left table header
     x = pdf.l_margin
     for h, w in zip(["Supplement", "Bottles", "Duration", "Notes"], cols_each):
         pdf.set_xy(x, pdf.get_y())
         pdf.cell(w, 7, h, border=1, fill=True, new_x="RIGHT")
         x += w
-    
-    x += 4  # gap
+    x += 4
     for h, w in zip(["Supplement", "Bottles", "Duration", "Notes"], cols_each):
         pdf.set_xy(x, pdf.get_y())
         pdf.cell(w, 7, h, border=1, fill=True, new_x="RIGHT")
         x += w
     pdf.ln()
 
-    # Data - split into two columns
+    # Data rows
     pdf.set_font("Helvetica", "", 8)
     pdf.set_text_color(*DARK)
 
-    # Deduplicate supplements
-    seen = {}
-    for s in supps:
-        name = s.get("supplement_name", "")
-        if name not in seen:
-            seen[name] = s
-
-    unique = list(seen.values())
-    mid = math.ceil(len(unique) / 2)
     left = unique[:mid]
     right = unique[mid:]
 
-    max_rows = max(len(left), len(right))
     for i in range(max_rows):
         row_y = pdf.get_y()
-        if row_y > pdf.h - 20:
-            pdf.add_page()
-            row_y = pdf.get_y()
-
         x = pdf.l_margin
-        # Left side
+
         if i < len(left):
             s = left[i]
             pdf.set_xy(x, row_y)
             pdf.cell(cols_each[0], 7, _safe(s.get("supplement_name", ""))[:22], border="LBR")
-            pdf.cell(cols_each[1], 7, str(s.get("bottles_needed", 1) or 1), border="LBR")
+            btls = s.get("bottles_needed", 0) or 0
+            pdf.cell(cols_each[1], 7, str(btls) if btls > 0 else "-", border="LBR")
             pdf.cell(cols_each[2], 7, f"{num_months} months", border="LBR")
             note = "refrigerate" if s.get("refrigerate") else ""
             if note:
@@ -300,12 +310,12 @@ def _draw_month_order(pdf, month, plan):
                 pdf.cell(w, 7, "", border="LBR")
 
         x = pdf.l_margin + col_w + 4
-        # Right side
         if i < len(right):
             s = right[i]
             pdf.set_xy(x, row_y)
             pdf.cell(cols_each[0], 7, _safe(s.get("supplement_name", ""))[:22], border="LBR")
-            pdf.cell(cols_each[1], 7, str(s.get("bottles_needed", 1) or 1), border="LBR")
+            btls = s.get("bottles_needed", 0) or 0
+            pdf.cell(cols_each[1], 7, str(btls) if btls > 0 else "-", border="LBR")
             pdf.cell(cols_each[2], 7, f"{num_months} months", border="LBR")
             note = "refrigerate" if s.get("refrigerate") else ""
             if note:
