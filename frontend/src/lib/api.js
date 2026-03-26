@@ -1,21 +1,27 @@
 const API_BASE = (process.env.REACT_APP_BACKEND_URL || '') + '/api';
 
-// Simple token store — set once after Clerk auth, used for all requests
-let _authToken = null;
-export function setAuthToken(token) { _authToken = token; }
+// Token getter function — set by App.js, calls Clerk's getToken() which handles caching/refresh
+let _getToken = null;
+export function setTokenGetter(fn) { _getToken = fn; }
 
-function getHeaders() {
+async function getHeaders() {
   const headers = { 'Content-Type': 'application/json' };
-  if (_authToken) {
-    headers['Authorization'] = `Bearer ${_authToken}`;
+  if (_getToken) {
+    try {
+      const token = await _getToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    } catch (e) {
+      // Token fetch failed — request will go without auth
+    }
   }
   return headers;
 }
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;
+  const headers = await getHeaders();
   const res = await fetch(url, {
-    headers: getHeaders(),
+    headers,
     ...options,
   });
   if (!res.ok) {
@@ -94,18 +100,18 @@ export const reopenPlan = (id) =>
   request(`/plans/${id}/reopen`, { method: 'POST' });
 
 // PDF Export
-export const exportPatientPDF = (planId) => {
+export const exportPatientPDF = async (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/patient`;
-  const headers = _authToken ? { 'Authorization': `Bearer ${_authToken}` } : {};
+  const headers = await getHeaders();
   return fetch(url, { headers }).then(r => {
     if (!r.ok) throw new Error('Export failed');
     return r.blob();
   });
 };
 
-export const exportHCPDF = (planId) => {
+export const exportHCPDF = async (planId) => {
   const url = `${API_BASE}/plans/${planId}/export/hc`;
-  const headers = _authToken ? { 'Authorization': `Bearer ${_authToken}` } : {};
+  const headers = await getHeaders();
   return fetch(url, { headers }).then(r => {
     if (!r.ok) throw new Error('Export failed');
     return r.blob();

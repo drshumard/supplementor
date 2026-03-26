@@ -86,14 +86,14 @@ class TemplateSupplementEntry(BaseModel):
 class TemplateCreate(BaseModel):
     program_name: str
     step_number: int
-    default_months: int = 1
+    default_months: float = 1
     supplements: list[TemplateSupplementEntry] = []
 
 
 class TemplateUpdate(BaseModel):
     program_name: Optional[str] = None
     step_number: Optional[int] = None
-    default_months: Optional[int] = None
+    default_months: Optional[float] = None
     supplements: Optional[list[TemplateSupplementEntry]] = None
 
 

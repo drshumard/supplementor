@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SignIn, useUser, useAuth as useClerkAuth } from '@clerk/react';
 import { Toaster } from 'sonner';
-import { setAuthToken } from './lib/api';
+import { setTokenGetter } from './lib/api';
 import DashboardPage from './pages/DashboardPage';
 import PlanEditorPage from './pages/PlanEditorPage';
 import NewPlanPage from './pages/NewPlanPage';
@@ -41,9 +41,12 @@ function AppUserProvider({ children }) {
     if (!isSignedIn || !clerkUser) {
       setAppUser(null);
       setLoading(false);
-      setAuthToken(null);
+      setTokenGetter(null);
       return;
     }
+
+    // Set token getter — every API call will get a fresh token from Clerk
+    setTokenGetter(getToken);
 
     // Sync with our backend — get or create local user
     const syncUser = async () => {
@@ -53,8 +56,6 @@ function AppUserProvider({ children }) {
           setTimeout(syncUser, 2000);
           return;
         }
-        // Store token for all future API calls
-        setAuthToken(token);
         const backendUrl = (process.env.REACT_APP_BACKEND_URL || '') + '/api/auth/sync';
         const res = await fetch(backendUrl, {
           method: 'POST',
@@ -82,12 +83,6 @@ function AppUserProvider({ children }) {
       }
     };
     syncUser();
-    
-    // Refresh token every 50s (Clerk tokens expire after ~60s)
-    const refresh = setInterval(async () => {
-      try { const t = await getToken(); if (t) setAuthToken(t); } catch {}
-    }, 50000);
-    return () => clearInterval(refresh);
   }, [isSignedIn, clerkLoaded, clerkUser, getToken]);
 
   return (
