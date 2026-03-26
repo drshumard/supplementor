@@ -148,7 +148,7 @@ def _draw_time_table(pdf, time_label, supps, show_costs=False):
 
         # Build notes text
         notes = _safe(s.get("instructions", ""))
-        if s.get("refrigerate"):
+        if s.get("refrigerate") and "refrigerat" not in notes.lower():
             notes = ("Refrigerate. " + notes).strip() if notes else "Refrigerate"
 
         # Calculate row height based on notes wrapping
