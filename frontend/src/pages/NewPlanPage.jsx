@@ -12,8 +12,8 @@ import {
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
-const PROGRAMS = ['Detox 1', 'Detox 2', 'Maintenance'];
-const STEPS = [1, 2, 3];
+const DEFAULT_PROGRAMS = ['Detox 1', 'Detox 2', 'Maintenance'];
+const DEFAULT_STEPS = [1, 2, 3];
 
 export default function NewPlanPage() {
   const [step, setStep] = useState(1);
@@ -41,6 +41,10 @@ export default function NewPlanPage() {
   const selectedTemplate = templates.find(
     t => t.program_name === selectedProgram && t.step_number === Number(selectedStep)
   );
+
+  // Derive program and step lists from templates + defaults
+  const programList = [...new Set([...DEFAULT_PROGRAMS, ...templates.map(t => t.program_name)])].sort();
+  const stepList = [...new Set([...DEFAULT_STEPS, ...templates.filter(t => t.program_name === selectedProgram).map(t => t.step_number)])].sort((a, b) => a - b);
 
   useEffect(() => {
     if (selectedTemplate) {
@@ -172,7 +176,7 @@ export default function NewPlanPage() {
                     <SelectValue placeholder="Select a program" />
                   </SelectTrigger>
                   <SelectContent>
-                    {PROGRAMS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    {programList.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -183,7 +187,7 @@ export default function NewPlanPage() {
                     <SelectValue placeholder="Select a step" />
                   </SelectTrigger>
                   <SelectContent>
-                    {STEPS.map(s => <SelectItem key={s} value={String(s)}>Step {s}</SelectItem>)}
+                    {stepList.map(s => <SelectItem key={s} value={String(s)}>Step {s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
