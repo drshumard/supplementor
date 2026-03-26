@@ -6,48 +6,119 @@ export function cn(...inputs) {
 }
 
 export function formatCurrency(amount) {
-  if (amount == null || isNaN(amount)) return '$0.00';
-  return `$${Number(amount).toFixed(2)}`;
+  if (amount === null || amount === undefined) return '$0.00';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
-export function calculateDailyDosage(quantityPerDose, frequencyPerDay) {
-  return (quantityPerDose || 0) * (frequencyPerDay || 0);
+function daysInPeriod(monthNumber) {
+  if (monthNumber === 0.5 || (typeof monthNumber === 'number' && monthNumber % 1 === 0.5)) {
+    return 14;
+  }
+  return 30;
 }
 
-export function calculateBottlesNeeded(dailyDosage, unitsPerBottle, bottlesOverride) {
-  if (bottlesOverride != null && bottlesOverride > 0) return bottlesOverride;
-  if (!unitsPerBottle || unitsPerBottle <= 0) return 0;
-  if (dailyDosage <= 0) return 0;
-  return Math.ceil((dailyDosage * 30) / unitsPerBottle);
+function calculateDailyDosage(qty, freq) {
+  return Math.max(0, (qty || 0) * (freq || 0));
 }
 
-export function calculateSupplementCost(bottlesNeeded, costPerBottle) {
-  return Math.round(bottlesNeeded * costPerBottle * 100) / 100;
+/**
+ * Recalculate costs for ALL months in a plan with rolling surplus tracking.
+ * Processes months in order — surplus from earlier months reduces bottles needed in later months.
+ * 
+ * @param {Array} months - Array of month objects with supplements
+ * @param {Object} supplierFreight - {supplier_name: freight_charge}
+ * @returns {Object} {months, total_program_cost}
+ */
+export function recalculatePlanCosts(months, supplierFreight = {}) {
+  if (!months || months.length === 0) return { months: [], total_program_cost: 0 };
+
+  // Sort months by month_number
+  const sorted = [...months].sort((a, b) => (a.month_number || 0) - (b.month_number || 0));
+
+  // Track surplus units per supplement (by supplement_id or name)
+  const surplus = {};
+  let totalProgramCost = 0;
+
+  for (const month of sorted) {
+    const periodDays = daysInPeriod(month.month_number);
+    let monthSuppCost = 0;
+    const shippingSuppliers = new Set();
+
+    for (const supp of (month.supplements || [])) {
+      const key = supp.supplement_id || supp.supplement_name || '';
+      if (!key) continue;
+
+      const daily = calculateDailyDosage(supp.quantity_per_dose, supp.frequency_per_day);
+      const unitsPerBottle = supp.units_per_bottle || 0;
+      const override = supp.bottles_per_month_override;
+      const costPerBottle = supp.cost_per_bottle || 0;
+
+      if (override != null && override > 0) {
+        // Manual override — no surplus tracking
+        supp.bottles_needed = override;
+        supp.calculated_cost = Math.round(override * costPerBottle * 100) / 100;
+        monthSuppCost += supp.calculated_cost;
+        if (override > 0) {
+          const supplier = (supp.supplier || '').trim();
+          if (supplier) shippingSuppliers.add(supplier);
+        }
+        continue;
+      }
+
+      if (daily <= 0 || unitsPerBottle <= 0) {
+        supp.bottles_needed = 0;
+        supp.calculated_cost = 0;
+        continue;
+      }
+
+      const unitsNeeded = daily * periodDays;
+      const currentSurplus = surplus[key] || 0;
+      const unitsToBuy = Math.max(0, unitsNeeded - currentSurplus);
+      const bottlesToShip = unitsToBuy > 0 ? Math.ceil(unitsToBuy / unitsPerBottle) : 0;
+
+      // Update surplus
+      const unitsPurchased = bottlesToShip * unitsPerBottle;
+      surplus[key] = Math.max(0, currentSurplus + unitsPurchased - unitsNeeded);
+
+      const cost = Math.round(bottlesToShip * costPerBottle * 100) / 100;
+      supp.bottles_needed = bottlesToShip;
+      supp.calculated_cost = cost;
+      monthSuppCost += cost;
+
+      if (bottlesToShip > 0) {
+        const supplier = (supp.supplier || '').trim();
+        if (supplier) shippingSuppliers.add(supplier);
+      }
+    }
+
+    // Freight — one charge per supplier shipping this month
+    let freightTotal = 0;
+    for (const supplier of shippingSuppliers) {
+      const freight = supplierFreight[supplier] || 0;
+      if (freight > 0) freightTotal += freight;
+    }
+
+    month.supplement_cost = Math.round(monthSuppCost * 100) / 100;
+    month.freight_total = Math.round(freightTotal * 100) / 100;
+    month.monthly_total_cost = Math.round((monthSuppCost + freightTotal) * 100) / 100;
+    totalProgramCost += monthSuppCost + freightTotal;
+  }
+
+  return {
+    months: sorted,
+    total_program_cost: Math.round(totalProgramCost * 100) / 100,
+  };
 }
 
+// Legacy wrapper for single-month (still used in some places)
 export function recalculateMonthCosts(month, supplierFreight = {}) {
-  let suppTotal = 0;
-  const monthSuppliers = new Set();
-  for (const supp of month.supplements || []) {
-    const daily = calculateDailyDosage(supp.quantity_per_dose, supp.frequency_per_day);
-    const bottles = calculateBottlesNeeded(daily, supp.units_per_bottle, supp.bottles_per_month_override);
-    const cost = calculateSupplementCost(bottles, supp.cost_per_bottle || 0);
-    supp.bottles_needed = bottles;
-    supp.calculated_cost = cost;
-    suppTotal += cost;
-    const supplier = (supp.supplier || '').trim();
-    if (supplier) monthSuppliers.add(supplier);
-  }
-  // Add freight per unique supplier (deduplicated)
-  let freightTotal = 0;
-  for (const supplier of monthSuppliers) {
-    const freight = supplierFreight[supplier] || 0;
-    if (freight > 0) freightTotal += freight;
-  }
-  month.supplement_cost = Math.round(suppTotal * 100) / 100;
-  month.freight_total = Math.round(freightTotal * 100) / 100;
-  month.monthly_total_cost = Math.round((suppTotal + freightTotal) * 100) / 100;
-  return month;
+  const result = recalculatePlanCosts([month], supplierFreight);
+  return result.months[0] || month;
 }
 
 export function downloadBlob(blob, filename) {

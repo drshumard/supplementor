@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, finalizePlan, reopenPlan, duplicatePlan, saveToDrive, getSuppliers } from '../lib/api';
-import { formatCurrency, recalculateMonthCosts, downloadBlob } from '../lib/utils';
+import { formatCurrency, recalculatePlanCosts, downloadBlob } from '../lib/utils';
 import { parseDosage, buildDosageText } from '../lib/dosageParser';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
@@ -365,9 +365,9 @@ export default function PlanEditorPage() {
   }, [savePlan]);
 
   const recalcAndUpdate = (newPlan) => {
-    let t = 0;
-    for (const m of newPlan.months || []) { recalculateMonthCosts(m, supplierFreight); t += m.monthly_total_cost || 0; }
-    newPlan.total_program_cost = Math.round(t * 100) / 100;
+    const result = recalculatePlanCosts(newPlan.months || [], supplierFreight);
+    newPlan.months = result.months;
+    newPlan.total_program_cost = result.total_program_cost;
     setPlan({ ...newPlan }); debouncedSave(newPlan);
   };
 

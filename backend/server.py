@@ -31,10 +31,7 @@ from models import (
     PatientCreate, PatientUpdate,
     SupplierCreate, SupplierUpdate
 )
-from calculations import (
-    calculate_daily_dosage, calculate_bottles_needed,
-    calculate_supplement_cost, recalculate_plan_costs
-)
+from calculations import recalculate_plan_costs
 from pdf_generator import generate_patient_pdf, generate_hc_pdf
 from seed_data import SUPPLEMENTS, TEMPLATES
 

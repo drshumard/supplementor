@@ -1,14 +1,14 @@
 [
   {
-    "content": "Restructure: companies → suppliers (5 only), add supplier field to supplements, map existing data",
+    "content": "Rewrite backend calculations.py with rolling surplus tracking across months",
     "status": "completed"
   },
   {
-    "content": "Update frontend: Companies page → Suppliers page, supplement form gets supplier dropdown",
+    "content": "Rewrite frontend utils.js recalculation to match",
     "status": "completed"
   },
   {
-    "content": "Update freight calculation to use supplier not company",
+    "content": "Test edge cases: multi-month surplus, 0.5 month, mid-plan supplement changes",
     "status": "completed"
   }
 ]
