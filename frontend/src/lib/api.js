@@ -75,8 +75,11 @@ export const deleteTemplate = (id) =>
 
 
 // Plans
-export const getPlans = (search = '', program = '', status = '') =>
-  request(`/plans?search=${encodeURIComponent(search)}&program=${encodeURIComponent(program)}&status=${encodeURIComponent(status)}`);
+export const getPlans = (search = '', program = '', status = '', createdBy = '') =>
+  request(`/plans?search=${encodeURIComponent(search)}&program=${encodeURIComponent(program)}&status=${encodeURIComponent(status)}&created_by=${encodeURIComponent(createdBy)}`);
+
+export const getPlanCreators = () =>
+  request('/plans/creators');
 
 export const getPlan = (id) =>
   request(`/plans/${id}`);

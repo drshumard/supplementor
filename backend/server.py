@@ -737,18 +737,33 @@ async def update_template(template_id: str, data: TemplateUpdate, user=Depends(r
 
 # ─── Plans CRUD ──────────────────────────────────────────────────────────────
 
+@app.get("/api/plans/creators")
+async def get_plan_creators(user=Depends(require_auth)):
+    """Get all users who have created plans, with their plan counts."""
+    pipeline = [
+        {"$match": {"created_by": {"$exists": True, "$ne": None}}},
+        {"$group": {"_id": "$created_by", "name": {"$first": "$created_by_name"}, "count": {"$sum": 1}}},
+        {"$sort": {"name": 1}},
+    ]
+    creators = []
+    async for doc in db.plans.aggregate(pipeline):
+        creators.append({"user_id": doc["_id"], "name": doc.get("name", "Unknown"), "plan_count": doc["count"]})
+    return {"creators": creators}
+
+
+
 @app.get("/api/plans")
 async def list_plans(
     search: str = "",
     program: str = "",
     status: str = "",
+    created_by: str = "",
     skip: int = 0,
     limit: int = 50,
     user=Depends(require_auth)
 ):
     query = {}
     if search:
-        # Search by patient name — need to find matching patient IDs
         patient_cursor = db.patients.find({"name": {"$regex": search, "$options": "i"}}, {"_id": 1})
         patient_ids = [str(p["_id"]) async for p in patient_cursor]
         query["$or"] = [
@@ -759,6 +774,8 @@ async def list_plans(
         query["program_name"] = program
     if status:
         query["status"] = status
+    if created_by:
+        query["created_by"] = created_by
     
     cursor = db.plans.find(query).sort("updated_at", -1).skip(skip).limit(limit)
     docs = await cursor.to_list(length=limit)

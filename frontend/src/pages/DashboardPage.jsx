@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import { getPlans, deletePlan, duplicatePlan } from '../lib/api';
+import { getPlans, getPlanCreators, deletePlan, duplicatePlan } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
@@ -15,7 +15,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '../components/ui/alert-dialog';
-import { Plus, Search, Trash2, FileText, Copy } from 'lucide-react';
+import { Plus, Search, Trash2, FileText, Copy, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '../lib/utils';
 
@@ -26,19 +26,28 @@ export default function DashboardPage() {
   const [program, setProgram] = useState('');
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState(null);
+  const [creators, setCreators] = useState([]);
+  const [selectedCreator, setSelectedCreator] = useState('mine');
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const fetchPlans = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getPlans(search, program === 'all' ? '' : program);
+      const createdBy = selectedCreator === 'mine' ? (user?._id || '') : selectedCreator === 'all' ? '' : selectedCreator;
+      const res = await getPlans(search, program === 'all' ? '' : program, '', createdBy);
       setPlans(res.plans || []); setTotal(res.total || 0);
     } catch (err) { toast.error('Failed to load plans'); }
     finally { setLoading(false); }
-  }, [search, program]);
+  }, [search, program, selectedCreator, user]);
+
+  const fetchCreators = useCallback(async () => {
+    try { const res = await getPlanCreators(); setCreators(res.creators || []); }
+    catch {}
+  }, []);
 
   useEffect(() => { fetchPlans(); }, [fetchPlans]);
+  useEffect(() => { fetchCreators(); }, [fetchCreators]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -49,30 +58,56 @@ export default function DashboardPage() {
 
   const handleDuplicate = async (e, planId) => {
     e.stopPropagation();
-    try { const result = await duplicatePlan(planId); toast.success('Plan duplicated'); navigate(`/plans/${result._id}`); }
+    try { const result = await duplicatePlan(planId, { target: 'same' }); toast.success('Plan duplicated'); navigate(`/plans/${result._id}`); }
     catch (err) { toast.error('Duplicate failed'); }
   };
+
+  const otherCreators = creators.filter(c => c.user_id !== user?._id);
 
   return (
     <div className="p-10 max-w-[1560px] mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold tracking-[-0.02em] text-[#0B0D10]">
-            Patient Plans
-          </h1>
+          <h1 className="text-2xl font-bold tracking-[-0.02em] text-[#0B0D10]">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage and track all supplement protocols
+            {selectedCreator === 'mine' ? 'My plans' : selectedCreator === 'all' ? 'All plans' : `Plans by ${creators.find(c => c.user_id === selectedCreator)?.name || '...'}`}
+            {' '}&middot; {total} plan{total !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button
-          onClick={() => navigate('/plans/new')}
-          data-testid="plans-create-new-button"
-          className="gap-2.5 h-12 px-7 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-bold shadow-sm text-sm"
-        >
-          <Plus size={18} />
-          New Plan
+        <Button onClick={() => navigate('/plans/new')} data-testid="plans-create-new-button"
+          className="gap-2.5 h-12 px-7 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-bold shadow-sm text-sm">
+          <Plus size={18} /> New Plan
         </Button>
+      </div>
+
+      {/* Creator tabs */}
+      <div className="flex items-center gap-2 mb-6">
+        <button onClick={() => setSelectedCreator('mine')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            selectedCreator === 'mine' ? 'bg-[#0D5F68] text-white' : 'bg-white text-[#64748B] hover:bg-[#F1F5F9] border border-[#E2E8F0]'
+          }`}>
+          My Plans
+        </button>
+        {otherCreators.map(c => (
+          <button key={c.user_id} onClick={() => setSelectedCreator(c.user_id)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${
+              selectedCreator === c.user_id ? 'bg-[#0D5F68] text-white' : 'bg-white text-[#64748B] hover:bg-[#F1F5F9] border border-[#E2E8F0]'
+            }`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+              selectedCreator === c.user_id ? 'bg-white/20 text-white' : 'bg-[#EAF4F3] text-[#0D5F68]'
+            }`}>
+              {c.name?.charAt(0) || '?'}
+            </div>
+            {c.name} ({c.plan_count})
+          </button>
+        ))}
+        <button onClick={() => setSelectedCreator('all')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${
+            selectedCreator === 'all' ? 'bg-[#0D5F68] text-white' : 'bg-white text-[#64748B] hover:bg-[#F1F5F9] border border-[#E2E8F0]'
+          }`}>
+          <Users size={14} /> All
+        </button>
       </div>
 
       {/* Filters */}
@@ -122,8 +157,10 @@ export default function DashboardPage() {
               <TableRow><TableCell colSpan={8} className="h-40 text-center">
                 <div className="flex flex-col items-center gap-3 text-muted-foreground">
                   <FileText size={40} strokeWidth={1} />
-                  <p className="text-base">No plans yet</p>
-                  <Button onClick={() => navigate('/plans/new')} className="mt-2 h-11 px-5 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold">Create your first plan</Button>
+                  <p className="text-base">{selectedCreator === 'mine' ? 'No plans yet' : 'No plans found'}</p>
+                  {selectedCreator === 'mine' && (
+                    <Button onClick={() => navigate('/plans/new')} className="mt-2 h-11 px-5 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold">Create your first plan</Button>
+                  )}
                 </div>
               </TableCell></TableRow>
             ) : (
@@ -132,9 +169,9 @@ export default function DashboardPage() {
                   <TableCell className="font-semibold text-[#0B0D10] py-4 px-6 text-sm">{plan.patient_name || 'Untitled'}</TableCell>
                   <TableCell className="text-sm text-[#334155] py-4">{plan.program_name}</TableCell>
                   <TableCell className="text-sm text-[#334155] py-4">{plan.step_label || `Step ${plan.step_number}`}</TableCell>
-                  <TableCell className="text-sm font-mono tabular-nums py-4 w-[70px] text-[#334155]">{plan.months?.length || 0}</TableCell>
-                  <TableCell className="text-sm font-mono tabular-nums py-4 text-[#147D5A] font-semibold w-[130px]">{formatCurrency(plan.total_program_cost)}</TableCell>
-                  <TableCell className="py-4 w-[120px]">
+                  <TableCell className="text-sm font-mono tabular-nums py-4 text-[#334155]">{plan.months?.length || 0}</TableCell>
+                  <TableCell className="text-sm font-mono tabular-nums py-4 text-[#147D5A] font-semibold">{formatCurrency(plan.total_program_cost)}</TableCell>
+                  <TableCell className="py-4">
                     <Badge data-testid={`plan-status-${plan._id}`}
                       className={`px-2.5 py-1 text-[10px] font-bold rounded-md ${
                         plan.status === 'finalized'
@@ -171,7 +208,7 @@ export default function DashboardPage() {
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6 gap-3">
             <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-[#C53030] text-white hover:bg-[#9B2C2C] h-10 px-5 font-semibold">Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
