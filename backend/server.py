@@ -644,7 +644,29 @@ async def list_templates(program_name: str = "", user=Depends(require_auth)):
         query["program_name"] = program_name
     cursor = db.templates.find(query).sort([("program_name", 1), ("step_number", 1)])
     docs = await cursor.to_list(length=100)
-    return {"templates": serialize_doc(docs)}
+    templates = serialize_doc(docs)
+    
+    # Refresh supplement data from master list
+    master = {}
+    async for s in db.supplements.find({}):
+        master[str(s["_id"])] = s
+        master[s.get("supplement_name", "").lower()] = s
+    
+    for tmpl in templates:
+        for supp in tmpl.get("supplements", []):
+            # Match by ID first, then by name
+            ref = master.get(supp.get("supplement_id")) or master.get((supp.get("supplement_name") or "").lower())
+            if ref:
+                supp["cost_per_bottle"] = ref.get("cost_per_bottle", supp.get("cost_per_bottle", 0))
+                supp["units_per_bottle"] = ref.get("units_per_bottle", supp.get("units_per_bottle"))
+                supp["bottles_per_month"] = ref.get("bottles_per_month", supp.get("bottles_per_month"))
+                supp["supplier"] = ref.get("supplier", supp.get("supplier", ""))
+                supp["manufacturer"] = ref.get("manufacturer", supp.get("company", ""))
+                supp["company"] = ref.get("company", supp.get("company", ""))
+                supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
+                supp["unit_type"] = ref.get("unit_type", supp.get("unit_type", "caps"))
+    
+    return {"templates": templates}
 
 
 @app.post("/api/templates")
@@ -676,7 +698,25 @@ async def get_template(template_id: str, user=Depends(require_auth)):
     doc = await db.templates.find_one({"_id": ObjectId(template_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="Template not found")
-    return serialize_doc(doc)
+    tmpl = serialize_doc(doc)
+    
+    # Refresh supplement data from master list
+    master = {}
+    async for s in db.supplements.find({}):
+        master[str(s["_id"])] = s
+        master[s.get("supplement_name", "").lower()] = s
+    for supp in tmpl.get("supplements", []):
+        ref = master.get(supp.get("supplement_id")) or master.get((supp.get("supplement_name") or "").lower())
+        if ref:
+            supp["cost_per_bottle"] = ref.get("cost_per_bottle", supp.get("cost_per_bottle", 0))
+            supp["units_per_bottle"] = ref.get("units_per_bottle", supp.get("units_per_bottle"))
+            supp["bottles_per_month"] = ref.get("bottles_per_month", supp.get("bottles_per_month"))
+            supp["supplier"] = ref.get("supplier", supp.get("supplier", ""))
+            supp["company"] = ref.get("company", supp.get("company", ""))
+            supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
+            supp["unit_type"] = ref.get("unit_type", supp.get("unit_type", "caps"))
+    
+    return tmpl
 
 
 @app.put("/api/templates/{template_id}")
