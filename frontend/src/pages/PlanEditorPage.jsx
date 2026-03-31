@@ -390,7 +390,6 @@ export default function PlanEditorPage() {
       times: freqToTimes(freq), hc_notes: '',
       units_per_bottle: supp.units_per_bottle || null, cost_per_bottle: supp.cost_per_bottle || 0,
       refrigerate: supp.refrigerate || false, bottles_needed: null, calculated_cost: null,
-      bottles_per_month_override: supp.bottles_per_month || null,
     };
   };
 

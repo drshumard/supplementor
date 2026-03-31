@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 const emptySupp = {
   supplement_name: '', company: '', supplier: '', units_per_bottle: '', unit_type: 'caps',
   default_quantity_per_dose: '', default_frequency_per_day: '', default_dosage_display: '',
-  cost_per_bottle: '', default_instructions: '', refrigerate: false, notes: '', bottles_per_month: '', active: true,
+  cost_per_bottle: '', default_instructions: '', refrigerate: false, notes: '', active: true,
 };
 
 export default function SupplementsPage() {
@@ -64,7 +64,7 @@ export default function SupplementsPage() {
       default_dosage_display: supp.default_dosage_display || '',
       cost_per_bottle: supp.cost_per_bottle ?? '', default_instructions: supp.default_instructions || '',
       refrigerate: supp.refrigerate || false, notes: supp.notes || '',
-      bottles_per_month: supp.bottles_per_month ?? '', active: supp.active !== false,
+      active: supp.active !== false,
     });
     setEditOpen(true);
   };
@@ -81,7 +81,6 @@ export default function SupplementsPage() {
         default_quantity_per_dose: editData.default_quantity_per_dose ? parseInt(editData.default_quantity_per_dose) : null,
         default_frequency_per_day: editData.default_frequency_per_day ? parseInt(editData.default_frequency_per_day) : null,
         cost_per_bottle: editData.cost_per_bottle ? parseFloat(editData.cost_per_bottle) : 0,
-        bottles_per_month: editData.bottles_per_month ? parseFloat(editData.bottles_per_month) : null,
       };
       if (editId) { await updateSupplement(editId, payload); toast.success('Updated'); }
       else { await createSupplement(payload); toast.success('Added'); }
@@ -235,10 +234,6 @@ export default function SupplementsPage() {
             <div className="col-span-2 space-y-1">
               <Label className="text-xs font-semibold">Default Dosage Display</Label>
               <Input value={editData.default_dosage_display} onChange={(e) => setEditData({...editData, default_dosage_display: e.target.value})} className="h-9 text-sm" placeholder="e.g. 2 caps 3x/day" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Btls/Month</Label>
-              <Input type="number" step="0.01" value={editData.bottles_per_month} onChange={(e) => setEditData({...editData, bottles_per_month: e.target.value})} className="h-9 text-sm font-mono" placeholder="Override" />
             </div>
             <div className="col-span-2 space-y-1">
               <Label className="text-xs font-semibold">Default Instructions</Label>

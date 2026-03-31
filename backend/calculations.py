@@ -87,7 +87,7 @@ def recalculate_plan_costs(plan_data: dict, supplier_freight: dict = None) -> di
             )
             
             units_per_bottle = supp.get("units_per_bottle") or 0
-            override = supp.get("bottles_per_month_override")
+            override = None  # Override removed — pure math-driven calculation
             cost_per_bottle = supp.get("cost_per_bottle", 0) or 0
             
             if override is not None and override > 0:

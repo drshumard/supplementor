@@ -659,7 +659,6 @@ async def list_templates(program_name: str = "", user=Depends(require_auth)):
             if ref:
                 supp["cost_per_bottle"] = ref.get("cost_per_bottle", supp.get("cost_per_bottle", 0))
                 supp["units_per_bottle"] = ref.get("units_per_bottle", supp.get("units_per_bottle"))
-                supp["bottles_per_month"] = ref.get("bottles_per_month", supp.get("bottles_per_month"))
                 supp["supplier"] = ref.get("supplier", supp.get("supplier", ""))
                 supp["manufacturer"] = ref.get("manufacturer", supp.get("company", ""))
                 supp["company"] = ref.get("company", supp.get("company", ""))
@@ -710,7 +709,6 @@ async def get_template(template_id: str, user=Depends(require_auth)):
         if ref:
             supp["cost_per_bottle"] = ref.get("cost_per_bottle", supp.get("cost_per_bottle", 0))
             supp["units_per_bottle"] = ref.get("units_per_bottle", supp.get("units_per_bottle"))
-            supp["bottles_per_month"] = ref.get("bottles_per_month", supp.get("bottles_per_month"))
             supp["supplier"] = ref.get("supplier", supp.get("supplier", ""))
             supp["company"] = ref.get("company", supp.get("company", ""))
             supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
@@ -843,7 +841,6 @@ async def create_plan(data: PlanCreate, authorization: str = Header(None)):
                             "refrigerate": ts.get("refrigerate", False),
                             "bottles_needed": None,
                             "calculated_cost": None,
-                            "bottles_per_month_override": None,
                         })
                     months.append({
                         "month_number": m,

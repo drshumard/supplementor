@@ -97,7 +97,6 @@ export default function NewPlanPage() {
             refrigerate: s.refrigerate || false,
             bottles_needed: null,
             calculated_cost: null,
-            bottles_per_month_override: s.bottles_per_month || null,
           })),
           monthly_total_cost: 0,
         })),

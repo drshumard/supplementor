@@ -55,7 +55,7 @@ export function recalculatePlanCosts(months, supplierFreight = {}) {
 
       const daily = calculateDailyDosage(supp.quantity_per_dose, supp.frequency_per_day);
       const unitsPerBottle = supp.units_per_bottle || 0;
-      const override = supp.bottles_per_month_override;
+      const override = null; // Override removed — pure math-driven calculation
       const costPerBottle = supp.cost_per_bottle || 0;
 
       if (override != null && override > 0) {
