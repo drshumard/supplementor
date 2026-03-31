@@ -85,6 +85,7 @@ export default function NewPlanPage() {
             company: s.company || '',
             supplier: s.supplier || '',
             manufacturer: s.manufacturer || s.company || '',
+            unit_type: s.unit_type || 'caps',
             quantity_per_dose: s.quantity_per_dose || null,
             frequency_per_day: s.frequency_per_day || null,
             dosage_display: s.dosage_display || '',

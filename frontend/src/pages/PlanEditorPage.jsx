@@ -334,6 +334,15 @@ export default function PlanEditorPage() {
                 needsSave = true;
               }
             }
+            // Backfill unit_type
+            if (!supp.unit_type) {
+              let ms = supp.supplement_id ? masterSupps.find(m => m._id === supp.supplement_id) : null;
+              if (!ms) ms = masterSupps.find(m => m.supplement_name?.toLowerCase() === supp.supplement_name?.toLowerCase());
+              if (ms?.unit_type) {
+                supp.unit_type = ms.unit_type;
+                needsSave = true;
+              }
+            }
           }
         }
         setPlan(p); setSupplements(s.supplements || []);
@@ -384,6 +393,7 @@ export default function PlanEditorPage() {
       supplement_id: supp._id, supplement_name: supp.supplement_name, company: supp.company || '',
       manufacturer: supp.manufacturer || supp.company || '',
       supplier: supp.supplier || '',
+      unit_type: supp.unit_type || 'caps',
       quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: freq,
       dosage_display: supp.default_dosage_display || '', instructions: supp.default_instructions || '',
       with_food: supp.default_instructions?.toLowerCase().includes('food') || true,
@@ -418,9 +428,10 @@ export default function PlanEditorPage() {
       const s = m.supplements[suppIndex];
       s[field] = value;
       
-      // Find unit type from master supplement list
-      const master = supplements.find(ms => ms._id === s.supplement_id);
-      const unit = master?.unit_type || 'caps';
+      // Find unit type — check plan supplement first, then master list
+      const master = supplements.find(ms => ms._id === s.supplement_id) || 
+                     supplements.find(ms => ms.supplement_name?.toLowerCase() === s.supplement_name?.toLowerCase());
+      const unit = s.unit_type || master?.unit_type || 'caps';
       
       if (field === 'quantity_per_dose' || field === 'frequency_per_day') {
         // Steppers changed → rebuild dosage text + update times
