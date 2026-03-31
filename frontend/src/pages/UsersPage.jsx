@@ -93,7 +93,7 @@ export default function UsersPage() {
   };
 
   const adminCount = users.filter(u => u.role === 'admin').length;
-  const hcCount = users.filter(u => u.role === 'hc').length;
+  const hcCount = users.filter(u => u.role !== 'admin').length;
 
   return (
     <div className="p-10 max-w-[1560px] mx-auto">
