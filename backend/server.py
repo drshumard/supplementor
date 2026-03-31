@@ -161,30 +161,25 @@ async def get_company_freight_map() -> dict:
     return freight
 
 
-async def backfill_plan_suppliers(plan: dict) -> dict:
-    """Backfill supplier field on plan supplements from master supplement list.
-    Matches by supplement_id first, then by supplement_name as fallback."""
-    # Build lookups
+async def sync_plan_with_master(plan: dict) -> dict:
+    """Sync plan supplements with latest master data (units_per_bottle, cost, supplier, etc).
+    Matches by supplement_id first, then by name."""
     id_map = {}
     name_map = {}
-    async for s in db.supplements.find({}, {"_id": 1, "supplement_name": 1, "supplier": 1}):
-        supplier = s.get("supplier", "")
-        if supplier:
-            id_map[str(s["_id"])] = supplier
-            name_map[s.get("supplement_name", "").lower()] = supplier
+    async for s in db.supplements.find({}):
+        sid = str(s["_id"])
+        id_map[sid] = s
+        name_map[s.get("supplement_name", "").lower()] = s
     
     for month in plan.get("months", []):
         for supp in month.get("supplements", []):
-            if not supp.get("supplier"):
-                # Try by ID first
-                sid = supp.get("supplement_id", "")
-                if sid and sid in id_map:
-                    supp["supplier"] = id_map[sid]
-                else:
-                    # Fallback: match by name
-                    name = (supp.get("supplement_name") or "").lower()
-                    if name and name in name_map:
-                        supp["supplier"] = name_map[name]
+            ref = id_map.get(supp.get("supplement_id", "")) or name_map.get((supp.get("supplement_name") or "").lower())
+            if ref:
+                supp["units_per_bottle"] = ref.get("units_per_bottle", supp.get("units_per_bottle"))
+                supp["cost_per_bottle"] = ref.get("cost_per_bottle", supp.get("cost_per_bottle", 0))
+                supp["supplier"] = ref.get("supplier", supp.get("supplier", ""))
+                supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
+                supp["unit_type"] = ref.get("unit_type", supp.get("unit_type", "caps"))
     return plan
 
 
@@ -851,7 +846,7 @@ async def create_plan(data: PlanCreate, authorization: str = Header(None)):
     
     # Recalculate costs with freight
     freight_map = await get_company_freight_map()
-    doc = await backfill_plan_suppliers(doc)
+    doc = await sync_plan_with_master(doc)
     doc = recalculate_plan_costs(doc, freight_map)
     
     doc["status"] = "draft"
@@ -885,7 +880,7 @@ async def update_plan(plan_id: str, data: PlanUpdate, user=Depends(require_auth)
     if data.months is not None:
         months_data = [m.model_dump() for m in data.months]
         plan_data = {"months": months_data}
-        plan_data = await backfill_plan_suppliers(plan_data)
+        plan_data = await sync_plan_with_master(plan_data)
         freight_map = await get_company_freight_map()
         plan_data = recalculate_plan_costs(plan_data, freight_map)
         updates["months"] = plan_data["months"]
@@ -1032,7 +1027,7 @@ async def export_hc_pdf(plan_id: str, user=Depends(require_auth)):
     
     plan = serialize_doc(doc)
     freight_map = await get_company_freight_map()
-    plan = await backfill_plan_suppliers(plan)
+    plan = await sync_plan_with_master(plan)
     plan = recalculate_plan_costs(plan, freight_map)
     
     # Ensure dosage_display
@@ -1068,7 +1063,7 @@ async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
         raise HTTPException(status_code=404, detail="Plan not found")
     
     plan = serialize_doc(doc)
-    plan = await backfill_plan_suppliers(plan)
+    plan = await sync_plan_with_master(plan)
     freight_map = await get_company_freight_map()
     plan = recalculate_plan_costs(plan, freight_map)
     
@@ -1140,7 +1135,7 @@ async def save_all_plans_to_drive(patient_id: str, user=Depends(require_auth)):
         
         for doc in plans:
             plan = serialize_doc(doc)
-            plan = await backfill_plan_suppliers(plan)
+            plan = await sync_plan_with_master(plan)
             plan = recalculate_plan_costs(plan, freight_map)
             
             # Ensure dosage_display

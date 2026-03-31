@@ -310,38 +310,39 @@ export default function PlanEditorPage() {
     const load = async () => {
       try {
         const [p, s, c] = await Promise.all([getPlan(planId), getSupplements('', true), getSuppliers()]);
-        // Backfill times + supplier from master supplement list for existing plans
+        // Sync plan supplements with latest master data
         let needsSave = false;
         const masterSupps = s.supplements || [];
         for (const month of (p.months || [])) {
           for (const supp of (month.supplements || [])) {
+            // Find master supplement by ID or name
+            let master = supp.supplement_id ? masterSupps.find(m => m._id === supp.supplement_id) : null;
+            if (!master) master = masterSupps.find(m => m.supplement_name?.toLowerCase() === supp.supplement_name?.toLowerCase());
+            
+            if (master) {
+              // Sync fields that should always reflect master data
+              const updates = {
+                units_per_bottle: master.units_per_bottle,
+                cost_per_bottle: master.cost_per_bottle,
+                unit_type: master.unit_type,
+                supplier: master.supplier || '',
+                refrigerate: master.refrigerate || false,
+              };
+              for (const [key, val] of Object.entries(updates)) {
+                if (val !== undefined && supp[key] !== val) {
+                  supp[key] = val;
+                  needsSave = true;
+                }
+              }
+            }
+            
+            // Backfill times from frequency if missing
             if (!supp.times || supp.times.length === 0) {
               const freq = supp.frequency_per_day || 1;
               if (freq >= 3) supp.times = ['AM', 'Afternoon', 'PM'];
               else if (freq === 2) supp.times = ['AM', 'PM'];
               else supp.times = ['AM'];
               needsSave = true;
-            }
-            // Backfill supplier from master list if missing
-            if (!supp.supplier) {
-              // Try by ID first, then by name
-              let master = supp.supplement_id ? masterSupps.find(ms => ms._id === supp.supplement_id) : null;
-              if (!master) {
-                master = masterSupps.find(ms => ms.supplement_name?.toLowerCase() === supp.supplement_name?.toLowerCase());
-              }
-              if (master?.supplier) {
-                supp.supplier = master.supplier;
-                needsSave = true;
-              }
-            }
-            // Backfill unit_type
-            if (!supp.unit_type) {
-              let ms = supp.supplement_id ? masterSupps.find(m => m._id === supp.supplement_id) : null;
-              if (!ms) ms = masterSupps.find(m => m.supplement_name?.toLowerCase() === supp.supplement_name?.toLowerCase());
-              if (ms?.unit_type) {
-                supp.unit_type = ms.unit_type;
-                needsSave = true;
-              }
             }
           }
         }
