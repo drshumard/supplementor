@@ -4,6 +4,9 @@ import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, fin
 import { formatCurrency, recalculatePlanCosts, downloadBlob } from '../lib/utils';
 import { parseDosage, buildDosageText } from '../lib/dosageParser';
 import { useAuth } from '../App';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -31,7 +34,7 @@ import {
 import {
   ArrowLeft, Plus, Minus, Trash2, Download, FileText, Eye, EyeOff, Save,
   Snowflake, ChevronsUpDown, Lock, Unlock, Copy, User, CopyPlus, Calendar,
-  MoreHorizontal,
+  MoreHorizontal, GripVertical,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -55,14 +58,47 @@ function NumberStepper({ value, onChange, disabled, min = 0 }) {
   );
 }
 
+/* ── Sortable row wrapper ── */
+function SortableRow({ id, disabled, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative',
+    zIndex: isDragging ? 10 : 'auto',
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
+}
+
 /* ── Month Page ── */
 function MonthPage({
   month, showCosts, patientView, isFinalized,
-  onUpdateField, onRemoveRow, onAddSupplement, supplements, formatCurrency,
+  onUpdateField, onRemoveRow, onAddSupplement, onReorder, supplements, formatCurrency,
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteRow, setDeleteRow] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const suppIds = (month.supplements || []).map((_, i) => `supp-${month.month_number}-${i}`);
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = suppIds.indexOf(active.id);
+    const newIdx = suppIds.indexOf(over.id);
+    if (oldIdx !== -1 && newIdx !== -1) {
+      onReorder(month.month_number, oldIdx, newIdx);
+    }
+  };
 
   const filtered = supplements.filter(s =>
     s.supplement_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -106,9 +142,10 @@ function MonthPage({
           gridTemplateColumns: patientView
             ? '70px minmax(120px,1fr) 90px 45px 1fr'
             : showCosts
-              ? '70px minmax(120px,1fr) 56px 56px 90px 45px 1fr 32px 56px 20px'
-              : '70px minmax(120px,1fr) 56px 56px 100px 45px 1fr 20px'
+              ? '16px 70px minmax(120px,1fr) 56px 56px 90px 45px 1fr 32px 56px 20px'
+              : '16px 70px minmax(120px,1fr) 56px 56px 100px 45px 1fr 20px'
         }}>
+        {!patientView && <span></span>}
         <span className="text-center">Times</span>
         <span className="pl-2">Supplement</span>
         {!patientView && (<>
@@ -132,16 +169,25 @@ function MonthPage({
             No supplements added yet. {!isFinalized ? 'Use the button below to add.' : ''}
           </div>
         ) : (
-          (month.supplements || []).map((supp, idx) => (
-            <div key={idx}
-              className="grid items-center px-4 py-1 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] transition-colors duration-100 group gap-x-4"
-              style={{
-                gridTemplateColumns: patientView
-                  ? '70px minmax(120px,1fr) 90px 45px 1fr'
-                  : showCosts
-                    ? '70px minmax(120px,1fr) 56px 56px 90px 45px 1fr 32px 56px 20px'
-                    : '70px minmax(120px,1fr) 56px 56px 100px 45px 1fr 20px'
-              }}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={suppIds} strategy={verticalListSortingStrategy}>
+              {(month.supplements || []).map((supp, idx) => (
+                <SortableRow key={suppIds[idx]} id={suppIds[idx]} disabled={isFinalized || patientView}>
+                  <div
+                    className="grid items-center px-4 py-1 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] transition-colors duration-100 group gap-x-4"
+                    style={{
+                      gridTemplateColumns: patientView
+                        ? '70px minmax(120px,1fr) 90px 45px 1fr'
+                        : showCosts
+                          ? '16px 70px minmax(120px,1fr) 56px 56px 90px 45px 1fr 32px 56px 20px'
+                          : '16px 70px minmax(120px,1fr) 56px 56px 100px 45px 1fr 20px'
+                    }}>
+                    {/* Drag handle */}
+                    {!patientView && (
+                      <div className="flex items-center justify-center cursor-grab active:cursor-grabbing drag-handle">
+                        <GripVertical size={12} className="text-[#C0C8D0] group-hover:text-[#94A3B8]" />
+                      </div>
+                    )}
               {/* Time slots — compact chips */}
               <div className="flex justify-center gap-0.5">
                 {patientView ? (
@@ -230,7 +276,10 @@ function MonthPage({
                 </div>
               )}
             </div>
-          ))
+                </SortableRow>
+              ))}
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
@@ -420,6 +469,17 @@ export default function PlanEditorPage() {
     if (m) { m.supplements = (m.supplements || []).filter((_, i) => i !== index); }
     recalcAndUpdate(np); toast.success('Supplement removed');
   };
+
+  const reorderSupplements = (monthNum, oldIdx, newIdx) => {
+    if (!plan || isFinalized) return;
+    const np = { ...plan }; const m = np.months?.find(x => x.month_number === monthNum);
+    if (m) {
+      m.supplements = arrayMove(m.supplements, oldIdx, newIdx);
+      recalcAndUpdate(np);
+    }
+  };
+
+
   const updateField = (monthNum, suppIndex, field, value) => {
     if (!plan || isFinalized) return;
     const np = { ...plan }; const m = np.months?.find(x => x.month_number === monthNum);
@@ -708,7 +768,7 @@ export default function PlanEditorPage() {
           {(plan.months || []).map((month) => (
             <MonthPage key={month.month_number} month={month}
               showCosts={effectiveShowCosts} patientView={patientViewMode} isFinalized={isFinalized}
-              onUpdateField={updateField} onRemoveRow={removeRow} onAddSupplement={addSupplementToMonth}
+              onUpdateField={updateField} onRemoveRow={removeRow} onReorder={reorderSupplements} onAddSupplement={addSupplementToMonth}
               supplements={supplements} formatCurrency={formatCurrency} />
           ))}
         </div>
