@@ -107,13 +107,13 @@ function MonthPage({
       </div>
 
       {/* Column headers */}
-      <div className="grid items-center px-6 py-4 border-b border-border/30 bg-[#FAFAFA] gap-x-3"
+      <div className="grid items-center px-5 py-3 border-b border-border/30 bg-[#FAFAFA] gap-x-2"
         style={{
           gridTemplateColumns: patientView
-            ? '90px 1fr 120px 60px 1fr'
+            ? '80px 1fr 110px 50px 1fr'
             : showCosts
-              ? '90px 1fr 80px 80px 120px 60px 1fr 50px 80px 32px'
-              : '90px 1fr 80px 80px 140px 60px 1fr 32px'
+              ? '80px 1fr 70px 70px minmax(100px,1fr) 50px 1fr 40px 70px 28px'
+              : '80px 1fr 70px 70px minmax(110px,1fr) 50px 1fr 28px'
         }}>
         <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Times</span>
         <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568]">Supplement</span>
@@ -140,13 +140,13 @@ function MonthPage({
         ) : (
           (month.supplements || []).map((supp, idx) => (
             <div key={idx}
-              className="grid items-center px-6 py-4 border-b border-border/15 last:border-b-0 hover:bg-[#F0FAFA] transition-colors duration-150 group gap-x-3"
+              className="grid items-center px-5 py-3 border-b border-border/15 last:border-b-0 hover:bg-[#F0FAFA] transition-colors duration-150 group gap-x-2"
               style={{
                 gridTemplateColumns: patientView
-                  ? '90px 1fr 120px 60px 1fr'
+                  ? '80px 1fr 110px 50px 1fr'
                   : showCosts
-                    ? '90px 1fr 80px 80px 120px 60px 1fr 50px 80px 32px'
-                    : '90px 1fr 80px 80px 140px 60px 1fr 32px'
+                    ? '80px 1fr 70px 70px minmax(100px,1fr) 50px 1fr 40px 70px 28px'
+                    : '80px 1fr 70px 70px minmax(110px,1fr) 50px 1fr 28px'
               }}>
               {/* Time slots — 3 toggle chips */}
               <div className="flex justify-center gap-1">
@@ -606,8 +606,8 @@ export default function PlanEditorPage() {
         </div>
       )}
 
-      <div className="flex gap-8">
-        <div className="flex-1 min-w-0">
+      <div>
+        <div>
           {/* Action row: add buttons left, Actions dropdown right */}
           <div className="flex items-center gap-3 mb-6">
             {!isFinalized && !patientViewMode && (
@@ -715,46 +715,34 @@ export default function PlanEditorPage() {
           ))}
         </div>
 
-        {/* Cost Summary */}
+        {/* Cost Summary — horizontal below months */}
         {effectiveShowCosts && !patientViewMode && (
-          <div className="w-[340px] shrink-0">
-            <div className="sticky top-10">
-              <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated p-7" data-testid="plan-editor-cost-summary">
-                <h3 className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] mb-5">Cost Summary</h3>
-                <div className="space-y-3">
-                  {(plan.months || []).map(month => (
-                    <div key={month.month_number}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-[#0B0D10] font-medium">
-                          {month.month_number === 0.5 ? '2 Weeks' : month.month_number % 1 !== 0 ? `Month ${Math.floor(month.month_number)}+2W` : `Month ${month.month_number}`}
-                        </span>
-                        <span className="font-mono tabular-nums text-sm font-bold">{formatCurrency(month.monthly_total_cost)}</span>
-                      </div>
-                      <div className="flex items-center justify-between mt-0.5">
-                        <span className="text-[11px] text-[#94A3B8]">Supplements</span>
-                        <span className="font-mono tabular-nums text-[11px] text-[#94A3B8]">{formatCurrency(month.supplement_cost || month.monthly_total_cost)}</span>
-                      </div>
-                      {(month.freight_total || 0) > 0 && (
-                        <div className="flex items-center justify-between mt-0.5">
-                          <span className="text-[11px] text-[#94A3B8]">Shipping</span>
-                          <span className="font-mono tabular-nums text-[11px] text-[#94A3B8]">{formatCurrency(month.freight_total)}</span>
-                        </div>
-                      )}
+          <div className="mt-6 rounded-xl border border-[#E2E8F0] bg-white card-elevated p-6" data-testid="plan-editor-cost-summary">
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <h3 className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] pt-2">Cost Summary</h3>
+              <div className="flex items-center gap-6 flex-wrap">
+                {(plan.months || []).map(month => (
+                  <div key={month.month_number} className="text-right min-w-[80px]">
+                    <div className="text-xs text-[#4A5568] font-medium">
+                      {month.month_number === 0.5 ? '2 Weeks' : month.month_number % 1 !== 0 ? `M${Math.floor(month.month_number)}+2W` : `Month ${month.month_number}`}
                     </div>
-                  ))}
-                  <Separator />
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-sm font-bold text-[#0B0D10]">Program Total</span>
-                    <span className="font-mono tabular-nums text-xl font-bold text-[#147D5A]" data-testid="cost-summary-total-value">
-                      {formatCurrency(plan.total_program_cost || 0)}
-                    </span>
+                    <div className="font-mono tabular-nums text-sm font-bold text-[#0B0D10]">{formatCurrency(month.monthly_total_cost)}</div>
+                    <div className="font-mono tabular-nums text-[10px] text-[#94A3B8]">
+                      Supps {formatCurrency(month.supplement_cost || month.monthly_total_cost)}
+                      {(month.freight_total || 0) > 0 && ` · Ship ${formatCurrency(month.freight_total)}`}
+                    </div>
+                  </div>
+                ))}
+                <div className="w-px h-10 bg-[#E2E8F0]" />
+                <div className="text-right">
+                  <div className="text-xs text-[#4A5568] font-medium">Program Total</div>
+                  <div className="font-mono tabular-nums text-xl font-bold text-[#147D5A]" data-testid="cost-summary-total-value">
+                    {formatCurrency(plan.total_program_cost || 0)}
                   </div>
                 </div>
               </div>
-              <div className="mt-6 p-5 rounded-2xl bg-[#EAF4F3] border border-[#C8E6E0]">
-                <p className="text-xs text-[#0D5F68] font-semibold">Cost visible to HC only. Patient PDFs exclude all cost info.</p>
-              </div>
             </div>
+            <p className="text-[10px] text-[#94A3B8] mt-2">Cost visible to HC only. Patient PDFs exclude all cost info.</p>
           </div>
         )}
       </div>
