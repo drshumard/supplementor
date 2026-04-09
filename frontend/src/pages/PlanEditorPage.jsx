@@ -170,8 +170,8 @@ function MonthPage({
                 )}
               </div>
               {/* Supplement */}
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[11px] font-medium text-[#0B0D10] truncate">{supp.supplement_name}</span>
+              <div className="flex items-center gap-1.5 min-w-0 pl-2">
+                <span className="text-[11px] font-bold text-[#0B0D10] truncate">{supp.supplement_name}</span>
                 {supp.refrigerate && <Snowflake size={11} className="text-blue-500 shrink-0" />}
               </div>
               {!patientView && (<>
@@ -182,15 +182,19 @@ function MonthPage({
               </>)}
               {/* Dosage */}
               <div>
-                {patientView ? <span className="text-[11px] text-center block">{supp.dosage_display || '-'}</span> :
-                  <Input value={supp.dosage_display || ''}
-                    onChange={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.value)}
-                    className="h-7 text-[11px] w-full border-[#E2E8F0] rounded px-1.5" placeholder="2 caps" disabled={isFinalized} />}
+                {patientView || isFinalized ? (
+                  <span className="text-[11px] text-[#334155] block break-words">{supp.dosage_display || '-'}</span>
+                ) : (
+                  <div contentEditable suppressContentEditableWarning
+                    className="text-[11px] text-[#334155] outline-none min-h-[18px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30"
+                    onBlur={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.textContent)}
+                    dangerouslySetInnerHTML={{ __html: supp.dosage_display || '' }} />
+                )}
               </div>
               {/* With Food */}
               <div className="flex justify-center">
                 {patientView ? (
-                  <span className="text-xs">{supp.with_food ? 'Yes' : 'No'}</span>
+                  <span className="text-[11px]">{supp.with_food ? 'Yes' : 'No'}</span>
                 ) : (
                   <Select value={supp.with_food ? 'yes' : 'no'} onValueChange={(v) => onUpdateField(month.month_number, idx, 'with_food', v === 'yes')} disabled={isFinalized}>
                     <SelectTrigger className="h-7 text-[11px] border-[#E2E8F0] w-full px-1.5"><SelectValue /></SelectTrigger>
@@ -203,10 +207,14 @@ function MonthPage({
               </div>
               {/* Notes */}
               <div>
-                {patientView ? <span className="text-[11px] text-[#718096] truncate block">{supp.instructions || '-'}</span> :
-                  <Input value={supp.instructions || ''}
-                    onChange={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.value)}
-                    className="h-7 text-[11px] w-full border-[#E2E8F0] rounded px-1.5" placeholder="Notes..." disabled={isFinalized} />}
+                {patientView || isFinalized ? (
+                  <span className="text-[11px] text-[#718096] block break-words">{supp.instructions || '-'}</span>
+                ) : (
+                  <div contentEditable suppressContentEditableWarning
+                    className="text-[11px] text-[#718096] outline-none min-h-[18px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30"
+                    onBlur={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.textContent)}
+                    dangerouslySetInnerHTML={{ __html: supp.instructions || '' }} />
+                )}
               </div>
               {showCosts && !patientView && (<>
                 <div className="font-mono tabular-nums text-[11px] font-semibold text-[#334155] text-center">{supp.bottles_needed || '-'}</div>
