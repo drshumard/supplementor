@@ -101,21 +101,21 @@ function MonthPage({
       </div>
 
       {/* Column headers — compact data grid style */}
-      <div className="grid items-center px-4 py-2 border-b border-[#E2E8F0] bg-[#F8FAFB] gap-x-3 text-[10px] font-semibold tracking-[0.06em] uppercase text-[#64748B]"
+      <div className="grid items-center px-4 py-2 border-b border-[#E2E8F0] bg-[#F8FAFB] gap-x-4 text-[10px] font-semibold tracking-[0.06em] uppercase text-[#64748B]"
         style={{
           gridTemplateColumns: patientView
-            ? '70px 1.5fr 100px 45px 1fr'
+            ? '70px minmax(120px,1fr) 90px 45px 1fr'
             : showCosts
-              ? '70px 1.5fr 56px 56px 100px 45px 1fr 36px 60px 24px'
-              : '70px 1.5fr 56px 56px 110px 45px 1fr 24px'
+              ? '70px minmax(120px,1fr) 56px 56px 90px 45px 1fr 32px 56px 20px'
+              : '70px minmax(120px,1fr) 56px 56px 100px 45px 1fr 20px'
         }}>
         <span className="text-center">Times</span>
-        <span>Supplement</span>
+        <span className="pl-2">Supplement</span>
         {!patientView && (<>
           <span className="text-center">Qty</span>
           <span className="text-center">Freq</span>
         </>)}
-        <span className="text-center">Dosage</span>
+        <span>Dosage</span>
         <span className="text-center">Food</span>
         <span>Notes</span>
         {showCosts && !patientView && (<>
@@ -134,13 +134,13 @@ function MonthPage({
         ) : (
           (month.supplements || []).map((supp, idx) => (
             <div key={idx}
-              className="grid items-center px-4 py-1 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] transition-colors duration-100 group gap-x-3"
+              className="grid items-center px-4 py-1 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] transition-colors duration-100 group gap-x-4"
               style={{
                 gridTemplateColumns: patientView
-                  ? '70px 1.5fr 100px 45px 1fr'
+                  ? '70px minmax(120px,1fr) 90px 45px 1fr'
                   : showCosts
-                    ? '70px 1.5fr 56px 56px 100px 45px 1fr 36px 60px 24px'
-                    : '70px 1.5fr 56px 56px 110px 45px 1fr 24px'
+                    ? '70px minmax(120px,1fr) 56px 56px 90px 45px 1fr 32px 56px 20px'
+                    : '70px minmax(120px,1fr) 56px 56px 100px 45px 1fr 20px'
               }}>
               {/* Time slots — compact chips */}
               <div className="flex justify-center gap-0.5">
