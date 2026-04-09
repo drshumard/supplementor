@@ -39,17 +39,17 @@ import { toast } from 'sonner';
 function NumberStepper({ value, onChange, disabled, min = 0 }) {
   const num = value ?? 0;
   return (
-    <div className="inline-flex items-center h-7 rounded border border-[#DCE3E3] overflow-hidden select-none bg-white">
+    <div className="inline-flex items-center h-7 rounded-md border border-[#C8E6E0] overflow-hidden select-none">
       <button type="button" disabled={disabled || num <= min}
         onClick={() => onChange(Math.max(min, num - 1))}
-        className="w-6 h-full flex items-center justify-center text-[#94A3B8] hover:bg-[#F1F5F9] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
-        <Minus size={10} />
+        className="w-7 h-full flex items-center justify-center bg-[#EAF4F3] text-[#64748B] hover:bg-[#D5ECE8] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
+        <Minus size={11} />
       </button>
-      <span className="w-6 h-full flex items-center justify-center font-mono text-xs font-bold text-[#0B0D10] border-x border-[#DCE3E3]">{num}</span>
+      <span className="w-8 h-full flex items-center justify-center font-mono text-[11px] font-bold text-[#0B0D10] bg-white">{num}</span>
       <button type="button" disabled={disabled}
         onClick={() => onChange(num + 1)}
-        className="w-6 h-full flex items-center justify-center text-[#94A3B8] hover:bg-[#F1F5F9] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
-        <Plus size={10} />
+        className="w-7 h-full flex items-center justify-center bg-[#EAF4F3] text-[#64748B] hover:bg-[#D5ECE8] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
+        <Plus size={11} />
       </button>
     </div>
   );
@@ -160,7 +160,7 @@ function MonthPage({
                           if (newTimes.length === 0) return;
                           onUpdateField(month.month_number, idx, 'times', newTimes);
                         }}
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-colors ${
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors ${
                           active ? 'bg-[#0D5F68] text-white' : 'bg-[#F1F5F9] text-[#94A3B8] hover:text-[#0D5F68]'
                         } ${isFinalized ? 'opacity-50' : ''}`}>
                         {label}
@@ -171,7 +171,7 @@ function MonthPage({
               </div>
               {/* Supplement */}
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[13px] font-medium text-[#0B0D10] truncate">{supp.supplement_name}</span>
+                <span className="text-[11px] font-medium text-[#0B0D10] truncate">{supp.supplement_name}</span>
                 {supp.refrigerate && <Snowflake size={11} className="text-blue-500 shrink-0" />}
               </div>
               {!patientView && (<>
@@ -182,7 +182,7 @@ function MonthPage({
               </>)}
               {/* Dosage */}
               <div>
-                {patientView ? <span className="text-xs text-center block">{supp.dosage_display || '-'}</span> :
+                {patientView ? <span className="text-[11px] text-center block">{supp.dosage_display || '-'}</span> :
                   <Input value={supp.dosage_display || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.value)}
                     className="h-7 text-[11px] w-full border-[#E2E8F0] rounded px-1.5" placeholder="2 caps" disabled={isFinalized} />}
@@ -203,14 +203,14 @@ function MonthPage({
               </div>
               {/* Notes */}
               <div>
-                {patientView ? <span className="text-xs text-[#718096] truncate block">{supp.instructions || '-'}</span> :
+                {patientView ? <span className="text-[11px] text-[#718096] truncate block">{supp.instructions || '-'}</span> :
                   <Input value={supp.instructions || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.value)}
                     className="h-7 text-[11px] w-full border-[#E2E8F0] rounded px-1.5" placeholder="Notes..." disabled={isFinalized} />}
               </div>
               {showCosts && !patientView && (<>
-                <div className="font-mono tabular-nums text-xs font-semibold text-[#334155] text-center">{supp.bottles_needed || '-'}</div>
-                <div className="font-mono tabular-nums text-xs font-bold text-[#147D5A] text-right whitespace-nowrap">{formatCurrency(supp.calculated_cost)}</div>
+                <div className="font-mono tabular-nums text-[11px] font-semibold text-[#334155] text-center">{supp.bottles_needed || '-'}</div>
+                <div className="font-mono tabular-nums text-[11px] font-bold text-[#147D5A] text-right whitespace-nowrap">{formatCurrency(supp.calculated_cost)}</div>
               </>)}
               {!isFinalized && !patientView && (
                 <div className="flex justify-center">
