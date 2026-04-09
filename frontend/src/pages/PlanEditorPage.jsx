@@ -35,27 +35,21 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-/* ── Pill-shaped number stepper ── */
+/* ── Compact number stepper ── */
 function NumberStepper({ value, onChange, disabled, min = 0 }) {
   const num = value ?? 0;
   return (
-    <div className="inline-flex items-center h-10 rounded-lg bg-[#D5ECE8] border border-[#C8E6E0] overflow-hidden select-none">
-      <button
-        type="button"
-        disabled={disabled || num <= min}
+    <div className="inline-flex items-center h-7 rounded border border-[#DCE3E3] overflow-hidden select-none bg-white">
+      <button type="button" disabled={disabled || num <= min}
         onClick={() => onChange(Math.max(min, num - 1))}
-        className="w-9 h-full flex items-center justify-center text-[#61746E] hover:bg-[#C8E6E0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-      >
-        <Minus size={14} />
+        className="w-6 h-full flex items-center justify-center text-[#94A3B8] hover:bg-[#F1F5F9] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
+        <Minus size={10} />
       </button>
-      <span className="w-9 h-full flex items-center justify-center bg-[#F4F5F5] font-mono text-sm font-bold text-[#0B0D10]">{num}</span>
-      <button
-        type="button"
-        disabled={disabled}
+      <span className="w-6 h-full flex items-center justify-center font-mono text-xs font-bold text-[#0B0D10] border-x border-[#DCE3E3]">{num}</span>
+      <button type="button" disabled={disabled}
         onClick={() => onChange(num + 1)}
-        className="w-9 h-full flex items-center justify-center text-[#61746E] hover:bg-[#C8E6E0] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-      >
-        <Plus size={14} />
+        className="w-6 h-full flex items-center justify-center text-[#94A3B8] hover:bg-[#F1F5F9] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
+        <Plus size={10} />
       </button>
     </div>
   );
@@ -106,27 +100,27 @@ function MonthPage({
         )}
       </div>
 
-      {/* Column headers */}
-      <div className="grid items-center px-5 py-3 border-b border-border/30 bg-[#FAFAFA] gap-x-2"
+      {/* Column headers — compact data grid style */}
+      <div className="grid items-center px-4 py-2 border-b border-[#E2E8F0] bg-[#F8FAFB] gap-x-3 text-[10px] font-semibold tracking-[0.06em] uppercase text-[#64748B]"
         style={{
           gridTemplateColumns: patientView
-            ? '80px 1fr 110px 50px 1fr'
+            ? '70px 1.5fr 100px 45px 1fr'
             : showCosts
-              ? '80px 1fr 70px 70px minmax(100px,1fr) 50px 1fr 40px 70px 28px'
-              : '80px 1fr 70px 70px minmax(110px,1fr) 50px 1fr 28px'
+              ? '70px 1.5fr 56px 56px 100px 45px 1fr 36px 60px 24px'
+              : '70px 1.5fr 56px 56px 110px 45px 1fr 24px'
         }}>
-        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Times</span>
-        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568]">Supplement</span>
+        <span className="text-center">Times</span>
+        <span>Supplement</span>
         {!patientView && (<>
-          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Qty</span>
-          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">x/Day</span>
+          <span className="text-center">Qty</span>
+          <span className="text-center">Freq</span>
         </>)}
-        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Dosage</span>
-        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Food</span>
-        <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568]">Notes</span>
+        <span className="text-center">Dosage</span>
+        <span className="text-center">Food</span>
+        <span>Notes</span>
         {showCosts && !patientView && (<>
-          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-center">Btls</span>
-          <span className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] text-right">Cost</span>
+          <span className="text-center">Btls</span>
+          <span className="text-right">Cost</span>
         </>)}
         {!isFinalized && !patientView && <span></span>}
       </div>
@@ -140,18 +134,18 @@ function MonthPage({
         ) : (
           (month.supplements || []).map((supp, idx) => (
             <div key={idx}
-              className="grid items-center px-5 py-3 border-b border-border/15 last:border-b-0 hover:bg-[#F0FAFA] transition-colors duration-150 group gap-x-2"
+              className="grid items-center px-4 py-2 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] transition-colors duration-100 group gap-x-3"
               style={{
                 gridTemplateColumns: patientView
-                  ? '80px 1fr 110px 50px 1fr'
+                  ? '70px 1.5fr 100px 45px 1fr'
                   : showCosts
-                    ? '80px 1fr 70px 70px minmax(100px,1fr) 50px 1fr 40px 70px 28px'
-                    : '80px 1fr 70px 70px minmax(110px,1fr) 50px 1fr 28px'
+                    ? '70px 1.5fr 56px 56px 100px 45px 1fr 36px 60px 24px'
+                    : '70px 1.5fr 56px 56px 110px 45px 1fr 24px'
               }}>
-              {/* Time slots — 3 toggle chips */}
-              <div className="flex justify-center gap-1">
+              {/* Time slots — compact chips */}
+              <div className="flex justify-center gap-0.5">
                 {patientView ? (
-                  <span className="text-xs font-semibold text-[#0D5F68]">{(supp.times || ['AM']).join(', ')}</span>
+                  <span className="text-[10px] font-semibold text-[#0D5F68]">{(supp.times || ['AM']).join('/')}</span>
                 ) : (
                   ['AM', 'Aft', 'PM'].map((label, ti) => {
                     const fullName = ['AM', 'Afternoon', 'PM'][ti];
@@ -163,15 +157,12 @@ function MonthPage({
                           const newTimes = active
                             ? times.filter(t => t !== fullName)
                             : [...times, fullName].sort((a, b) => ['AM','Afternoon','PM'].indexOf(a) - ['AM','Afternoon','PM'].indexOf(b));
-                          if (newTimes.length === 0) return; // Must have at least one
+                          if (newTimes.length === 0) return;
                           onUpdateField(month.month_number, idx, 'times', newTimes);
                         }}
-                        className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${
-                          active
-                            ? 'bg-[#0D5F68] text-white'
-                            : 'bg-[#EAF4F3] text-[#94A3B8] hover:text-[#0D5F68]'
-                        } ${isFinalized ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-colors ${
+                          active ? 'bg-[#0D5F68] text-white' : 'bg-[#F1F5F9] text-[#94A3B8] hover:text-[#0D5F68]'
+                        } ${isFinalized ? 'opacity-50' : ''}`}>
                         {label}
                       </button>
                     );
@@ -179,12 +170,9 @@ function MonthPage({
                 )}
               </div>
               {/* Supplement */}
-              <div className="flex items-center gap-2">
-                <div>
-                  <div className="text-sm font-semibold text-[#0B0D10]">{supp.supplement_name}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">{supp.company}</div>
-                </div>
-                {supp.refrigerate && <Snowflake size={13} className="text-blue-500 shrink-0" />}
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[13px] font-medium text-[#0B0D10] truncate">{supp.supplement_name}</span>
+                {supp.refrigerate && <Snowflake size={11} className="text-blue-500 shrink-0" />}
               </div>
               {!patientView && (<>
                 <div className="flex justify-center"><NumberStepper value={supp.quantity_per_dose} disabled={isFinalized}
@@ -193,11 +181,11 @@ function MonthPage({
                   onChange={(v) => onUpdateField(month.month_number, idx, 'frequency_per_day', v)} /></div>
               </>)}
               {/* Dosage */}
-              <div className="flex justify-center">
-                {patientView ? <span className="text-sm text-center">{supp.dosage_display || '-'}</span> :
+              <div>
+                {patientView ? <span className="text-xs text-center block">{supp.dosage_display || '-'}</span> :
                   <Input value={supp.dosage_display || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.value)}
-                    className="h-9 text-xs text-center w-full border-[#C8E6E0] rounded-lg" placeholder="2 caps 3x/day" disabled={isFinalized} />}
+                    className="h-7 text-[11px] w-full border-[#E2E8F0] rounded px-1.5" placeholder="2 caps" disabled={isFinalized} />}
               </div>
               {/* With Food */}
               <div className="flex justify-center">
@@ -205,7 +193,7 @@ function MonthPage({
                   <span className="text-xs">{supp.with_food ? 'Yes' : 'No'}</span>
                 ) : (
                   <Select value={supp.with_food ? 'yes' : 'no'} onValueChange={(v) => onUpdateField(month.month_number, idx, 'with_food', v === 'yes')} disabled={isFinalized}>
-                    <SelectTrigger className="h-9 text-xs border-[#C8E6E0] w-full"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-7 text-[11px] border-[#E2E8F0] w-full px-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="yes">Yes</SelectItem>
                       <SelectItem value="no">No</SelectItem>
@@ -213,22 +201,24 @@ function MonthPage({
                   </Select>
                 )}
               </div>
-              {/* Notes/Instructions */}
+              {/* Notes */}
               <div>
-                {patientView ? <span className="text-sm text-muted-foreground italic">{supp.instructions || '-'}</span> :
+                {patientView ? <span className="text-xs text-[#718096] truncate block">{supp.instructions || '-'}</span> :
                   <Input value={supp.instructions || ''}
                     onChange={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.value)}
-                    className="h-9 text-xs w-full border-[#C8E6E0] rounded-lg" placeholder="Notes..." disabled={isFinalized} />}
+                    className="h-7 text-[11px] w-full border-[#E2E8F0] rounded px-1.5" placeholder="Notes..." disabled={isFinalized} />}
               </div>
               {showCosts && !patientView && (<>
-                <div className="font-mono tabular-nums text-xs font-semibold text-[#2B3437] text-center">{supp.bottles_needed || '-'}</div>
-                <div className="font-mono tabular-nums text-sm font-bold text-[#147D5A] text-right whitespace-nowrap">{formatCurrency(supp.calculated_cost)}</div>
+                <div className="font-mono tabular-nums text-xs font-semibold text-[#334155] text-center">{supp.bottles_needed || '-'}</div>
+                <div className="font-mono tabular-nums text-xs font-bold text-[#147D5A] text-right whitespace-nowrap">{formatCurrency(supp.calculated_cost)}</div>
               </>)}
               {!isFinalized && !patientView && (
                 <div className="flex justify-center">
-                  <Button variant="ghost" size="sm"
-                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-[#C53B3B] hover:bg-red-50 rounded-lg"
-                    onClick={() => setDeleteRow(idx)}><Trash2 size={14} /></Button>
+                  <button
+                    className="h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[#94A3B8] hover:text-[#C53B3B] rounded"
+                    onClick={() => setDeleteRow(idx)}>
+                    <Trash2 size={12} />
+                  </button>
                 </div>
               )}
             </div>
