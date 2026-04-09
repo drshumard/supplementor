@@ -39,17 +39,17 @@ import { toast } from 'sonner';
 function NumberStepper({ value, onChange, disabled, min = 0 }) {
   const num = value ?? 0;
   return (
-    <div className="inline-flex items-center h-7 rounded-md border border-[#C8E6E0] overflow-hidden select-none">
+    <div className="inline-flex items-center h-[22px] rounded-md border border-[#C8E6E0] overflow-hidden select-none">
       <button type="button" disabled={disabled || num <= min}
         onClick={() => onChange(Math.max(min, num - 1))}
-        className="w-7 h-full flex items-center justify-center bg-[#EAF4F3] text-[#64748B] hover:bg-[#D5ECE8] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
-        <Minus size={11} />
+        className="w-[22px] h-full flex items-center justify-center bg-[#EAF4F3] text-[#64748B] hover:bg-[#D5ECE8] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
+        <Minus size={9} />
       </button>
-      <span className="w-8 h-full flex items-center justify-center font-mono text-[11px] font-bold text-[#0B0D10] bg-white">{num}</span>
+      <span className="w-6 h-full flex items-center justify-center font-mono text-[10px] font-bold text-[#0B0D10] bg-white">{num}</span>
       <button type="button" disabled={disabled}
         onClick={() => onChange(num + 1)}
-        className="w-7 h-full flex items-center justify-center bg-[#EAF4F3] text-[#64748B] hover:bg-[#D5ECE8] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
-        <Plus size={11} />
+        className="w-[22px] h-full flex items-center justify-center bg-[#EAF4F3] text-[#64748B] hover:bg-[#D5ECE8] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
+        <Plus size={9} />
       </button>
     </div>
   );
@@ -134,7 +134,7 @@ function MonthPage({
         ) : (
           (month.supplements || []).map((supp, idx) => (
             <div key={idx}
-              className="grid items-center px-4 py-2 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] transition-colors duration-100 group gap-x-3"
+              className="grid items-center px-4 py-1 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] transition-colors duration-100 group gap-x-3"
               style={{
                 gridTemplateColumns: patientView
                   ? '70px 1.5fr 100px 45px 1fr'
@@ -186,7 +186,7 @@ function MonthPage({
                   <span className="text-[11px] text-[#334155] block break-words">{supp.dosage_display || '-'}</span>
                 ) : (
                   <div contentEditable suppressContentEditableWarning
-                    className="text-[11px] text-[#334155] outline-none min-h-[18px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30"
+                    className="text-[11px] text-[#334155] outline-none min-h-[16px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30 leading-tight"
                     onBlur={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.textContent)}
                     dangerouslySetInnerHTML={{ __html: supp.dosage_display || '' }} />
                 )}
@@ -211,7 +211,7 @@ function MonthPage({
                   <span className="text-[11px] text-[#718096] block break-words">{supp.instructions || '-'}</span>
                 ) : (
                   <div contentEditable suppressContentEditableWarning
-                    className="text-[11px] text-[#718096] outline-none min-h-[18px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30"
+                    className="text-[11px] text-[#718096] outline-none min-h-[16px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30 leading-tight"
                     onBlur={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.textContent)}
                     dangerouslySetInnerHTML={{ __html: supp.instructions || '' }} />
                 )}
