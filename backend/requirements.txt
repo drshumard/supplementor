@@ -15,3 +15,4 @@ google-api-python-client==2.189.0
 google-auth==2.49.0.dev0
 pydantic==2.12.5
 requests==2.32.5
+dropbox==12.0.2

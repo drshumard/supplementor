@@ -123,7 +123,7 @@ export const exportHCPDF = async (planId) => {
 
 // Google Drive
 export const saveToDrive = (planId) =>
-  request(`/plans/${planId}/save-to-drive`, { method: 'POST' });
+  request(`/plans/${planId}/save-to-cloud`, { method: 'POST' });
 
 
 // Users (admin)
@@ -156,7 +156,7 @@ export const deletePatient = (id) =>
   request(`/patients/${id}`, { method: 'DELETE' });
 
 export const saveAllPlansToDrive = (patientId) =>
-  request(`/patients/${patientId}/save-all-to-drive`, { method: 'POST' });
+  request(`/patients/${patientId}/save-all-to-cloud`, { method: 'POST' });
 
 
 // Companies

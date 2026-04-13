@@ -183,48 +183,23 @@ async def sync_plan_with_master(plan: dict) -> dict:
     return plan
 
 
-async def get_user_drive_folder(user: dict) -> str:
-    """Get the user's Google Drive folder ID. Creates and persists on first use.
-    Verifies the folder still exists — recreates if deleted from Drive."""
-    from google_drive import _get_drive_service, _find_or_create_folder, DRIVE_ID
-    
+async def get_user_display_name(user: dict) -> str:
+    """Get the user's display name for folder naming."""
     user_id = user.get("sub")
-    if not user_id:
-        raise HTTPException(status_code=400, detail="User ID not found")
-    
-    local_user = await db.users.find_one({"_id": ObjectId(user_id)})
+    local_user = None
+    if user_id:
+        from bson import ObjectId as OId
+        try:
+            local_user = await db.users.find_one({"_id": OId(user_id)})
+        except Exception:
+            pass
     if not local_user:
         local_user = await db.users.find_one({"clerk_user_id": user.get("clerk_user_id")})
     
-    cached_id = (local_user or {}).get("drive_folder_id")
-    
-    if cached_id:
-        # Verify folder still exists on Drive
-        try:
-            service = _get_drive_service()
-            f = service.files().get(fileId=cached_id, supportsAllDrives=True, fields="id,trashed").execute()
-            if not f.get("trashed"):
-                return cached_id
-        except Exception:
-            pass
-        # Folder was deleted or inaccessible — clear cache and recreate
-        print(f"[Drive] Cached folder {cached_id} no longer exists, recreating...")
-    
-    # Create folder named after the user
-    user_name = user.get("name") or (local_user or {}).get("name") or ""
-    if not user_name:
-        user_name = user.get("email", "").split("@")[0] or "Unknown User"
-    service = _get_drive_service()
-    folder_id = _find_or_create_folder(service, user_name, DRIVE_ID)
-    
-    # Persist the folder ID on the user record
-    if local_user:
-        await db.users.update_one(
-            {"_id": local_user["_id"]},
-            {"$set": {"drive_folder_id": folder_id}}
-        )
-    
-    return folder_id
+    name = user.get("name") or (local_user or {}).get("name") or ""
+    if not name:
+        name = user.get("email", "").split("@")[0] or "Unknown User"
+    return name
 
 
 
@@ -1066,11 +1041,11 @@ async def export_hc_pdf(plan_id: str, user=Depends(require_auth)):
 
 
 
-# ─── Google Drive Save ───────────────────────────────────────────────────────
+# ─── Dropbox Save ─────────────────────────────────────────────────────────
 
-@app.post("/api/plans/{plan_id}/save-to-drive")
-async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
-    """Generate both PDFs and upload to Google Drive in patient folder."""
+@app.post("/api/plans/{plan_id}/save-to-cloud")
+async def save_plan_to_cloud(plan_id: str, authorization: str = Header(None)):
+    """Generate both PDFs and upload to Dropbox in practitioner/patient folder."""
     user = await get_current_user(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -1084,56 +1059,42 @@ async def save_plan_to_drive(plan_id: str, authorization: str = Header(None)):
     freight_map = await get_company_freight_map()
     plan = recalculate_plan_costs(plan, freight_map)
     
-    # Ensure dosage_display
-    for month in plan.get("months", []):
-        for supp in month.get("supplements", []):
-            if not supp.get("dosage_display"):
-                q = supp.get("quantity_per_dose", 0) or 0
-                f = supp.get("frequency_per_day", 0) or 0
-                if q and f:
-                    supp["dosage_display"] = f"{q} cap{'s' if q > 1 else ''}, {f}x/day"
-    
     patient_name = plan.get("patient_name", "Unknown")
     program = plan.get("program_name", "Protocol")
     step = plan.get("step_label", "")
+    practitioner_name = await get_user_display_name(user)
     
     try:
-        from google_drive import upload_pdf_to_folder, get_patient_folder
+        from dropbox_integration import upload_pdf
         
-        # Get user's persistent Drive folder, then patient subfolder
-        user_folder_id = await get_user_drive_folder(user)
-        folder_id = get_patient_folder(user_folder_id, patient_name)
-        
-        # Generate and upload patient PDF
         patient_pdf = bytes(generate_patient_pdf(plan))
         patient_filename = f"Patient - {patient_name} - {program} {step}.pdf"
-        patient_result = upload_pdf_to_folder(folder_id, patient_filename, patient_pdf)
+        patient_result = upload_pdf(practitioner_name, patient_name, patient_filename, patient_pdf)
         
-        # Generate and upload HC PDF
         hc_pdf = bytes(generate_hc_pdf(plan))
         hc_filename = f"HC - {patient_name} - {program} {step}.pdf"
-        hc_result = upload_pdf_to_folder(folder_id, hc_filename, hc_pdf)
+        hc_result = upload_pdf(practitioner_name, patient_name, hc_filename, hc_pdf)
         
         return {
             "success": True,
             "patient_pdf": patient_result,
             "hc_pdf": hc_result,
-            "message": f"Saved to Google Drive in '{patient_name}' folder",
+            "message": f"Saved to Dropbox in '{practitioner_name}/{patient_name}' folder",
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Google Drive upload failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Dropbox upload failed: {str(e)}")
 
 
-@app.post("/api/patients/{patient_id}/save-all-to-drive")
-async def save_all_plans_to_drive(patient_id: str, user=Depends(require_auth)):
-    """Save ALL plans for a patient to their Google Drive folder."""
+@app.post("/api/patients/{patient_id}/save-all-to-cloud")
+async def save_all_plans_to_cloud(patient_id: str, user=Depends(require_auth)):
+    """Save ALL plans for a patient to Dropbox."""
     patient = await db.patients.find_one({"_id": ObjectId(patient_id)})
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     
     patient_name = patient.get("name", "Unknown")
+    practitioner_name = await get_user_display_name(user)
     
-    # Get all plans for this patient
     plan_cursor = db.plans.find({"patient_id": patient_id}).sort("updated_at", -1)
     plans = await plan_cursor.to_list(length=100)
     
@@ -1141,11 +1102,7 @@ async def save_all_plans_to_drive(patient_id: str, user=Depends(require_auth)):
         raise HTTPException(status_code=400, detail="No plans found for this patient")
     
     try:
-        from google_drive import get_patient_folder, upload_pdf_to_folder
-        
-        # Get user's persistent Drive folder, then patient subfolder
-        user_folder_id = await get_user_drive_folder(user)
-        folder_id = get_patient_folder(user_folder_id, patient_name)
+        from dropbox_integration import upload_pdf
         
         freight_map = await get_company_freight_map()
         uploaded = []
@@ -1155,40 +1112,25 @@ async def save_all_plans_to_drive(patient_id: str, user=Depends(require_auth)):
             plan = await sync_plan_with_master(plan)
             plan = recalculate_plan_costs(plan, freight_map)
             
-            # Ensure dosage_display
-            for month in plan.get("months", []):
-                for supp in month.get("supplements", []):
-                    if not supp.get("dosage_display"):
-                        q = supp.get("quantity_per_dose", 0) or 0
-                        f = supp.get("frequency_per_day", 0) or 0
-                        if q and f:
-                            supp["dosage_display"] = f"{q} cap{'s' if q > 1 else ''}, {f}x/day"
-            
             program = plan.get("program_name", "Protocol")
             step = plan.get("step_label", "")
-            status = plan.get("status", "draft")
             
-            # Patient PDF
             patient_pdf = bytes(generate_patient_pdf(plan))
             patient_filename = f"Patient - {patient_name} - {program} {step}.pdf"
-            p_result = upload_pdf_to_folder(folder_id, patient_filename, patient_pdf)
-            uploaded.append(p_result)
+            uploaded.append(upload_pdf(practitioner_name, patient_name, patient_filename, patient_pdf))
             
-            # HC PDF
             hc_pdf = bytes(generate_hc_pdf(plan))
             hc_filename = f"HC - {patient_name} - {program} {step}.pdf"
-            h_result = upload_pdf_to_folder(folder_id, hc_filename, hc_pdf)
-            uploaded.append(h_result)
+            uploaded.append(upload_pdf(practitioner_name, patient_name, hc_filename, hc_pdf))
         
         return {
             "success": True,
             "files_uploaded": len(uploaded),
             "plans_exported": len(plans),
-            "folder_id": folder_id,
-            "message": f"Saved {len(plans)} plan(s) ({len(uploaded)} PDFs) to '{patient_name}' folder",
+            "message": f"Saved {len(plans)} plan(s) ({len(uploaded)} PDFs) to Dropbox '{practitioner_name}/{patient_name}'",
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Google Drive upload failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Dropbox upload failed: {str(e)}")
 
 
 

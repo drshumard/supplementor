@@ -145,8 +145,8 @@ export default function PatientDetailPage() {
           {plans.length > 0 && (
             <Button variant="outline" onClick={handleSaveAllToDrive} disabled={savingDrive}
               className="gap-2 h-11 px-5 text-sm font-semibold" data-testid="save-all-drive">
-              <svg width="16" height="16" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066DA"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z" fill="#00AC47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 9.65z" fill="#EA4335"/><path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832D"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h22.9c1.6 0 3.15-.45 4.5-1.2z" fill="#2684FC"/><path d="M73.4 26.5 60.65 3.3c-.8-1.4-1.95-2.5-3.3-3.3L43.6 25l16.15 28h27.5c0-1.55-.4-3.1-1.2-4.5z" fill="#FFBA00"/></svg>
-              {savingDrive ? 'Saving...' : 'Save All to Drive'}
+              <svg width="16" height="16" viewBox="0 0 256 218" xmlns="http://www.w3.org/2000/svg" className="shrink-0"><path d="M63.5 0L0 107l63.5 109h129L256 107 192.5 0h-129z" fill="#0061FF" transform="scale(0.98) translate(3,0)"/></svg>
+              {savingDrive ? 'Saving...' : 'Save All to Dropbox'}
             </Button>
           )}
           <Button onClick={() => navigate(`/plans/new?patient_id=${patientId}&patient_name=${encodeURIComponent(patient.name)}`)}
