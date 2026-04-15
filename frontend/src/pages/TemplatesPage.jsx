@@ -31,6 +31,41 @@ const DEFAULT_PROGRAMS = ['Detox 1', 'Detox 2', 'Maintenance'];
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState([]);
+
+function MonthAddSupplement({ monthNum, supplements, onAdd }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const filtered = supplements.filter(s =>
+    s.supplement_name.toLowerCase().includes(q.toLowerCase()) || s.company?.toLowerCase().includes(q.toLowerCase())
+  );
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-2 text-xs text-muted-foreground w-full justify-start h-8 border-dashed">
+          <Plus size={12} /> Add supplement...
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[420px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search..." value={q} onValueChange={setQ} />
+          <CommandList><CommandEmpty>None found.</CommandEmpty>
+            <CommandGroup className="max-h-[250px] overflow-y-auto">
+              {filtered.slice(0, 25).map(s => (
+                <CommandItem key={s._id} value={s.supplement_name}
+                  onSelect={() => { onAdd(monthNum, s); setOpen(false); setQ(''); }}
+                  className="flex items-center justify-between cursor-pointer py-2">
+                  <div><div className="text-sm font-medium">{s.supplement_name}</div><div className="text-xs text-muted-foreground">{s.company}</div></div>
+                  <span className="text-xs font-mono text-muted-foreground">{formatCurrency(s.cost_per_bottle)}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
   const [supplements, setSupplements] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState('');
   const [selectedStep, setSelectedStep] = useState('1');
@@ -66,24 +101,52 @@ export default function TemplatesPage() {
 
   useEffect(() => {
     const tmpl = templates.find(t => t.program_name === selectedProgram && t.step_number === Number(selectedStep));
-    setCurrentTemplate(tmpl || null); setEditMonths(tmpl?.default_months || 1); setEditSupps(tmpl?.supplements || []);
+    setCurrentTemplate(tmpl || null);
+    setEditMonths(tmpl?.default_months || 1);
+    // Use months array if available, fall back to flat supplements
+    setEditSupps(tmpl?.months || []);
   }, [selectedProgram, selectedStep, templates]);
 
-  const addTemplateSupp = (supp) => {
-    setEditSupps([...editSupps, {
+  const addTemplateSupp = (monthNum, supp) => {
+    setEditSupps(prev => prev.map(m => {
+      if (m.month_number !== monthNum) return m;
+      return { ...m, supplements: [...(m.supplements || []), {
+        supplement_id: supp._id, supplement_name: supp.supplement_name, company: supp.company || '',
+        supplier: supp.supplier || '', unit_type: supp.unit_type || 'caps',
+        quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: supp.default_frequency_per_day || null,
+        dosage_display: supp.default_dosage_display || '', instructions: supp.default_instructions || '',
+        units_per_bottle: supp.units_per_bottle || null, cost_per_bottle: supp.cost_per_bottle || 0, refrigerate: supp.refrigerate || false,
+      }]};
+    }));
+  };
+
+  const addToAllMonths = (supp) => {
+    const entry = {
       supplement_id: supp._id, supplement_name: supp.supplement_name, company: supp.company || '',
+      supplier: supp.supplier || '', unit_type: supp.unit_type || 'caps',
       quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: supp.default_frequency_per_day || null,
       dosage_display: supp.default_dosage_display || '', instructions: supp.default_instructions || '',
       units_per_bottle: supp.units_per_bottle || null, cost_per_bottle: supp.cost_per_bottle || 0, refrigerate: supp.refrigerate || false,
-    }]);
-    setSearchOpen(false); setSearchQuery('');
+    };
+    setEditSupps(prev => prev.map(m => ({
+      ...m, supplements: [...(m.supplements || []), { ...entry }]
+    })));
+  };
+
+  const removeTemplateSupp = (monthNum, idx) => {
+    setEditSupps(prev => prev.map(m => {
+      if (m.month_number !== monthNum) return m;
+      return { ...m, supplements: (m.supplements || []).filter((_, i) => i !== idx) };
+    }));
   };
 
   const handleSave = async () => {
     if (!currentTemplate) return;
     setSaving(true);
-    try { await updateTemplate(currentTemplate._id, { default_months: editMonths, supplements: editSupps }); toast.success('Template saved'); fetchData(); }
-    catch (err) { toast.error('Save failed'); }
+    try {
+      await updateTemplate(currentTemplate._id, { default_months: editMonths, months: editSupps });
+      toast.success('Template saved'); fetchData();
+    } catch (err) { toast.error('Save failed'); }
     finally { setSaving(false); }
   };
 
@@ -166,56 +229,22 @@ export default function TemplatesPage() {
             className="w-[100px] h-12 font-mono text-sm" />
         </div>
         {currentTemplate && (
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
             <Badge className="bg-[#0D5F68] text-white hover:bg-[#0D5F68] px-4 py-2 text-xs font-bold">
-              <Layers size={13} className="mr-2" /> {editSupps.length} supplement{editSupps.length !== 1 ? 's' : ''}
+              <Layers size={13} className="mr-2" /> {editSupps.length} month{editSupps.length !== 1 ? 's' : ''}
             </Badge>
           </div>
         )}
       </div>
 
       {currentTemplate ? (
-        <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="admin-templates-table">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-[#0D5F68] hover:bg-[#0D5F68] rounded-t-xl">
-                <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 px-6">Supplement</TableHead>
-                <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Brand</TableHead>
-                <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Default Dosage</TableHead>
-                <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Instructions</TableHead>
-                <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 text-right">Cost</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {editSupps.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                  <Layers size={36} strokeWidth={1} className="mx-auto mb-3 text-muted-foreground/40" />
-                  <p className="text-sm">No supplements in this template</p>
-                </TableCell></TableRow>
-              ) : (
-                editSupps.map((supp, idx) => (
-                  <TableRow key={idx} className="hover:bg-[#F0FAFA] group">
-                    <TableCell className="font-bold text-sm text-[#0B0D10] py-5 px-6">{supp.supplement_name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground py-5">{supp.company}</TableCell>
-                    <TableCell className="text-sm py-5">{supp.dosage_display || '-'}</TableCell>
-                    <TableCell className="text-sm py-5">{supp.instructions || '-'}</TableCell>
-                    <TableCell className="text-right font-mono tabular-nums text-sm font-bold text-[#147D5A] py-5">{formatCurrency(supp.cost_per_bottle)}</TableCell>
-                    <TableCell className="py-5">
-                      <Button variant="ghost" size="sm" className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-[#C53030] hover:bg-red-50 rounded-lg"
-                        onClick={() => setEditSupps(editSupps.filter((_, i) => i !== idx))}><Trash2 size={14} /></Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-          <div className="p-5 border-t border-border/30">
+        <div>
+          {/* Add to all months */}
+          <div className="flex items-center gap-3 mb-4">
             <Popover open={searchOpen} onOpenChange={setSearchOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2.5 text-sm text-muted-foreground w-full justify-start h-12 rounded-xl border-dashed hover:border-[#0D5F68]/40 hover:border-b-2 border-[#E2E8F0]">
-                  <Plus size={16} className="text-[#0D5F68]" /> Add supplement to template...
-                  <ChevronsUpDown size={13} className="ml-auto" />
+                <Button size="sm" className="gap-2 h-9 px-4 text-xs font-semibold bg-[#0D5F68] hover:bg-[#0A4E55] text-white">
+                  <Plus size={14} /> Add to all months
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[460px] p-0" align="start">
@@ -225,8 +254,8 @@ export default function TemplatesPage() {
                     <CommandEmpty>No supplements found.</CommandEmpty>
                     <CommandGroup className="max-h-[300px] overflow-y-auto">
                       {filteredSupps.slice(0, 30).map(supp => (
-                        <CommandItem key={supp._id} value={supp.supplement_name} onSelect={() => addTemplateSupp(supp)}
-                          className="flex items-center justify-between cursor-pointer py-3">
+                        <CommandItem key={supp._id} value={supp.supplement_name} onSelect={() => { addToAllMonths(supp); setSearchOpen(false); setSearchQuery(''); }}
+                          className="flex items-center justify-between cursor-pointer py-2.5">
                           <div><div className="text-sm font-medium">{supp.supplement_name}</div><div className="text-xs text-muted-foreground">{supp.company}</div></div>
                           <span className="text-xs font-mono text-muted-foreground">{formatCurrency(supp.cost_per_bottle)}</span>
                         </CommandItem>
@@ -237,6 +266,36 @@ export default function TemplatesPage() {
               </PopoverContent>
             </Popover>
           </div>
+
+          {/* Month sections */}
+          {editSupps.map((month) => (
+            <div key={month.month_number} className="rounded-xl border border-[#E2E8F0] bg-white card-elevated mb-6 overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3 bg-[#0D5F68]">
+                <h3 className="text-sm font-bold text-white">
+                  {month.month_number === 0.5 ? '2 Weeks' : `Month ${month.month_number}`}
+                </h3>
+                <span className="text-xs text-white/60">{(month.supplements || []).length} supplement{(month.supplements || []).length !== 1 ? 's' : ''}</span>
+              </div>
+              <div>
+                {(month.supplements || []).map((supp, idx) => (
+                  <div key={idx} className="flex items-center px-5 py-2 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] group gap-4">
+                    <span className="text-[12px] font-bold text-[#0B0D10] flex-1 min-w-0 truncate">{supp.supplement_name}</span>
+                    <span className="text-[11px] text-[#718096] w-[120px] truncate">{supp.dosage_display || '-'}</span>
+                    <span className="text-[11px] text-[#718096] w-[120px] truncate">{supp.instructions || '-'}</span>
+                    <span className="font-mono text-[11px] font-bold text-[#147D5A] w-[60px] text-right">{formatCurrency(supp.cost_per_bottle)}</span>
+                    <button className="h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 text-[#94A3B8] hover:text-[#C53B3B] transition-opacity"
+                      onClick={() => removeTemplateSupp(month.month_number, idx)}><Trash2 size={12} /></button>
+                  </div>
+                ))}
+                {(month.supplements || []).length === 0 && (
+                  <div className="px-5 py-8 text-center text-sm text-muted-foreground">No supplements. Add below.</div>
+                )}
+              </div>
+              <div className="p-3 border-t border-[#F0F2F4]">
+                <MonthAddSupplement monthNum={month.month_number} supplements={supplements} onAdd={addTemplateSupp} />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="text-center py-20 rounded-2xl border border-dashed border-b-2 border-[#E2E8F0]">

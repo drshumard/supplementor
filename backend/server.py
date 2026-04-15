@@ -616,36 +616,53 @@ async def list_templates(program_name: str = "", user=Depends(require_auth)):
     docs = await cursor.to_list(length=100)
     templates = serialize_doc(docs)
     
-    # Refresh supplement data from master list
+    # Build master supplement lookup
     master = {}
     async for s in db.supplements.find({}):
         master[str(s["_id"])] = s
         master[s.get("supplement_name", "").lower()] = s
     
     for tmpl in templates:
-        for supp in tmpl.get("supplements", []):
-            # Match by ID first, then by name
-            ref = master.get(supp.get("supplement_id")) or master.get((supp.get("supplement_name") or "").lower())
-            if ref:
-                supp["cost_per_bottle"] = ref.get("cost_per_bottle", supp.get("cost_per_bottle", 0))
-                supp["units_per_bottle"] = ref.get("units_per_bottle", supp.get("units_per_bottle"))
-                supp["supplier"] = ref.get("supplier", supp.get("supplier", ""))
-                supp["manufacturer"] = ref.get("manufacturer", supp.get("company", ""))
-                supp["company"] = ref.get("company", supp.get("company", ""))
-                supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
-                supp["unit_type"] = ref.get("unit_type", supp.get("unit_type", "caps"))
+        # Convert old flat format to months if needed
+        if not tmpl.get("months"):
+            default_months = tmpl.get("default_months", 1)
+            flat_supps = tmpl.get("supplements", [])
+            num = max(1, int(default_months)) if default_months >= 1 else 1
+            months = []
+            for i in range(num):
+                mn = 0.5 if default_months == 0.5 and i == 0 else i + 1
+                months.append({"month_number": mn, "supplements": [dict(s) for s in flat_supps]})
+            tmpl["months"] = months
+        
+        # Refresh supplement data from master in all months
+        for month in tmpl.get("months", []):
+            for supp in month.get("supplements", []):
+                ref = master.get(supp.get("supplement_id")) or master.get((supp.get("supplement_name") or "").lower())
+                if ref:
+                    supp["cost_per_bottle"] = ref.get("cost_per_bottle", supp.get("cost_per_bottle", 0))
+                    supp["units_per_bottle"] = ref.get("units_per_bottle", supp.get("units_per_bottle"))
+                    supp["supplier"] = ref.get("supplier", supp.get("supplier", ""))
+                    supp["company"] = ref.get("company", supp.get("company", ""))
+                    supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
+                    supp["unit_type"] = ref.get("unit_type", supp.get("unit_type", "caps"))
     
     return {"templates": templates}
 
 
 @app.post("/api/templates")
 async def create_template(data: TemplateCreate, user=Depends(require_admin)):
+    num = max(1, int(data.default_months)) if data.default_months >= 1 else 1
+    months = []
+    for i in range(num):
+        mn = 0.5 if data.default_months == 0.5 and i == 0 else i + 1
+        months.append({"month_number": mn, "supplements": []})
     doc = {
         "program_name": data.program_name,
         "step_number": data.step_number,
         "step_label": f"Step {data.step_number}",
         "default_months": data.default_months,
-        "supplements": [],
+        "months": months,
+        "supplements": [],  # Keep for backward compat
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
     }
@@ -688,16 +705,21 @@ async def get_template(template_id: str, user=Depends(require_auth)):
 
 
 @app.put("/api/templates/{template_id}")
-async def update_template(template_id: str, data: TemplateUpdate, user=Depends(require_admin)):
+async def update_template(template_id: str, data: dict = None, user=Depends(require_admin)):
+    """Update a template. Accepts months array for month-by-month editing."""
+    if not data:
+        raise HTTPException(status_code=400, detail="No data provided")
+    
     updates = {}
-    if data.program_name is not None:
-        updates["program_name"] = data.program_name
-    if data.step_number is not None:
-        updates["step_number"] = data.step_number
-    if data.default_months is not None:
-        updates["default_months"] = data.default_months
-    if data.supplements is not None:
-        updates["supplements"] = [s.model_dump() for s in data.supplements]
+    if "default_months" in data:
+        updates["default_months"] = data["default_months"]
+    if "months" in data:
+        updates["months"] = data["months"]
+    # Also keep flat supplements in sync (backward compat) — use month 1's supplements
+    if "months" in data and data["months"]:
+        updates["supplements"] = data["months"][0].get("supplements", [])
+    if "supplements" in data and "months" not in data:
+        updates["supplements"] = data["supplements"]
     updates["updated_at"] = datetime.utcnow()
     
     result = await db.templates.update_one(
@@ -1067,17 +1089,12 @@ async def save_plan_to_cloud(plan_id: str, authorization: str = Header(None)):
     try:
         from dropbox_integration import upload_pdf
         
-        patient_pdf = bytes(generate_patient_pdf(plan))
-        patient_filename = f"Patient - {patient_name} - {program} {step}.pdf"
-        patient_result = upload_pdf(practitioner_name, patient_name, patient_filename, patient_pdf)
-        
         hc_pdf = bytes(generate_hc_pdf(plan))
         hc_filename = f"HC - {patient_name} - {program} {step}.pdf"
         hc_result = upload_pdf(practitioner_name, patient_name, hc_filename, hc_pdf)
         
         return {
             "success": True,
-            "patient_pdf": patient_result,
             "hc_pdf": hc_result,
             "message": f"Saved to Dropbox in '{practitioner_name}/{patient_name}' folder",
         }
@@ -1114,10 +1131,6 @@ async def save_all_plans_to_cloud(patient_id: str, user=Depends(require_auth)):
             
             program = plan.get("program_name", "Protocol")
             step = plan.get("step_label", "")
-            
-            patient_pdf = bytes(generate_patient_pdf(plan))
-            patient_filename = f"Patient - {patient_name} - {program} {step}.pdf"
-            uploaded.append(upload_pdf(practitioner_name, patient_name, patient_filename, patient_pdf))
             
             hc_pdf = bytes(generate_hc_pdf(plan))
             hc_filename = f"HC - {patient_name} - {program} {step}.pdf"

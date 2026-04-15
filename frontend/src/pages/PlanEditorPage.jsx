@@ -137,7 +137,7 @@ function MonthPage({
       </div>
 
       {/* Column headers — compact data grid style */}
-      <div className="grid items-center px-4 py-2 border-b border-[#E2E8F0] bg-[#F8FAFB] gap-x-4 text-[10px] font-semibold tracking-[0.06em] uppercase text-[#64748B]"
+      <div className="grid items-center px-4 py-2 border-b border-[#E2E8F0] bg-[#F8FAFB] gap-x-4 text-[11px] font-semibold tracking-[0.06em] uppercase text-[#64748B]"
         style={{
           gridTemplateColumns: patientView
             ? '70px minmax(120px,1fr) 90px 45px 1fr'
@@ -217,7 +217,7 @@ function MonthPage({
               </div>
               {/* Supplement */}
               <div className="flex items-center gap-1.5 min-w-0 pl-2">
-                <span className="text-[11px] font-bold text-[#0B0D10] truncate">{supp.supplement_name}</span>
+                <span className="text-[12px] font-bold text-[#0B0D10] truncate">{supp.supplement_name}</span>
                 {supp.refrigerate && <Snowflake size={11} className="text-blue-500 shrink-0" />}
               </div>
               {!patientView && (<>
@@ -229,10 +229,10 @@ function MonthPage({
               {/* Dosage */}
               <div>
                 {patientView || isFinalized ? (
-                  <span className="text-[11px] text-[#334155] block break-words">{supp.dosage_display || '-'}</span>
+                  <span className="text-[12px] text-[#334155] block break-words">{supp.dosage_display || '-'}</span>
                 ) : (
                   <div contentEditable suppressContentEditableWarning
-                    className="text-[11px] text-[#334155] outline-none min-h-[16px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30 leading-tight"
+                    className="text-[12px] text-[#334155] outline-none min-h-[16px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30 leading-tight"
                     onBlur={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.textContent)}
                     dangerouslySetInnerHTML={{ __html: supp.dosage_display || '' }} />
                 )}
@@ -254,17 +254,17 @@ function MonthPage({
               {/* Notes */}
               <div>
                 {patientView || isFinalized ? (
-                  <span className="text-[11px] text-[#718096] block break-words">{supp.instructions || '-'}</span>
+                  <span className="text-[12px] text-[#718096] block break-words">{supp.instructions || '-'}</span>
                 ) : (
                   <div contentEditable suppressContentEditableWarning
-                    className="text-[11px] text-[#718096] outline-none min-h-[16px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30 leading-tight"
+                    className="text-[12px] text-[#718096] outline-none min-h-[16px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30 leading-tight"
                     onBlur={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.textContent)}
                     dangerouslySetInnerHTML={{ __html: supp.instructions || '' }} />
                 )}
               </div>
               {showCosts && !patientView && (<>
-                <div className="font-mono tabular-nums text-[11px] font-semibold text-[#334155] text-center">{supp.bottles_needed || '-'}</div>
-                <div className="font-mono tabular-nums text-[11px] font-bold text-[#147D5A] text-right whitespace-nowrap">{formatCurrency(supp.calculated_cost)}</div>
+                <div className="font-mono tabular-nums text-[12px] font-semibold text-[#334155] text-center">{supp.bottles_needed || '-'}</div>
+                <div className="font-mono tabular-nums text-[12px] font-bold text-[#147D5A] text-right whitespace-nowrap">{formatCurrency(supp.calculated_cost)}</div>
               </>)}
               {!isFinalized && !patientView && (
                 <div className="flex justify-center">
@@ -343,7 +343,7 @@ export default function PlanEditorPage() {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showCosts, setShowCosts] = useState(false);
+  const [showCosts, setShowCosts] = useState(true);
   const [patientViewMode, setPatientViewMode] = useState(false);
   const [supplements, setSupplements] = useState([]);
   const [supplierFreight, setCompanyFreight] = useState({});
