@@ -1,13 +1,66 @@
 name: Deploy to Production
 
 on:
-  workflow_dispatch:  # Manual trigger only — go to Actions tab → Run workflow
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          yarn install --frozen-lockfile
+          # Inject Clerk key — passed as secret
+          sed -i "s|window.__CLERK_PK=\"[^\"]*\"|window.__CLERK_PK=\"${{ secrets.CLERK_PUBLISHABLE_KEY }}\"|" public/index.html
+          REACT_APP_BACKEND_URL=https://fm.drshumard.com yarn build
+
+      - name: Install backend dependencies (verify)
+        run: |
+          cd backend
+          pip install -r requirements.txt --quiet
+
+      - name: Package build artifacts
+        run: |
+          tar czf deploy-package.tar.gz \
+            --exclude='frontend/node_modules' \
+            --exclude='frontend/.env' \
+            --exclude='backend/.env' \
+            --exclude='backend/venv' \
+            --exclude='backend/service_account.json' \
+            --exclude='backend/__pycache__' \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            backend/ frontend/build/ frontend/package.json frontend/yarn.lock deploy.sh
+
+      - name: Copy package to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          source: "deploy-package.tar.gz"
+          target: "/tmp"
+
+      - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -17,65 +70,49 @@ jobs:
           script_stop: true
           script: |
             set -e
-            
+
             APP_NAME="drshumard-protocol"
             APP_DIR="/var/www/supplemetor"
             FRONTEND_PORT=3847
             BACKEND_PORT=8047
-            DOMAIN="fm.drshumard.com"
-            
-            echo "=== [1/6] Pulling latest code ==="
+
+            echo "=== [1/5] Extracting build ==="
             cd $APP_DIR
-            git pull origin main
-            
-            echo "=== [2/6] Checking .env files ==="
-            if [ ! -f "$APP_DIR/backend/.env" ] || [ ! -f "$APP_DIR/frontend/.env" ]; then
-              echo "ERROR: .env files missing. Set up manually first."
-              exit 1
-            fi
-            
-            echo "=== [3/6] Backend dependencies ==="
+            tar xzf /tmp/deploy-package.tar.gz --overwrite
+            rm /tmp/deploy-package.tar.gz
+
+            echo "=== [2/5] Checking .env files ==="
+            test -f backend/.env || { echo "ERROR: backend/.env missing"; exit 1; }
+            test -f frontend/.env || { echo "ERROR: frontend/.env missing"; exit 1; }
+
+            echo "=== [3/5] Backend dependencies ==="
             cd $APP_DIR/backend
             if [ ! -d "venv" ]; then python3 -m venv venv; fi
             source venv/bin/activate
-            pip install -q --upgrade pip
             pip install -q -r requirements.txt
             deactivate
-            
-            echo "=== [4/6] Frontend build ==="
-            cd $APP_DIR/frontend
-            
-            # Inject Clerk key into index.html
-            CLERK_PK=$(grep REACT_APP_CLERK_PUBLISHABLE_KEY $APP_DIR/frontend/.env 2>/dev/null | cut -d= -f2 | tr -d "'" | tr -d '"')
-            if [ -n "$CLERK_PK" ]; then
-              sed -i "s|window.__CLERK_PK=\"[^\"]*\"|window.__CLERK_PK=\"${CLERK_PK}\"|" $APP_DIR/frontend/public/index.html
-            fi
-            
-            yarn install --silent
-            yarn build --silent 2>/dev/null || yarn build
-            
-            echo "=== [5/6] Restart PM2 ==="
+
+            echo "=== [4/5] Restart PM2 ==="
             pm2 delete ${APP_NAME}-backend 2>/dev/null || true
             pm2 delete ${APP_NAME}-frontend 2>/dev/null || true
-            
+
             cd $APP_DIR/backend
             set -a && source .env && set +a
             pm2 start venv/bin/uvicorn \
               --name "${APP_NAME}-backend" \
               --interpreter none \
               -- server:app --host 127.0.0.1 --port $BACKEND_PORT --workers 2
-            
+
             cd $APP_DIR/frontend
             pm2 start npx \
               --name "${APP_NAME}-frontend" \
               --interpreter none \
               -- serve -s build -l $FRONTEND_PORT
-            
+
             pm2 save
-            
-            echo "=== [6/6] Health check ==="
+
+            echo "=== [5/5] Health check ==="
             sleep 3
             curl -sf http://127.0.0.1:${BACKEND_PORT}/api/health > /dev/null && echo "✓ Backend OK" || echo "⚠ Backend not ready"
             curl -sf http://127.0.0.1:${FRONTEND_PORT} > /dev/null && echo "✓ Frontend OK" || echo "⚠ Frontend not ready"
-            
-            echo "=== Deploy complete: https://$DOMAIN ==="
+            echo "=== Deploy complete ==="

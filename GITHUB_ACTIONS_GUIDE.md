@@ -2,114 +2,83 @@
 
 ## Overview
 
-Every push to `main` automatically deploys to your production server via SSH.
-You can also trigger a deploy manually from GitHub.
+Manual deploy from GitHub Actions tab. **Builds happen on GitHub's servers** — your VPS only receives the pre-built artifacts, installs Python deps, and restarts PM2.
+
+## What happens during deploy
+
+```
+GitHub Actions (build server)          Your VPS (production)
+─────────────────────────────          ────────────────────
+1. Checkout code                       
+2. yarn install + yarn build           
+3. pip install (verify)                
+4. Package into tar.gz ──────────────► 5. Extract files
+                                       6. pip install in venv
+                                       7. Restart PM2
+                                       8. Health check
+```
+
+Your VPS never runs `yarn install` or `yarn build` — that's the heaviest part.
 
 ## One-Time Setup
 
-### 1. Generate an SSH key for GitHub Actions
+### 1. Generate an SSH deploy key
 
-On your **local machine** (not the server):
+On your **local machine**:
 
 ```bash
 ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_deploy_key -N ""
 ```
 
-This creates two files:
-- `~/.ssh/github_deploy_key` — private key (goes to GitHub)
-- `~/.ssh/github_deploy_key.pub` — public key (goes to your server)
-
-### 2. Add the public key to your server
-
-SSH into your server and add the public key:
+### 2. Add public key to your server
 
 ```bash
 # On your server
 cat >> ~/.ssh/authorized_keys << 'EOF'
-<paste contents of github_deploy_key.pub here>
+<paste contents of ~/.ssh/github_deploy_key.pub>
 EOF
 ```
 
 ### 3. Add secrets to GitHub
 
-Go to your repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
-
-Add these 3 secrets:
+Go to repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
 
 | Secret Name | Value |
 |-------------|-------|
-| `SERVER_HOST` | Your server's IP address (e.g., `143.198.xxx.xxx`) |
-| `SERVER_USER` | SSH username (e.g., `root` or `deploy`) |
-| `SERVER_SSH_KEY` | Entire contents of `~/.ssh/github_deploy_key` (the PRIVATE key) |
+| `SERVER_HOST` | Server IP (e.g., `143.198.xxx.xxx`) |
+| `SERVER_USER` | SSH username (e.g., `root`) |
+| `SERVER_SSH_KEY` | Contents of `~/.ssh/github_deploy_key` (private key) |
+| `CLERK_PUBLISHABLE_KEY` | Your Clerk production publishable key (`pk_live_...`) |
 
 Optional:
 | `SERVER_PORT` | SSH port if not 22 |
 
-### 4. Push the workflow file
-
-The workflow file is already at `.github/workflows/deploy.yml`.
-Just commit and push:
+### 4. Push and deploy
 
 ```bash
 git add .github/
-git commit -m "Add GitHub Actions deployment"
+git commit -m "Add GitHub Actions CI/CD"
 git push origin main
 ```
 
-## How It Works
-
-```
-Push to main → GitHub Actions triggers → SSH into server → Run deploy steps
-```
-
-The deploy steps are identical to `deploy.sh`:
-1. `git pull origin main`
-2. Check `.env` files exist
-3. Install Python dependencies
-4. Inject Clerk key + build frontend
-5. Restart PM2 processes
-6. Health check
+Then go to repo → **Actions** → **Deploy to Production** → **Run workflow**
 
 ## Manual Deploy
 
-Go to your repo → **Actions** → **Deploy to Production** → **Run workflow** → **Run workflow**
+Repo → **Actions** tab → **Deploy to Production** → **Run workflow** → **Run workflow**
 
 ## Monitoring
 
-### View deploy logs
-Go to repo → **Actions** → click the latest run → click **deploy** → expand **Deploy via SSH**
-
-### If deploy fails
-1. Check the GitHub Actions log for the error
-2. SSH into your server and check:
-   ```bash
-   pm2 status
-   pm2 logs drshumard-protocol-backend --lines 50
-   pm2 logs drshumard-protocol-frontend --lines 50
-   ```
-3. You can always run `deploy.sh` manually as a fallback:
-   ```bash
-   cd /var/www/supplemetor
-   ./deploy.sh
-   ```
+- **Deploy logs:** Actions tab → click latest run → expand steps
+- **Server logs:** `pm2 logs drshumard-protocol-backend`
+- **Fallback:** You can still run `./deploy.sh` on the server manually
 
 ## Prerequisites on Server
 
-These must be set up before the first GitHub Actions deploy:
-
-- [x] Git repo cloned at `/var/www/supplemetor`
-- [x] `backend/.env` created with all secrets
-- [x] `frontend/.env` created with `REACT_APP_CLERK_PUBLISHABLE_KEY` and `REACT_APP_BACKEND_URL`
-- [x] Nginx configured for `fm.drshumard.com`
-- [x] SSL certificate via certbot
-- [x] PM2 installed globally (`npm install -g pm2`)
-- [x] `serve` installed globally (`npm install -g serve`)
-- [x] Python 3.11+ and Node.js 18+ installed
-- [x] `pm2 startup` run so PM2 survives reboots
-
-## Security Notes
-
-- The SSH private key is stored as a GitHub secret — encrypted at rest, only exposed during workflow runs
-- The `.env` files are NOT in the repo — they live only on the server
-- The workflow only runs on pushes to `main` — feature branches don't trigger deploys
-- Use a dedicated deploy SSH key (not your personal key)
+- [x] Repo cloned at `/var/www/supplemetor`
+- [x] `backend/.env` with all secrets
+- [x] `frontend/.env` with Clerk key + backend URL
+- [x] Nginx + SSL configured
+- [x] PM2 + `serve` installed globally
+- [x] Python 3.11+ installed
+- [x] `pm2 startup` run
