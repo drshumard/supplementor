@@ -110,26 +110,42 @@ function MonthAddSupplement({ monthNum, supplements, onAdd }) {
   }, [selectedProgram, selectedStep, templates]);
 
   const addTemplateSupp = (monthNum, supp) => {
+    const freq = supp.default_frequency_per_day || 1;
+    const times = freq >= 3 ? ['AM', 'Afternoon', 'PM'] : freq === 2 ? ['AM', 'PM'] : ['AM'];
     setEditSupps(prev => prev.map(m => {
       if (m.month_number !== monthNum) return m;
       return { ...m, supplements: [...(m.supplements || []), {
         supplement_id: supp._id, supplement_name: supp.supplement_name, company: supp.company || '',
         supplier: supp.supplier || '', unit_type: supp.unit_type || 'caps',
-        quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: supp.default_frequency_per_day || null,
+        quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: freq,
         dosage_display: supp.default_dosage_display || '', instructions: supp.default_instructions || '',
-        units_per_bottle: supp.units_per_bottle || null, cost_per_bottle: supp.cost_per_bottle || 0, refrigerate: supp.refrigerate || false,
+        units_per_bottle: supp.units_per_bottle || null, cost_per_bottle: supp.cost_per_bottle || 0,
+        refrigerate: supp.refrigerate || false, times,
       }]};
     }));
   };
 
   const addToAllMonths = (supp) => {
+    const freq = supp.default_frequency_per_day || 1;
+    const times = freq >= 3 ? ['AM', 'Afternoon', 'PM'] : freq === 2 ? ['AM', 'PM'] : ['AM'];
     const entry = {
       supplement_id: supp._id, supplement_name: supp.supplement_name, company: supp.company || '',
       supplier: supp.supplier || '', unit_type: supp.unit_type || 'caps',
-      quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: supp.default_frequency_per_day || null,
+      quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: freq,
       dosage_display: supp.default_dosage_display || '', instructions: supp.default_instructions || '',
-      units_per_bottle: supp.units_per_bottle || null, cost_per_bottle: supp.cost_per_bottle || 0, refrigerate: supp.refrigerate || false,
+      units_per_bottle: supp.units_per_bottle || null, cost_per_bottle: supp.cost_per_bottle || 0,
+      refrigerate: supp.refrigerate || false, times,
     };
+
+  const updateTemplateSupp = (monthNum, idx, field, value) => {
+    setEditSupps(prev => prev.map(m => {
+      if (m.month_number !== monthNum) return m;
+      const supps = [...(m.supplements || [])];
+      if (supps[idx]) supps[idx] = { ...supps[idx], [field]: value };
+      return { ...m, supplements: supps };
+    }));
+  };
+
     setEditSupps(prev => prev.map(m => ({
       ...m, supplements: [...(m.supplements || []), { ...entry }]
     })));
@@ -286,16 +302,42 @@ function MonthAddSupplement({ monthNum, supplements, onAdd }) {
                 <span className="text-xs text-white/60">{(month.supplements || []).length} supplement{(month.supplements || []).length !== 1 ? 's' : ''}</span>
               </div>
               <div>
-                {(month.supplements || []).map((supp, idx) => (
-                  <div key={idx} className="flex items-center px-5 py-2 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] group gap-4">
+                {(month.supplements || []).map((supp, idx) => {
+                  const qty = supp.quantity_per_dose || 0;
+                  const freq = supp.frequency_per_day || 0;
+                  const upb = supp.units_per_bottle || 0;
+                  const bottles = (qty > 0 && freq > 0 && upb > 0) ? Math.ceil((qty * freq * 30) / upb) : '-';
+                  const times = supp.times || ['AM'];
+                  return (
+                  <div key={idx} className="flex items-center px-4 py-1.5 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] group gap-3">
+                    {/* Time chips */}
+                    <div className="flex gap-0.5 w-[70px] shrink-0 justify-center">
+                      {['AM', 'Aft', 'PM'].map((label, ti) => {
+                        const fullName = ['AM', 'Afternoon', 'PM'][ti];
+                        const active = times.includes(fullName);
+                        return (
+                          <button key={label} type="button"
+                            onClick={() => {
+                              const nt = active ? times.filter(t => t !== fullName) : [...times, fullName].sort((a, b) => ['AM','Afternoon','PM'].indexOf(a) - ['AM','Afternoon','PM'].indexOf(b));
+                              if (nt.length === 0) return;
+                              updateTemplateSupp(month.month_number, idx, 'times', nt);
+                            }}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors ${
+                              active ? 'bg-[#0D5F68] text-white' : 'bg-[#F1F5F9] text-[#94A3B8] hover:text-[#0D5F68]'}`}>
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
                     <span className="text-[12px] font-bold text-[#0B0D10] flex-1 min-w-0 truncate">{supp.supplement_name}</span>
-                    <span className="text-[11px] text-[#718096] w-[120px] truncate">{supp.dosage_display || '-'}</span>
-                    <span className="text-[11px] text-[#718096] w-[120px] truncate">{supp.instructions || '-'}</span>
-                    <span className="font-mono text-[11px] font-bold text-[#147D5A] w-[60px] text-right">{formatCurrency(supp.cost_per_bottle)}</span>
+                    <span className="text-[11px] text-[#718096] w-[100px] truncate">{supp.dosage_display || '-'}</span>
+                    <span className="text-[11px] text-[#718096] w-[100px] truncate">{supp.instructions || '-'}</span>
+                    <span className="font-mono text-[11px] font-semibold text-[#334155] w-[32px] text-center">{bottles}</span>
+                    <span className="font-mono text-[11px] font-bold text-[#147D5A] w-[55px] text-right">{formatCurrency(supp.cost_per_bottle)}</span>
                     <button className="h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 text-[#94A3B8] hover:text-[#C53B3B] transition-opacity"
                       onClick={() => { setDeleteSupp({ monthNum: month.month_number, idx, name: supp.supplement_name }); setDeleteFromAll(false); }}><Trash2 size={12} /></button>
-                  </div>
-                ))}
+                  </div>);
+                })}
                 {(month.supplements || []).length === 0 && (
                   <div className="px-5 py-8 text-center text-sm text-muted-foreground">No supplements. Add below.</div>
                 )}
