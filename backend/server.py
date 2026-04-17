@@ -645,6 +645,13 @@ async def list_templates(program_name: str = "", user=Depends(require_auth)):
                     supp["company"] = ref.get("company", supp.get("company", ""))
                     supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
                     supp["unit_type"] = ref.get("unit_type", supp.get("unit_type", "caps"))
+                    # Backfill qty/freq from master defaults if missing on template
+                    if not supp.get("quantity_per_dose"):
+                        supp["quantity_per_dose"] = ref.get("default_quantity_per_dose")
+                    if not supp.get("frequency_per_day"):
+                        supp["frequency_per_day"] = ref.get("default_frequency_per_day")
+                    if not supp.get("dosage_display"):
+                        supp["dosage_display"] = ref.get("default_dosage_display", "")
                 # Backfill times from frequency if missing
                 if not supp.get("times"):
                     freq = supp.get("frequency_per_day") or 1
@@ -719,6 +726,12 @@ async def get_template(template_id: str, user=Depends(require_auth)):
                 supp["company"] = ref.get("company", supp.get("company", ""))
                 supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
                 supp["unit_type"] = ref.get("unit_type", supp.get("unit_type", "caps"))
+                if not supp.get("quantity_per_dose"):
+                    supp["quantity_per_dose"] = ref.get("default_quantity_per_dose")
+                if not supp.get("frequency_per_day"):
+                    supp["frequency_per_day"] = ref.get("default_frequency_per_day")
+                if not supp.get("dosage_display"):
+                    supp["dosage_display"] = ref.get("default_dosage_display", "")
             # Backfill times from frequency if missing
             if not supp.get("times"):
                 freq = supp.get("frequency_per_day") or 1
