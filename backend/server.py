@@ -645,6 +645,12 @@ async def list_templates(program_name: str = "", user=Depends(require_auth)):
                     supp["company"] = ref.get("company", supp.get("company", ""))
                     supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
                     supp["unit_type"] = ref.get("unit_type", supp.get("unit_type", "caps"))
+                # Backfill times from frequency if missing
+                if not supp.get("times"):
+                    freq = supp.get("frequency_per_day") or 1
+                    if freq >= 3: supp["times"] = ["AM", "Afternoon", "PM"]
+                    elif freq == 2: supp["times"] = ["AM", "PM"]
+                    else: supp["times"] = ["AM"]
     
     return {"templates": templates}
 
@@ -691,15 +697,34 @@ async def get_template(template_id: str, user=Depends(require_auth)):
     async for s in db.supplements.find({}):
         master[str(s["_id"])] = s
         master[s.get("supplement_name", "").lower()] = s
-    for supp in tmpl.get("supplements", []):
-        ref = master.get(supp.get("supplement_id")) or master.get((supp.get("supplement_name") or "").lower())
-        if ref:
-            supp["cost_per_bottle"] = ref.get("cost_per_bottle", supp.get("cost_per_bottle", 0))
-            supp["units_per_bottle"] = ref.get("units_per_bottle", supp.get("units_per_bottle"))
-            supp["supplier"] = ref.get("supplier", supp.get("supplier", ""))
-            supp["company"] = ref.get("company", supp.get("company", ""))
-            supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
-            supp["unit_type"] = ref.get("unit_type", supp.get("unit_type", "caps"))
+    # Convert old flat format to months if needed
+    if not tmpl.get("months"):
+        default_months = tmpl.get("default_months", 1)
+        flat_supps = tmpl.get("supplements", [])
+        num = max(1, int(default_months)) if default_months >= 1 else 1
+        months = []
+        for i in range(num):
+            mn = 0.5 if default_months == 0.5 and i == 0 else i + 1
+            months.append({"month_number": mn, "supplements": [dict(s) for s in flat_supps]})
+        tmpl["months"] = months
+    
+    # Refresh all months from master
+    for month in tmpl.get("months", []):
+        for supp in month.get("supplements", []):
+            ref = master.get(supp.get("supplement_id")) or master.get((supp.get("supplement_name") or "").lower())
+            if ref:
+                supp["cost_per_bottle"] = ref.get("cost_per_bottle", supp.get("cost_per_bottle", 0))
+                supp["units_per_bottle"] = ref.get("units_per_bottle", supp.get("units_per_bottle"))
+                supp["supplier"] = ref.get("supplier", supp.get("supplier", ""))
+                supp["company"] = ref.get("company", supp.get("company", ""))
+                supp["refrigerate"] = ref.get("refrigerate", supp.get("refrigerate", False))
+                supp["unit_type"] = ref.get("unit_type", supp.get("unit_type", "caps"))
+            # Backfill times from frequency if missing
+            if not supp.get("times"):
+                freq = supp.get("frequency_per_day") or 1
+                if freq >= 3: supp["times"] = ["AM", "Afternoon", "PM"]
+                elif freq == 2: supp["times"] = ["AM", "PM"]
+                else: supp["times"] = ["AM"]
     
     return tmpl
 
