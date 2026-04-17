@@ -1025,7 +1025,10 @@ async def export_patient_pdf(plan_id: str, user=Depends(require_auth)):
                     supp["dosage_display"] = f"{q} cap{'s' if q > 1 else ''}, {f}x/day"
     
     pdf_bytes = bytes(generate_patient_pdf(plan))
-    filename = f"{plan.get('patient_name', 'patient').replace(' ', '_')}_protocol.pdf"
+    patient_name = plan.get('patient_name', 'patient')
+    program = plan.get('program_name', 'Protocol')
+    step = plan.get('step_label', '')
+    filename = f"Patient - {patient_name} - {program} {step}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
@@ -1054,7 +1057,10 @@ async def export_hc_pdf(plan_id: str, user=Depends(require_auth)):
                     supp["dosage_display"] = f"{q} cap{'s' if q > 1 else ''}, {f}x/day"
     
     pdf_bytes = bytes(generate_hc_pdf(plan))
-    filename = f"{plan.get('patient_name', 'patient').replace(' ', '_')}_protocol_HC.pdf"
+    patient_name = plan.get('patient_name', 'patient')
+    program = plan.get('program_name', 'Protocol')
+    step = plan.get('step_label', '')
+    filename = f"HC - {patient_name} - {program} {step}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",

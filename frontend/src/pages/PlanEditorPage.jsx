@@ -78,11 +78,12 @@ function SortableRow({ id, disabled, children }) {
 /* ── Month Page ── */
 function MonthPage({
   month, showCosts, patientView, isFinalized,
-  onUpdateField, onRemoveRow, onAddSupplement, onReorder, supplements, formatCurrency,
+  onUpdateField, onRemoveRow, onRemoveFromAll, onAddSupplement, onReorder, supplements, formatCurrency,
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteRow, setDeleteRow] = useState(null);
+  const [deleteFromAll, setDeleteFromAll] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -317,16 +318,35 @@ function MonthPage({
         </div>
       )}
 
-      <AlertDialog open={deleteRow !== null} onOpenChange={() => setDeleteRow(null)}>
+      <AlertDialog open={deleteRow !== null} onOpenChange={() => { setDeleteRow(null); setDeleteFromAll(false); }}>
         <AlertDialogContent className="p-7">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg">Remove supplement?</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm mt-2">This only removes it from Month {month.month_number}.</AlertDialogDescription>
+            <AlertDialogDescription className="text-sm mt-2">
+              {deleteRow !== null && (month.supplements || [])[deleteRow]
+                ? `Remove "${(month.supplements || [])[deleteRow]?.supplement_name}" from this plan.`
+                : 'This will remove the supplement.'}
+            </AlertDialogDescription>
           </AlertDialogHeader>
+          <label className="flex items-center gap-3 mt-4 cursor-pointer select-none">
+            <input type="checkbox" checked={deleteFromAll} onChange={(e) => setDeleteFromAll(e.target.checked)}
+              className="w-4 h-4 rounded border-[#C8E6E0] text-[#0D5F68] focus:ring-[#0D5F68]" />
+            <span className="text-sm text-[#334155]">Remove from all months</span>
+          </label>
           <AlertDialogFooter className="mt-6 gap-3">
             <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { onRemoveRow(month.month_number, deleteRow); setDeleteRow(null); }}
-              className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">Remove</AlertDialogAction>
+            <AlertDialogAction onClick={() => {
+              if (deleteFromAll && deleteRow !== null) {
+                const suppName = (month.supplements || [])[deleteRow]?.supplement_name;
+                if (suppName) onRemoveFromAll(suppName);
+              } else {
+                onRemoveRow(month.month_number, deleteRow);
+              }
+              setDeleteRow(null); setDeleteFromAll(false);
+            }}
+              className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">
+              {deleteFromAll ? 'Remove from all months' : 'Remove'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -469,6 +489,15 @@ export default function PlanEditorPage() {
     if (m) { m.supplements = (m.supplements || []).filter((_, i) => i !== index); }
     recalcAndUpdate(np); toast.success('Supplement removed');
   };
+  const removeFromAllMonths = (suppName) => {
+    if (!plan || isFinalized) return;
+    const np = { ...plan };
+    for (const m of np.months || []) {
+      m.supplements = (m.supplements || []).filter(s => s.supplement_name !== suppName);
+    }
+    recalcAndUpdate(np); toast.success(`Removed "${suppName}" from all months`);
+  };
+
 
   const reorderSupplements = (monthNum, oldIdx, newIdx) => {
     if (!plan || isFinalized) return;
@@ -535,8 +564,8 @@ export default function PlanEditorPage() {
     }
   };
 
-  const handleExportPatient = async () => { setExporting(true); try { if (!isFinalized) await savePlan(plan); const b = await exportPatientPDF(planId); downloadBlob(b, `${plan.patient_name || 'patient'}_protocol.pdf`); toast.success('Patient PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
-  const handleExportHC = async () => { setExporting(true); try { if (!isFinalized) await savePlan(plan); const b = await exportHCPDF(planId); downloadBlob(b, `${plan.patient_name || 'patient'}_protocol_HC.pdf`); toast.success('HC PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
+  const handleExportPatient = async () => { setExporting(true); try { if (!isFinalized) await savePlan(plan); const b = await exportPatientPDF(planId); downloadBlob(b, `Patient - ${plan.patient_name || 'patient'} - ${plan.program_name || ''} ${plan.step_label || ''}.pdf`); toast.success('Patient PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
+  const handleExportHC = async () => { setExporting(true); try { if (!isFinalized) await savePlan(plan); const b = await exportHCPDF(planId); downloadBlob(b, `HC - ${plan.patient_name || 'patient'} - ${plan.program_name || ''} ${plan.step_label || ''}.pdf`); toast.success('HC PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
   const [savingDrive, setSavingDrive] = useState(false);
   const handleSaveToDrive = async () => {
     setSavingDrive(true);
@@ -768,7 +797,7 @@ export default function PlanEditorPage() {
           {(plan.months || []).map((month) => (
             <MonthPage key={month.month_number} month={month}
               showCosts={effectiveShowCosts} patientView={patientViewMode} isFinalized={isFinalized}
-              onUpdateField={updateField} onRemoveRow={removeRow} onReorder={reorderSupplements} onAddSupplement={addSupplementToMonth}
+              onUpdateField={updateField} onRemoveRow={removeRow} onRemoveFromAll={removeFromAllMonths} onReorder={reorderSupplements} onAddSupplement={addSupplementToMonth}
               supplements={supplements} formatCurrency={formatCurrency} />
           ))}
         </div>
