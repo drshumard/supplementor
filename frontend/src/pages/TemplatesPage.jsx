@@ -78,6 +78,8 @@ function MonthAddSupplement({ monthNum, supplements, onAdd }) {
   const [addOpen, setAddOpen] = useState(false);
   const [newTemplate, setNewTemplate] = useState({ program_name: '', step_number: 1, default_months: 1 });
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteSupp, setDeleteSupp] = useState(null); // {monthNum, idx, name}
+  const [deleteFromAll, setDeleteFromAll] = useState(false);
 
   // Derive unique program names from templates + defaults
   const programNames = [...new Set([...DEFAULT_PROGRAMS, ...templates.map(t => t.program_name)])].sort();
@@ -138,6 +140,13 @@ function MonthAddSupplement({ monthNum, supplements, onAdd }) {
       if (m.month_number !== monthNum) return m;
       return { ...m, supplements: (m.supplements || []).filter((_, i) => i !== idx) };
     }));
+  };
+
+  const removeFromAllMonths = (suppName) => {
+    setEditSupps(prev => prev.map(m => ({
+      ...m, supplements: (m.supplements || []).filter(s => s.supplement_name !== suppName)
+    })));
+    toast.success(`Removed "${suppName}" from all months`);
   };
 
   const handleSave = async () => {
@@ -284,7 +293,7 @@ function MonthAddSupplement({ monthNum, supplements, onAdd }) {
                     <span className="text-[11px] text-[#718096] w-[120px] truncate">{supp.instructions || '-'}</span>
                     <span className="font-mono text-[11px] font-bold text-[#147D5A] w-[60px] text-right">{formatCurrency(supp.cost_per_bottle)}</span>
                     <button className="h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 text-[#94A3B8] hover:text-[#C53B3B] transition-opacity"
-                      onClick={() => removeTemplateSupp(month.month_number, idx)}><Trash2 size={12} /></button>
+                      onClick={() => { setDeleteSupp({ monthNum: month.month_number, idx, name: supp.supplement_name }); setDeleteFromAll(false); }}><Trash2 size={12} /></button>
                   </div>
                 ))}
                 {(month.supplements || []).length === 0 && (
@@ -339,6 +348,36 @@ function MonthAddSupplement({ monthNum, supplements, onAdd }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+
+      {/* Delete Supplement Confirm */}
+      <AlertDialog open={!!deleteSupp} onOpenChange={() => { setDeleteSupp(null); setDeleteFromAll(false); }}>
+        <AlertDialogContent className="p-7">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg">Remove supplement?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm mt-2">
+              {deleteSupp ? `Remove "${deleteSupp.name}" from this template.` : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <label className="flex items-center gap-3 mt-4 cursor-pointer select-none">
+            <input type="checkbox" checked={deleteFromAll} onChange={(e) => setDeleteFromAll(e.target.checked)}
+              className="w-4 h-4 rounded border-[#C8E6E0] text-[#0D5F68] focus:ring-[#0D5F68]" />
+            <span className="text-sm text-[#334155]">Remove from all months</span>
+          </label>
+          <AlertDialogFooter className="mt-6 gap-3">
+            <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (deleteSupp) {
+                if (deleteFromAll) { removeFromAllMonths(deleteSupp.name); }
+                else { removeTemplateSupp(deleteSupp.monthNum, deleteSupp.idx); }
+              }
+              setDeleteSupp(null); setDeleteFromAll(false);
+            }} className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">
+              {deleteFromAll ? 'Remove from all months' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Template Confirm */}
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
