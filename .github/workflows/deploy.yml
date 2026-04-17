@@ -1,0 +1,83 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            
+            APP_NAME="drshumard-protocol"
+            APP_DIR="/var/www/supplemetor"
+            FRONTEND_PORT=3847
+            BACKEND_PORT=8047
+            DOMAIN="fm.drshumard.com"
+            
+            echo "=== [1/6] Pulling latest code ==="
+            cd $APP_DIR
+            git pull origin main
+            
+            echo "=== [2/6] Checking .env files ==="
+            if [ ! -f "$APP_DIR/backend/.env" ] || [ ! -f "$APP_DIR/frontend/.env" ]; then
+              echo "ERROR: .env files missing. Set up manually first."
+              exit 1
+            fi
+            
+            echo "=== [3/6] Backend dependencies ==="
+            cd $APP_DIR/backend
+            if [ ! -d "venv" ]; then python3 -m venv venv; fi
+            source venv/bin/activate
+            pip install -q --upgrade pip
+            pip install -q -r requirements.txt
+            deactivate
+            
+            echo "=== [4/6] Frontend build ==="
+            cd $APP_DIR/frontend
+            
+            # Inject Clerk key into index.html
+            CLERK_PK=$(grep REACT_APP_CLERK_PUBLISHABLE_KEY $APP_DIR/frontend/.env 2>/dev/null | cut -d= -f2 | tr -d "'" | tr -d '"')
+            if [ -n "$CLERK_PK" ]; then
+              sed -i "s|window.__CLERK_PK=\"[^\"]*\"|window.__CLERK_PK=\"${CLERK_PK}\"|" $APP_DIR/frontend/public/index.html
+            fi
+            
+            yarn install --silent
+            yarn build --silent 2>/dev/null || yarn build
+            
+            echo "=== [5/6] Restart PM2 ==="
+            pm2 delete ${APP_NAME}-backend 2>/dev/null || true
+            pm2 delete ${APP_NAME}-frontend 2>/dev/null || true
+            
+            cd $APP_DIR/backend
+            set -a && source .env && set +a
+            pm2 start venv/bin/uvicorn \
+              --name "${APP_NAME}-backend" \
+              --interpreter none \
+              -- server:app --host 127.0.0.1 --port $BACKEND_PORT --workers 2
+            
+            cd $APP_DIR/frontend
+            pm2 start npx \
+              --name "${APP_NAME}-frontend" \
+              --interpreter none \
+              -- serve -s build -l $FRONTEND_PORT
+            
+            pm2 save
+            
+            echo "=== [6/6] Health check ==="
+            sleep 3
+            curl -sf http://127.0.0.1:${BACKEND_PORT}/api/health > /dev/null && echo "✓ Backend OK" || echo "⚠ Backend not ready"
+            curl -sf http://127.0.0.1:${FRONTEND_PORT} > /dev/null && echo "✓ Frontend OK" || echo "⚠ Frontend not ready"
+            
+            echo "=== Deploy complete: https://$DOMAIN ==="
