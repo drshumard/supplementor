@@ -1133,13 +1133,13 @@ async def save_plan_to_cloud(plan_id: str, authorization: str = Header(None)):
     try:
         from dropbox_integration import upload_pdf
         
-        hc_pdf = bytes(generate_hc_pdf(plan))
-        hc_filename = f"HC - {patient_name} - {program} {step}.pdf"
-        hc_result = upload_pdf(practitioner_name, patient_name, hc_filename, hc_pdf)
+        patient_pdf = bytes(generate_patient_pdf(plan))
+        patient_filename = f"Patient - {patient_name} - {program} {step}.pdf"
+        patient_result = upload_pdf(practitioner_name, patient_name, patient_filename, patient_pdf)
         
         return {
             "success": True,
-            "hc_pdf": hc_result,
+            "patient_pdf": patient_result,
             "message": f"Saved to Dropbox in '{practitioner_name}/{patient_name}' folder",
         }
     except Exception as e:
@@ -1176,9 +1176,9 @@ async def save_all_plans_to_cloud(patient_id: str, user=Depends(require_auth)):
             program = plan.get("program_name", "Protocol")
             step = plan.get("step_label", "")
             
-            hc_pdf = bytes(generate_hc_pdf(plan))
-            hc_filename = f"HC - {patient_name} - {program} {step}.pdf"
-            uploaded.append(upload_pdf(practitioner_name, patient_name, hc_filename, hc_pdf))
+            patient_pdf = bytes(generate_patient_pdf(plan))
+            patient_filename = f"Patient - {patient_name} - {program} {step}.pdf"
+            uploaded.append(upload_pdf(practitioner_name, patient_name, patient_filename, patient_pdf))
         
         return {
             "success": True,
