@@ -1,20 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getSuppliers, createSupplier, updateSupplier, deleteSupplier } from '../lib/api';
-import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '../components/ui/table';
-import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '../components/ui/dialog';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '../components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Truck } from 'lucide-react';
+import { Plus, Trash2, Truck } from 'lucide-react';
 import { toast } from 'sonner';
+import PageHeader, { PageContainer } from '../components/PageHeader';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState([]);
@@ -65,121 +59,150 @@ export default function SuppliersPage() {
   };
 
   return (
-    <div className="p-10 max-w-[1560px] mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-[-0.02em] text-[#0B0D10]">Suppliers</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage suppliers and freight charges. Freight is charged once per supplier per month.</p>
-        </div>
-        <Button onClick={openAdd} className="gap-2.5 h-12 px-7 bg-[#0B0D10] hover:bg-[#1a1d21] text-white font-bold shadow-sm text-sm"
-          data-testid="admin-suppliers-add-button">
-          <Plus size={18} /> Add Supplier
-        </Button>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Suppliers"
+        subtitle="Freight is charged once per supplier per month"
+      >
+        <button
+          onClick={openAdd}
+          data-testid="admin-suppliers-add-button"
+          className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md text-[13px] font-medium bg-[color:var(--accent-teal)] text-white hover:bg-[color:var(--accent-teal-hover)] shadow-[var(--shadow-xs)]"
+        >
+          <Plus size={14} /> Add supplier
+        </button>
+      </PageHeader>
 
-      <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="admin-suppliers-table">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-[#0D5F68] hover:bg-[#0D5F68] rounded-t-xl">
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 px-6">Supplier</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[160px]">Freight Charge</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[80px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={2} className="h-40 text-center text-muted-foreground">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-5 h-5 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin" /> Loading...
+      <div className="px-8 py-6">
+        <div
+          className="rounded-lg border hairline surface overflow-hidden shadow-[var(--shadow-xs)]"
+          data-testid="admin-suppliers-table"
+        >
+          <div
+            className="grid items-center h-9 px-5 hairline-b text-[10px] font-semibold tracking-[0.09em] uppercase text-[color:var(--accent-teal)]"
+            style={{
+              gridTemplateColumns: '1fr 160px',
+              background: 'linear-gradient(90deg, rgba(13,95,104,0.08) 0%, rgba(70,152,157,0.12) 50%, rgba(13,95,104,0.08) 100%)',
+            }}
+          >
+            <span>Supplier</span>
+            <span className="text-right">Freight</span>
+          </div>
+
+          {loading ? (
+            <div className="h-40 flex items-center justify-center gap-2 text-[12px] text-ink-muted">
+              <div className="w-4 h-4 border-2 border-[color:var(--accent-teal)] border-t-transparent rounded-full animate-spin" />
+              Loading…
+            </div>
+          ) : suppliers.length === 0 ? (
+            <div className="h-48 flex flex-col items-center justify-center gap-2 text-ink-subtle">
+              <Truck size={26} strokeWidth={1.4} className="text-ink-faint" />
+              <p className="text-[13px] text-ink-muted">No suppliers yet</p>
+            </div>
+          ) : (
+            suppliers.map(s => (
+              <div
+                key={s._id}
+                onClick={() => openEdit(s)}
+                className="grid items-center min-h-[48px] px-5 py-2 border-b border-[color:var(--hairline)] last:border-b-0 row-hover cursor-pointer transition-colors"
+                style={{ gridTemplateColumns: '1fr 160px' }}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-md bg-[color:var(--accent-teal-wash)] flex items-center justify-center shrink-0">
+                    <Truck size={13} className="text-[color:var(--accent-teal)]" />
+                  </div>
+                  <span className="text-[13px] font-medium text-ink truncate">{s.name}</span>
                 </div>
-              </TableCell></TableRow>
-            ) : suppliers.length === 0 ? (
-              <TableRow><TableCell colSpan={2} className="h-40 text-center text-muted-foreground">
-                <Truck size={36} strokeWidth={1} className="mx-auto mb-3 text-muted-foreground/40" />
-                <p className="text-sm">No suppliers yet</p>
-              </TableCell></TableRow>
-            ) : (
-              suppliers.map(s => (
-                <TableRow key={s._id} className="hover:bg-[#F0FAFA] cursor-pointer transition-colors duration-150" onClick={() => openEdit(s)}>
-                  <TableCell className="py-5 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-[#EAF4F3] flex items-center justify-center">
-                        <Truck size={16} className="text-[#0D5F68]" />
-                      </div>
-                      <span className="font-semibold text-sm text-[#0B0D10]">{s.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-5">
-                    <span className="font-mono tabular-nums text-base font-bold text-[#147D5A]">
-                      ${(s.freight_charge || 0).toFixed(2)}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                <span className="font-mono tabular-nums text-[13px] font-semibold text-ink text-right whitespace-nowrap">
+                  ${(s.freight_charge || 0).toFixed(2)}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
-      {/* Add/Edit Dialog */}
+      {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-[400px] p-7">
-          <DialogHeader>
+        <DialogContent className="max-w-[440px] p-0 gap-0 overflow-hidden rounded-xl border hairline shadow-[var(--shadow-lg)]">
+          <DialogHeader className="px-6 pt-6 pb-4 space-y-1">
             <div className="flex items-center justify-between">
-              <DialogTitle className="text-lg">{editId ? 'Edit Supplier' : 'Add Supplier'}</DialogTitle>
+              <DialogTitle className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
+                {editId ? 'Edit supplier' : 'Add supplier'}
+              </DialogTitle>
               {editId && (
-                <Button variant="ghost" size="sm" onClick={() => { setEditOpen(false); setDeleteId(editId); }}
-                  className="h-8 px-3 text-xs text-[#C53B3B] hover:bg-red-50 hover:text-[#A52E2E] gap-1.5">
-                  <Trash2 size={13} /> Delete
-                </Button>
+                <button
+                  onClick={() => { setEditOpen(false); setDeleteId(editId); }}
+                  className="inline-flex items-center gap-1 h-7 px-2 rounded text-[11px] font-medium text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 size={11} /> Delete
+                </button>
               )}
             </div>
-            <DialogDescription className="text-sm mt-1">
+            <DialogDescription className="text-[13px] text-ink-muted">
               {editId ? 'Update supplier details.' : 'Add a new supplier with freight charge.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-5 py-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Supplier Name *</Label>
-              <Input value={editData.name} onChange={(e) => setEditData({...editData, name: e.target.value})}
-                className="h-12" placeholder="e.g. Emerson" />
+          <div className="px-6 pb-5 grid gap-3.5">
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-ink-3">Supplier name <span className="text-red-600">*</span></Label>
+              <Input
+                value={editData.name}
+                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                className="h-9 text-[13px]"
+                placeholder="e.g. Emerson"
+                autoFocus
+              />
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Freight Charge ($)</Label>
-              <Input type="number" step="0.01" value={editData.freight_charge}
-                onChange={(e) => setEditData({...editData, freight_charge: e.target.value})}
-                className="h-12 font-mono text-lg" placeholder="0.00" />
-              <p className="text-xs text-muted-foreground">Charged once per month when any supplement from this supplier is in a plan.</p>
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-ink-3">Freight charge ($)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editData.freight_charge}
+                onChange={(e) => setEditData({ ...editData, freight_charge: e.target.value })}
+                className="h-9 text-[13px] font-mono tabular-nums"
+                placeholder="0.00"
+              />
+              <p className="text-[11.5px] text-ink-subtle">Charged once per month when any supplement from this supplier is in a plan.</p>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Notes</Label>
-              <Input value={editData.notes} onChange={(e) => setEditData({...editData, notes: e.target.value})}
-                className="h-12" placeholder="Optional" />
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-ink-3">Notes</Label>
+              <Input
+                value={editData.notes}
+                onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                className="h-9 text-[13px]"
+                placeholder="Optional"
+              />
             </div>
           </div>
-          <DialogFooter className="gap-3 mt-2">
-            <Button variant="outline" onClick={() => setEditOpen(false)} className="h-11 px-5">Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}
-              className="h-11 px-6 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold">
-              {saving ? 'Saving...' : (editId ? 'Update' : 'Add Supplier')}
-            </Button>
+          <DialogFooter className="px-6 py-4 bg-[color:var(--surface-hover)] hairline-t gap-2">
+            <button
+              onClick={() => setEditOpen(false)}
+              className="h-9 px-4 rounded-md text-[13px] font-medium border hairline bg-white hover:bg-[color:var(--surface-subtle)] text-ink-3 hover:text-ink"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="h-9 px-4 rounded-md text-[13px] font-semibold bg-[color:var(--accent-teal)] hover:bg-[color:var(--accent-teal-hover)] text-white disabled:opacity-60"
+            >
+              {saving ? 'Saving…' : editId ? 'Update' : 'Add supplier'}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="p-7">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg">Delete this supplier?</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm mt-2">Supplements using this supplier will keep the name but won't have freight applied.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6 gap-3">
-            <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        title="Delete this supplier?"
+        description="Supplements using this supplier will keep the name but won't have freight applied."
+        confirmLabel="Delete supplier"
+        destructive
+        onConfirm={handleDelete}
+      />
+    </PageContainer>
   );
 }

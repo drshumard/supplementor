@@ -1,22 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPatients, createPatient, deletePatient } from '../lib/api';
-import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Badge } from '../components/ui/badge';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '../components/ui/table';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '../components/ui/dialog';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '../components/ui/alert-dialog';
 import { Plus, Search, Trash2, ChevronRight, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import PageHeader, { PageContainer } from '../components/PageHeader';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState([]);
@@ -62,131 +55,177 @@ export default function PatientsPage() {
   };
 
   return (
-    <div className="p-10 max-w-[1560px] mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-[-0.02em] text-[#0B0D10]">Patients</h1>
-          <p className="text-sm text-muted-foreground mt-1">{total} patient{total !== 1 ? 's' : ''}</p>
+    <PageContainer>
+      <PageHeader title="Patients" subtitle={`${total} patient${total !== 1 ? 's' : ''}`}>
+        <button
+          onClick={() => setAddOpen(true)}
+          data-testid="add-patient-button"
+          className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md text-[13px] font-medium bg-[color:var(--accent-teal)] text-white hover:bg-[color:var(--accent-teal-hover)] transition-colors shadow-[var(--shadow-xs)]"
+        >
+          <UserPlus size={14} /> Add patient
+        </button>
+      </PageHeader>
+
+      <div className="px-8 py-6">
+        <div className="relative max-w-[360px] mb-4">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+          <Input
+            placeholder="Search patients…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            data-testid="patients-search"
+            className="pl-9 h-9 text-[13px] bg-white"
+          />
         </div>
-        <Button onClick={() => setAddOpen(true)} data-testid="add-patient-button"
-          className="gap-2.5 h-12 px-7 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-bold shadow-sm text-sm">
-          <UserPlus size={18} /> Add Patient
-        </Button>
-      </div>
 
-      <div className="relative max-w-[400px] mb-6">
-        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search patients..." value={search} onChange={(e) => setSearch(e.target.value)}
-          data-testid="patients-search" className="pl-11 h-12" />
-      </div>
+        <div
+          className="rounded-lg border hairline surface overflow-hidden shadow-[var(--shadow-xs)]"
+          data-testid="patients-table"
+        >
+          <div
+            className="grid items-center h-9 px-5 hairline-b text-[10px] font-semibold tracking-[0.09em] uppercase text-[color:var(--accent-teal)]"
+            style={{
+              gridTemplateColumns: 'minmax(200px,1.5fr) 1fr 160px 80px 60px',
+              background: 'linear-gradient(90deg, rgba(13,95,104,0.08) 0%, rgba(70,152,157,0.12) 50%, rgba(13,95,104,0.08) 100%)',
+            }}
+          >
+            <span>Name</span>
+            <span>Email</span>
+            <span>Phone</span>
+            <span className="text-center">Plans</span>
+            <span />
+          </div>
 
-      <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="patients-table">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-[#0D5F68] hover:bg-[#0D5F68] rounded-t-xl">
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 px-6">Name</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Email</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4">Phone</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 w-[100px]">Plans</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-4 w-[100px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-5 h-5 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin" /> Loading...
+          {loading ? (
+            <div className="h-40 flex items-center justify-center gap-2 text-[12px] text-ink-muted">
+              <div className="w-4 h-4 border-2 border-[color:var(--accent-teal)] border-t-transparent rounded-full animate-spin" />
+              Loading…
+            </div>
+          ) : patients.length === 0 ? (
+            <div className="h-48 flex flex-col items-center justify-center gap-3 text-ink-subtle">
+              <UserPlus size={28} strokeWidth={1.4} className="text-ink-faint" />
+              <p className="text-[13px] text-ink-muted">No patients yet</p>
+              <button
+                onClick={() => setAddOpen(true)}
+                className="h-8 px-3.5 rounded-md text-[12.5px] font-medium bg-[color:var(--accent-teal)] text-white hover:bg-[color:var(--accent-teal-hover)]"
+              >
+                Add your first patient
+              </button>
+            </div>
+          ) : (
+            patients.map(p => (
+              <div
+                key={p._id}
+                onClick={() => navigate(`/patients/${p._id}`)}
+                className="grid items-center min-h-[48px] px-5 py-1.5 border-b border-[color:var(--hairline)] last:border-b-0 row-hover cursor-pointer transition-colors group"
+                style={{ gridTemplateColumns: 'minmax(200px,1.5fr) 1fr 160px 80px 60px' }}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-full bg-[color:var(--accent-teal-wash)] flex items-center justify-center text-[11px] font-semibold text-[color:var(--accent-teal)] shrink-0">
+                    {p.name?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                  <span className="text-[13px] font-medium text-ink truncate">{p.name}</span>
                 </div>
-              </TableCell></TableRow>
-            ) : patients.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="h-40 text-center">
-                <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                  <UserPlus size={40} strokeWidth={1} />
-                  <p className="text-base">No patients yet</p>
-                  <Button onClick={() => setAddOpen(true)} className="mt-2 h-11 px-5 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold">Add your first patient</Button>
-                </div>
-              </TableCell></TableRow>
-            ) : (
-              patients.map(p => (
-                <TableRow key={p._id} className="cursor-pointer hover:bg-[#F0FAFA] transition-colors" onClick={() => navigate(`/patients/${p._id}`)}>
-                  <TableCell className="py-5 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-[#EAF4F3] flex items-center justify-center text-sm font-bold text-[#0D5F68]">
-                        {p.name?.charAt(0)?.toUpperCase() || '?'}
-                      </div>
-                      <span className="font-bold text-sm text-[#0B0D10]">{p.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground py-5">{p.email || '-'}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground py-5">{p.phone || '-'}</TableCell>
-                  <TableCell className="py-5">
-                    <Badge className="bg-[#EAF4F3] text-[#0D5F68] hover:bg-[#EAF4F3] px-3 py-1 text-xs font-bold">{p.plan_count || 0}</Badge>
-                  </TableCell>
-                  <TableCell className="py-5">
-                    <div className="flex items-center gap-1.5">
-                      <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg text-muted-foreground hover:text-[#C53B3B] hover:bg-red-50"
-                        onClick={(e) => { e.stopPropagation(); setDeleteId(p._id); }}><Trash2 size={15} /></Button>
-                      <ChevronRight size={16} className="text-muted-foreground" />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                <span className="text-[12.5px] text-ink-muted truncate">{p.email || '—'}</span>
+                <span className="text-[12.5px] text-ink-muted truncate">{p.phone || '—'}</span>
+                <span className="text-center">
+                  <span className="inline-flex items-center justify-center h-5 min-w-[24px] px-1.5 rounded bg-[color:var(--accent-teal-wash)] text-[10.5px] font-semibold text-[color:var(--accent-teal)]">
+                    {p.plan_count || 0}
+                  </span>
+                </span>
+                <span className="flex items-center justify-end gap-0.5">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteId(p._id); }}
+                    className="h-7 w-7 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-ink-subtle hover:text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                  <ChevronRight size={14} className="text-ink-faint" />
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
-      {/* Add Patient Dialog */}
+      {/* Add patient dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-[480px] p-7">
-          <DialogHeader>
-            <DialogTitle className="text-lg">Add Patient</DialogTitle>
-            <DialogDescription className="text-sm mt-1">Add a new patient to create plans for.</DialogDescription>
+        <DialogContent className="max-w-[460px] p-0 gap-0 overflow-hidden rounded-xl border hairline shadow-[var(--shadow-lg)]">
+          <DialogHeader className="px-6 pt-6 pb-4 space-y-1">
+            <DialogTitle className="text-[15px] font-semibold tracking-[-0.01em] text-ink">Add patient</DialogTitle>
+            <DialogDescription className="text-[13px] text-ink-muted">
+              Add a new patient to create plans for.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-5 py-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Full Name *</Label>
-              <Input value={newPatient.name} onChange={(e) => setNewPatient({...newPatient, name: e.target.value})}
-                className="h-12" placeholder="e.g. John Smith" data-testid="patient-form-name" />
+          <div className="px-6 pb-5 grid gap-3.5">
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-ink-3">Full name <span className="text-red-600">*</span></Label>
+              <Input
+                value={newPatient.name}
+                onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
+                className="h-9 text-[13px]"
+                placeholder="e.g. John Smith"
+                data-testid="patient-form-name"
+                autoFocus
+              />
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Email</Label>
-              <Input type="email" value={newPatient.email} onChange={(e) => setNewPatient({...newPatient, email: e.target.value})}
-                className="h-12" placeholder="patient@email.com" />
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-ink-3">Email</Label>
+              <Input
+                type="email"
+                value={newPatient.email}
+                onChange={(e) => setNewPatient({ ...newPatient, email: e.target.value })}
+                className="h-9 text-[13px]"
+                placeholder="patient@email.com"
+              />
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Phone</Label>
-              <Input value={newPatient.phone} onChange={(e) => setNewPatient({...newPatient, phone: e.target.value})}
-                className="h-12" placeholder="(555) 123-4567" />
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-ink-3">Phone</Label>
+              <Input
+                value={newPatient.phone}
+                onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
+                className="h-9 text-[13px]"
+                placeholder="(555) 123-4567"
+              />
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Notes</Label>
-              <Input value={newPatient.notes} onChange={(e) => setNewPatient({...newPatient, notes: e.target.value})}
-                className="h-12" placeholder="Any relevant notes" />
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-ink-3">Notes</Label>
+              <Input
+                value={newPatient.notes}
+                onChange={(e) => setNewPatient({ ...newPatient, notes: e.target.value })}
+                className="h-9 text-[13px]"
+                placeholder="Any relevant notes"
+              />
             </div>
           </div>
-          <DialogFooter className="gap-3 mt-2">
-            <Button variant="outline" onClick={() => setAddOpen(false)} className="h-11 px-5">Cancel</Button>
-            <Button onClick={handleAdd} disabled={saving}
-              className="h-11 px-6 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold" data-testid="patient-form-submit">
-              {saving ? 'Adding...' : 'Add Patient'}
-            </Button>
+          <DialogFooter className="px-6 py-4 bg-[color:var(--surface-hover)] hairline-t gap-2">
+            <button
+              onClick={() => setAddOpen(false)}
+              className="h-9 px-4 rounded-md text-[13px] font-medium border hairline bg-white hover:bg-[color:var(--surface-subtle)] text-ink-3 hover:text-ink"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAdd}
+              disabled={saving}
+              data-testid="patient-form-submit"
+              className="h-9 px-4 rounded-md text-[13px] font-semibold bg-[color:var(--accent-teal)] hover:bg-[color:var(--accent-teal-hover)] text-white disabled:opacity-60"
+            >
+              {saving ? 'Adding…' : 'Add patient'}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="p-7">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg">Delete this patient?</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm mt-2">This will also delete all their plans. This cannot be undone.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6 gap-3">
-            <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">Delete Patient</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        title="Delete this patient?"
+        description="This will also delete all their plans. This cannot be undone."
+        confirmLabel="Delete patient"
+        destructive
+        onConfirm={handleDelete}
+      />
+    </PageContainer>
   );
 }

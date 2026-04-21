@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, finalizePlan, reopenPlan, duplicatePlan, saveToDrive, getSuppliers } from '../lib/api';
+import {
+  getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF,
+  finalizePlan, reopenPlan, duplicatePlan, saveToDrive, getSuppliers,
+} from '../lib/api';
 import { formatCurrency, recalculatePlanCosts, downloadBlob } from '../lib/utils';
 import { parseDosage, buildDosageText } from '../lib/dosageParser';
 import { useAuth } from '../App';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -29,36 +35,48 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '../components/ui/dialog';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from '../components/ui/tooltip';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import {
   ArrowLeft, Plus, Minus, Trash2, Download, FileText, Eye, EyeOff, Save,
-  Snowflake, ChevronsUpDown, Lock, Unlock, Copy, User, CopyPlus, Calendar,
-  MoreHorizontal, GripVertical,
+  Snowflake, ChevronsUpDown, Lock, Unlock, Copy, User, CopyPlus,
+  GripVertical, CalendarDays, Circle, MoreHorizontal, CloudUpload, AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-/* ── Compact number stepper ── */
+/* ─────────────────── NumberStepper ─────────────────── */
 function NumberStepper({ value, onChange, disabled, min = 0 }) {
   const num = value ?? 0;
   return (
-    <div className="inline-flex items-center h-[22px] rounded-md border border-[#C8E6E0] overflow-hidden select-none">
-      <button type="button" disabled={disabled || num <= min}
+    <div className="inline-flex items-center h-[24px] rounded-md border hairline overflow-hidden select-none bg-white">
+      <button
+        type="button"
+        disabled={disabled || num <= min}
         onClick={() => onChange(Math.max(min, num - 1))}
-        className="w-[22px] h-full flex items-center justify-center bg-[#EAF4F3] text-[#64748B] hover:bg-[#D5ECE8] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
-        <Minus size={9} />
+        className="w-5 h-full flex items-center justify-center text-ink-subtle hover:bg-[color:var(--surface-hover)] hover:text-ink disabled:opacity-30 transition-colors"
+      >
+        <Minus size={10} />
       </button>
-      <span className="w-6 h-full flex items-center justify-center font-mono text-[10px] font-bold text-[#0B0D10] bg-white">{num}</span>
-      <button type="button" disabled={disabled}
+      <span className="w-6 h-full flex items-center justify-center font-mono text-[11px] font-semibold text-ink tabular-nums">
+        {num}
+      </span>
+      <button
+        type="button"
+        disabled={disabled}
         onClick={() => onChange(num + 1)}
-        className="w-[22px] h-full flex items-center justify-center bg-[#EAF4F3] text-[#64748B] hover:bg-[#D5ECE8] hover:text-[#0B0D10] disabled:opacity-30 transition-colors">
-        <Plus size={9} />
+        className="w-5 h-full flex items-center justify-center text-ink-subtle hover:bg-[color:var(--surface-hover)] hover:text-ink disabled:opacity-30 transition-colors"
+      >
+        <Plus size={10} />
       </button>
     </div>
   );
 }
 
-/* ── Sortable row wrapper ── */
+/* ─────────────────── Sortable row wrapper ─────────────────── */
 function SortableRow({ id, disabled, children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled });
   const style = {
@@ -75,19 +93,18 @@ function SortableRow({ id, disabled, children }) {
   );
 }
 
-/* ── Month Page ── */
-function MonthPage({
+/* ─────────────────── MonthSection ─────────────────── */
+function MonthSection({
   month, showCosts, patientView, isFinalized,
-  onUpdateField, onRemoveRow, onRemoveFromAll, onAddSupplement, onReorder, supplements, formatCurrency,
+  onUpdateField, onRemoveRow, onRemoveFromAll, onAddSupplement, onReorder,
+  supplements, formatCurrency,
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteRow, setDeleteRow] = useState(null);
   const [deleteFromAll, setDeleteFromAll] = useState(false);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const suppIds = (month.supplements || []).map((_, i) => `supp-${month.month_number}-${i}`);
 
@@ -96,9 +113,7 @@ function MonthPage({
     if (!over || active.id === over.id) return;
     const oldIdx = suppIds.indexOf(active.id);
     const newIdx = suppIds.indexOf(over.id);
-    if (oldIdx !== -1 && newIdx !== -1) {
-      onReorder(month.month_number, oldIdx, newIdx);
-    }
+    if (oldIdx !== -1 && newIdx !== -1) onReorder(month.month_number, oldIdx, newIdx);
   };
 
   const filtered = supplements.filter(s =>
@@ -106,68 +121,85 @@ function MonthPage({
     s.company?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  return (
-    <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated mb-8 overflow-hidden"
-      data-testid={`month-page-${month.month_number}`}>
+  const monthLabel =
+    month.month_number === 0.5 ? '2 Weeks' :
+    month.month_number % 1 !== 0 ? `Month ${Math.floor(month.month_number)} + 2 Weeks` :
+    `Month ${month.month_number}`;
 
-      {/* Month header */}
-      <div className="flex items-center justify-between px-8 py-4 bg-[#0D5F68] rounded-t-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center shadow-sm">
-            <Calendar size={18} className="text-white" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-white">{
-              month.month_number === 0.5 ? '2 Weeks' :
-              month.month_number % 1 !== 0 ? `Month ${Math.floor(month.month_number)} + 2 Weeks` :
-              `Month ${month.month_number}`
-            }</h3>
-            <p className="text-xs text-white/60 mt-0.5">
-              {(month.supplements || []).length} supplement{(month.supplements || []).length !== 1 ? 's' : ''}
-            </p>
-          </div>
+  const rowCols = patientView
+    ? '110px minmax(180px,260px) 110px 72px minmax(160px,1fr)'
+    : showCosts
+      ? '14px 110px minmax(180px,240px) 56px 56px 110px 72px minmax(160px,1fr) 36px 78px 20px'
+      : '14px 110px minmax(180px,240px) 56px 56px 110px 72px minmax(160px,1fr) 20px';
+
+  return (
+    <section
+      className="mb-8"
+      data-testid={`month-page-${month.month_number}`}
+    >
+      {/* Quiet section header */}
+      <div className="flex items-end justify-between px-1 pb-3">
+        <div className="flex items-baseline gap-3">
+          <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-ink">{monthLabel}</h3>
+          <span className="text-[12px] text-ink-subtle">
+            {(month.supplements || []).length} {(month.supplements || []).length === 1 ? 'supplement' : 'supplements'}
+          </span>
         </div>
         {showCosts && !patientView && (
-          <div className="flex items-center gap-3 bg-white/15 px-5 py-2.5 rounded-xl">
-            <span className="text-xs text-white/70 font-semibold uppercase tracking-wider">Monthly Total</span>
-            <span className="font-mono tabular-nums text-lg font-bold text-white">
-              {formatCurrency(month.monthly_total_cost)}
-            </span>
+          <div className="flex flex-col items-end gap-0.5">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[11px] uppercase tracking-[0.08em] text-ink-subtle font-medium">Total</span>
+              <span className="font-mono tabular-nums text-[15px] font-semibold text-ink">
+                {formatCurrency(month.monthly_total_cost)}
+              </span>
+            </div>
+            <div className="font-mono tabular-nums text-[11px] text-ink-subtle">
+              Supps {formatCurrency(month.supplement_cost || month.monthly_total_cost)}
+              {(month.freight_total || 0) > 0 && (
+                <> <span className="text-ink-faint">·</span> Ship {formatCurrency(month.freight_total)}</>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Column headers — compact data grid style */}
-      <div className="grid items-center px-4 py-2 border-b border-[#E2E8F0] bg-[#F8FAFB] gap-x-4 text-[11px] font-semibold tracking-[0.06em] uppercase text-[#64748B]"
-        style={{
-          gridTemplateColumns: patientView
-            ? '70px minmax(120px,1fr) 90px 45px 1fr'
-            : showCosts
-              ? '16px 70px minmax(120px,1fr) 56px 56px 90px 45px 1fr 32px 56px 20px'
-              : '16px 70px minmax(120px,1fr) 56px 56px 100px 45px 1fr 20px'
-        }}>
-        {!patientView && <span></span>}
-        <span className="text-center">Times</span>
-        <span className="pl-2">Supplement</span>
-        {!patientView && (<>
-          <span className="text-center">Qty</span>
-          <span className="text-center">Freq</span>
-        </>)}
-        <span>Dosage</span>
-        <span className="text-center">Food</span>
-        <span>Notes</span>
-        {showCosts && !patientView && (<>
-          <span className="text-center">Btls</span>
-          <span className="text-right">Cost</span>
-        </>)}
-        {!isFinalized && !patientView && <span></span>}
-      </div>
+      {/* Table card */}
+      <div className="rounded-lg border hairline surface overflow-hidden shadow-[var(--shadow-xs)]">
+        {/* Brand accent strip */}
+        <div
+          aria-hidden
+          className="h-[2px] w-full"
+          style={{ background: 'linear-gradient(90deg, #0D5F68 0%, #46989D 50%, #0D5F68 100%)' }}
+        />
+        {/* Column headers */}
+        <div
+          className="grid items-center px-3 h-9 hairline-b gap-x-3 text-[10px] font-semibold tracking-[0.09em] uppercase text-[color:var(--accent-teal)]"
+          style={{
+            gridTemplateColumns: rowCols,
+            background: 'linear-gradient(90deg, rgba(13,95,104,0.12) 0%, rgba(70,152,157,0.18) 50%, rgba(13,95,104,0.12) 100%)',
+          }}
+        >
+          {!patientView && <span />}
+          <span className="text-center">Times</span>
+          <span className="pl-2">Supplement</span>
+          {!patientView && (<>
+            <span className="text-center">Qty</span>
+            <span className="text-center">Freq</span>
+          </>)}
+          <span className="text-center">Dosage</span>
+          <span className="text-center">Food</span>
+          <span className="text-center">Notes</span>
+          {showCosts && !patientView && (<>
+            <span className="text-center">Btls</span>
+            <span className="text-right">Cost</span>
+          </>)}
+          {!isFinalized && !patientView && <span />}
+        </div>
 
-      {/* Rows */}
-      <div>
+        {/* Rows */}
         {(month.supplements || []).length === 0 ? (
-          <div className="px-8 py-16 text-center text-muted-foreground text-sm">
-            No supplements added yet. {!isFinalized ? 'Use the button below to add.' : ''}
+          <div className="px-8 py-12 text-center text-ink-subtle text-[13px]">
+            No supplements added yet.
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -175,187 +207,277 @@ function MonthPage({
               {(month.supplements || []).map((supp, idx) => (
                 <SortableRow key={suppIds[idx]} id={suppIds[idx]} disabled={isFinalized || patientView}>
                   <div
-                    className="grid items-center px-4 py-1 border-b border-[#F0F2F4] last:border-b-0 hover:bg-[#F8FAFB] transition-colors duration-100 group gap-x-4"
-                    style={{
-                      gridTemplateColumns: patientView
-                        ? '70px minmax(120px,1fr) 90px 45px 1fr'
-                        : showCosts
-                          ? '16px 70px minmax(120px,1fr) 56px 56px 90px 45px 1fr 32px 56px 20px'
-                          : '16px 70px minmax(120px,1fr) 56px 56px 100px 45px 1fr 20px'
-                    }}>
+                    className="grid items-center px-3 min-h-[36px] py-1 border-b border-[color:var(--hairline)] last:border-b-0 row-hover transition-colors duration-100 group gap-x-3"
+                    style={{ gridTemplateColumns: rowCols }}
+                  >
                     {/* Drag handle */}
                     {!patientView && (
                       <div className="flex items-center justify-center cursor-grab active:cursor-grabbing drag-handle">
-                        <GripVertical size={12} className="text-[#C0C8D0] group-hover:text-[#94A3B8]" />
+                        <GripVertical size={12} className="text-ink-faint group-hover:text-ink-subtle" />
                       </div>
                     )}
-              {/* Time slots — compact chips */}
-              <div className="flex justify-center gap-0.5">
-                {patientView ? (
-                  <span className="text-[10px] font-semibold text-[#0D5F68]">{(supp.times || ['AM']).join('/')}</span>
-                ) : (
-                  ['AM', 'Aft', 'PM'].map((label, ti) => {
-                    const fullName = ['AM', 'Afternoon', 'PM'][ti];
-                    const times = supp.times || ['AM'];
-                    const active = times.includes(fullName);
-                    return (
-                      <button key={label} type="button" disabled={isFinalized}
-                        onClick={() => {
-                          const newTimes = active
-                            ? times.filter(t => t !== fullName)
-                            : [...times, fullName].sort((a, b) => ['AM','Afternoon','PM'].indexOf(a) - ['AM','Afternoon','PM'].indexOf(b));
-                          if (newTimes.length === 0) return;
-                          onUpdateField(month.month_number, idx, 'times', newTimes);
-                        }}
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors ${
-                          active ? 'bg-[#0D5F68] text-white' : 'bg-[#F1F5F9] text-[#94A3B8] hover:text-[#0D5F68]'
-                        } ${isFinalized ? 'opacity-50' : ''}`}>
-                        {label}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-              {/* Supplement */}
-              <div className="flex items-center gap-1.5 min-w-0 pl-2">
-                <span className="text-[12px] font-bold text-[#0B0D10] truncate">{supp.supplement_name}</span>
-                {supp.refrigerate && <Snowflake size={11} className="text-blue-500 shrink-0" />}
-              </div>
-              {!patientView && (<>
-                <div className="flex justify-center"><NumberStepper value={supp.quantity_per_dose} disabled={isFinalized}
-                  onChange={(v) => onUpdateField(month.month_number, idx, 'quantity_per_dose', v)} /></div>
-                <div className="flex justify-center"><NumberStepper value={supp.frequency_per_day} disabled={isFinalized}
-                  onChange={(v) => onUpdateField(month.month_number, idx, 'frequency_per_day', v)} /></div>
-              </>)}
-              {/* Dosage */}
-              <div>
-                {patientView || isFinalized ? (
-                  <span className="text-[12px] text-[#334155] block break-words">{supp.dosage_display || '-'}</span>
-                ) : (
-                  <div contentEditable suppressContentEditableWarning
-                    className="text-[12px] text-[#334155] outline-none min-h-[16px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30 leading-tight"
-                    onBlur={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.textContent)}
-                    dangerouslySetInnerHTML={{ __html: supp.dosage_display || '' }} />
-                )}
-              </div>
-              {/* With Food */}
-              <div className="flex justify-center">
-                {patientView ? (
-                  <span className="text-[11px]">{supp.with_food ? 'Yes' : 'No'}</span>
-                ) : (
-                  <Select value={supp.with_food ? 'yes' : 'no'} onValueChange={(v) => onUpdateField(month.month_number, idx, 'with_food', v === 'yes')} disabled={isFinalized}>
-                    <SelectTrigger className="h-7 text-[11px] border-[#E2E8F0] w-full px-1.5"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              {/* Notes */}
-              <div>
-                {patientView || isFinalized ? (
-                  <span className="text-[12px] text-[#718096] block break-words">{supp.instructions || '-'}</span>
-                ) : (
-                  <div contentEditable suppressContentEditableWarning
-                    className="text-[12px] text-[#718096] outline-none min-h-[16px] break-words cursor-text rounded px-1 -mx-1 hover:bg-[#F1F5F9] focus:bg-white focus:ring-1 focus:ring-[#0D5F68]/30 leading-tight"
-                    onBlur={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.textContent)}
-                    dangerouslySetInnerHTML={{ __html: supp.instructions || '' }} />
-                )}
-              </div>
-              {showCosts && !patientView && (<>
-                <div className="font-mono tabular-nums text-[12px] font-semibold text-[#334155] text-center">{supp.bottles_needed || '-'}</div>
-                <div className="font-mono tabular-nums text-[12px] font-bold text-[#147D5A] text-right whitespace-nowrap">{formatCurrency(supp.calculated_cost)}</div>
-              </>)}
-              {!isFinalized && !patientView && (
-                <div className="flex justify-center">
-                  <button
-                    className="h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[#94A3B8] hover:text-[#C53B3B] rounded"
-                    onClick={() => setDeleteRow(idx)}>
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              )}
-            </div>
+
+                    {/* Time chips */}
+                    <div className="flex justify-center gap-1">
+                      {patientView ? (
+                        <span className="text-[11px] font-medium text-[color:var(--accent-teal)]">
+                          {(supp.times || ['AM']).map(t => t === 'Afternoon' ? 'AFT' : t.toUpperCase()).join(' · ')}
+                        </span>
+                      ) : (
+                        [
+                          { label: 'AM',  full: 'AM' },
+                          { label: 'AFT', full: 'Afternoon' },
+                          { label: 'PM',  full: 'PM' },
+                        ].map(({ label, full }) => {
+                          const times = supp.times || ['AM'];
+                          const active = times.includes(full);
+                          return (
+                            <button
+                              key={label}
+                              type="button"
+                              disabled={isFinalized}
+                              onClick={() => {
+                                const newTimes = active
+                                  ? times.filter(t => t !== full)
+                                  : [...times, full].sort((a, b) => ['AM','Afternoon','PM'].indexOf(a) - ['AM','Afternoon','PM'].indexOf(b));
+                                if (newTimes.length === 0) return;
+                                onUpdateField(month.month_number, idx, 'times', newTimes);
+                              }}
+                              className={`min-w-[30px] px-1.5 h-[20px] flex items-center justify-center rounded text-[10px] font-semibold tracking-[0.02em] transition-colors ${
+                                active
+                                  ? 'bg-[color:var(--accent-teal)] text-white shadow-[0_1px_0_rgba(13,95,104,0.25)]'
+                                  : 'bg-[color:var(--surface-subtle)] text-ink-subtle hover:text-ink hover:bg-[color:var(--surface-hover)]'
+                              } ${isFinalized ? 'opacity-50' : ''}`}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Supplement */}
+                    <div className="flex items-start gap-1.5 min-w-0 py-1 pl-2">
+                      <span className="text-[13px] font-medium text-ink leading-tight break-words">
+                        {supp.supplement_name}
+                      </span>
+                      {supp.refrigerate && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Snowflake size={11} className="text-blue-500 shrink-0 mt-0.5" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">Refrigerate</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+
+                    {!patientView && (<>
+                      <div className="flex justify-center">
+                        <NumberStepper
+                          value={supp.quantity_per_dose}
+                          disabled={isFinalized}
+                          onChange={(v) => onUpdateField(month.month_number, idx, 'quantity_per_dose', v)}
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <NumberStepper
+                          value={supp.frequency_per_day}
+                          disabled={isFinalized}
+                          onChange={(v) => onUpdateField(month.month_number, idx, 'frequency_per_day', v)}
+                        />
+                      </div>
+                    </>)}
+
+                    {/* Dosage */}
+                    <div className="min-w-0">
+                      {patientView || isFinalized ? (
+                        <span className="text-[12.5px] text-ink-3 block truncate text-center">
+                          {(supp.dosage_display || '').replace(/<[^>]*>/g, '').trim() || '—'}
+                        </span>
+                      ) : (
+                        <div
+                          contentEditable
+                          suppressContentEditableWarning
+                          className="text-[12.5px] text-ink-3 outline-none min-h-[18px] break-words cursor-text rounded px-1 -mx-1 leading-tight text-center focus:text-left focus:bg-white focus:shadow-[var(--focus-subtle)]"
+                          onBlur={(e) => onUpdateField(month.month_number, idx, 'dosage_display', e.target.textContent)}
+                          dangerouslySetInnerHTML={{ __html: supp.dosage_display || '' }}
+                        />
+                      )}
+                    </div>
+
+                    {/* With Food */}
+                    <div className="flex justify-center">
+                      {patientView ? (
+                        <span className="text-[12px] text-ink-muted">{supp.with_food ? 'Yes' : 'No'}</span>
+                      ) : (
+                        <Select
+                          value={supp.with_food ? 'yes' : 'no'}
+                          onValueChange={(v) => onUpdateField(month.month_number, idx, 'with_food', v === 'yes')}
+                          disabled={isFinalized}
+                        >
+                          <SelectTrigger className="h-7 text-[12px] border hairline w-full px-2.5 bg-white focus:ring-0 focus:shadow-[var(--focus-subtle)]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="yes">Yes</SelectItem>
+                            <SelectItem value="no">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+
+                    {/* Notes */}
+                    <div className="min-w-0">
+                      {patientView || isFinalized ? (
+                        <span className="text-[12.5px] text-ink-muted block text-center break-words leading-tight">
+                          {(supp.instructions || '').replace(/<[^>]*>/g, '').trim() || '—'}
+                        </span>
+                      ) : (
+                        <div
+                          contentEditable
+                          suppressContentEditableWarning
+                          className="text-[12.5px] text-ink-muted outline-none min-h-[18px] break-words cursor-text rounded px-1.5 -mx-1 leading-tight text-center focus:text-left focus:bg-white focus:shadow-[var(--focus-subtle)] focus:text-ink-3"
+                          onBlur={(e) => onUpdateField(month.month_number, idx, 'instructions', e.target.textContent)}
+                          dangerouslySetInnerHTML={{ __html: supp.instructions || '' }}
+                        />
+                      )}
+                    </div>
+
+                    {showCosts && !patientView && (<>
+                      <div className="font-mono tabular-nums text-[12px] text-ink-3 text-center">
+                        {supp.bottles_needed || '—'}
+                      </div>
+                      <div className="font-mono tabular-nums text-[12px] font-semibold text-ink text-right whitespace-nowrap">
+                        {formatCurrency(supp.calculated_cost)}
+                      </div>
+                    </>)}
+
+                    {!isFinalized && !patientView && (
+                      <div className="flex justify-center">
+                        <button
+                          className="h-6 w-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-ink-subtle hover:text-red-600 hover:bg-red-50 rounded"
+                          onClick={() => setDeleteRow(idx)}
+                          aria-label="Remove"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </SortableRow>
               ))}
             </SortableContext>
           </DndContext>
         )}
+
+        {/* Add supplement */}
+        {!isFinalized && !patientView && (
+          <div
+            className="hairline-t px-3 py-2"
+            style={{
+              background: 'linear-gradient(90deg, rgba(13,95,104,0.09) 0%, rgba(70,152,157,0.13) 50%, rgba(13,95,104,0.09) 100%)',
+            }}
+          >
+            <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className="w-full h-8 px-2 inline-flex items-center gap-2 text-[12px] text-ink-muted hover:text-ink transition-colors rounded"
+                  data-testid={`month-${month.month_number}-add-supplement`}
+                >
+                  <Plus size={13} className="text-[color:var(--accent-teal)]" />
+                  <span>Add supplement to {monthLabel}</span>
+                  <ChevronsUpDown size={11} className="ml-auto text-ink-faint" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[460px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search supplements…" value={searchQuery} onValueChange={setSearchQuery} />
+                  <CommandList>
+                    <CommandEmpty>No supplements found.</CommandEmpty>
+                    <CommandGroup className="max-h-[300px] overflow-y-auto">
+                      {filtered.slice(0, 30).map(supp => (
+                        <CommandItem
+                          key={supp._id}
+                          value={supp.supplement_name}
+                          onSelect={() => { onAddSupplement(month.month_number, supp); setSearchOpen(false); setSearchQuery(''); }}
+                          className="flex items-center justify-between cursor-pointer py-2.5 px-3"
+                        >
+                          <div>
+                            <div className="text-[13px] font-medium">{supp.supplement_name}</div>
+                            <div className="text-[11px] text-ink-subtle">{supp.company}</div>
+                          </div>
+                          <span className="text-[11px] font-mono text-ink-muted ml-4">
+                            {formatCurrency(supp.cost_per_bottle)}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
       </div>
 
-      {/* Add supplement */}
-      {!isFinalized && !patientView && (
-        <div className="px-8 py-5 border-t border-border/30 bg-[#FAFAFA]">
-          <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm"
-                className="gap-2.5 text-sm text-muted-foreground w-full justify-start h-12 rounded-xl border-dashed border-border/60 hover:border-[#0D5F68]/40 hover:bg-[#EAF4F3]"
-                data-testid={`month-${month.month_number}-add-supplement`}>
-                <Plus size={16} className="text-[#0D5F68]" /> Add supplement to Month {month.month_number}...
-                <ChevronsUpDown size={13} className="ml-auto" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[460px] p-0" align="start">
-              <Command>
-                <CommandInput placeholder="Search supplements..." value={searchQuery} onValueChange={setSearchQuery} />
-                <CommandList>
-                  <CommandEmpty>No supplements found.</CommandEmpty>
-                  <CommandGroup className="max-h-[300px] overflow-y-auto">
-                    {filtered.slice(0, 30).map(supp => (
-                      <CommandItem key={supp._id} value={supp.supplement_name}
-                        onSelect={() => { onAddSupplement(month.month_number, supp); setSearchOpen(false); setSearchQuery(''); }}
-                        className="flex items-center justify-between cursor-pointer py-3 px-3">
-                        <div><div className="text-sm font-medium">{supp.supplement_name}</div><div className="text-xs text-muted-foreground">{supp.company}</div></div>
-                        <span className="text-xs font-mono text-muted-foreground ml-4">{formatCurrency(supp.cost_per_bottle)}</span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-      )}
-
       <AlertDialog open={deleteRow !== null} onOpenChange={() => { setDeleteRow(null); setDeleteFromAll(false); }}>
-        <AlertDialogContent className="p-7">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg">Remove supplement?</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm mt-2">
-              {deleteRow !== null && (month.supplements || [])[deleteRow]
-                ? `Remove "${(month.supplements || [])[deleteRow]?.supplement_name}" from this plan.`
-                : 'This will remove the supplement.'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <label className="flex items-center gap-3 mt-4 cursor-pointer select-none">
-            <input type="checkbox" checked={deleteFromAll} onChange={(e) => setDeleteFromAll(e.target.checked)}
-              className="w-4 h-4 rounded border-[#C8E6E0] text-[#0D5F68] focus:ring-[#0D5F68]" />
-            <span className="text-sm text-[#334155]">Remove from all months</span>
-          </label>
-          <AlertDialogFooter className="mt-6 gap-3">
-            <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              if (deleteFromAll && deleteRow !== null) {
-                const suppName = (month.supplements || [])[deleteRow]?.supplement_name;
-                if (suppName) onRemoveFromAll(suppName);
-              } else {
-                onRemoveRow(month.month_number, deleteRow);
-              }
-              setDeleteRow(null); setDeleteFromAll(false);
-            }}
-              className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">
+        <AlertDialogContent className="p-0 gap-0 max-w-[440px] overflow-hidden border hairline shadow-[var(--shadow-lg)] rounded-xl">
+          <div className="px-6 pt-6 pb-5">
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-red-50 border border-red-100 flex items-center justify-center">
+                <AlertTriangle size={18} className="text-red-600" strokeWidth={2} />
+              </div>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <AlertDialogTitle className="text-[15px] font-semibold tracking-[-0.01em] text-ink leading-snug">
+                  Remove supplement?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-[13px] mt-1.5 text-ink-muted leading-relaxed">
+                  {deleteRow !== null && (month.supplements || [])[deleteRow]
+                    ? <>Remove <span className="font-medium text-ink-3">{(month.supplements || [])[deleteRow]?.supplement_name}</span> from this plan. This cannot be undone.</>
+                    : 'This will remove the supplement.'}
+                </AlertDialogDescription>
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2.5 mt-5 ml-14 cursor-pointer select-none group">
+              <input
+                type="checkbox"
+                checked={deleteFromAll}
+                onChange={(e) => setDeleteFromAll(e.target.checked)}
+                className="w-4 h-4 rounded border-[1.5px] border-[color:var(--hairline-strong)] accent-red-600 cursor-pointer"
+              />
+              <span className="text-[12.5px] text-ink-3 group-hover:text-ink transition-colors">
+                Remove from all months
+              </span>
+            </label>
+          </div>
+
+          <AlertDialogFooter className="px-6 py-4 bg-[color:var(--surface-hover)] hairline-t gap-2 sm:gap-2">
+            <AlertDialogCancel className="h-9 px-4 text-[13px] font-medium border hairline bg-white hover:bg-[color:var(--surface-subtle)] text-ink-3 hover:text-ink mt-0 shadow-none">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteFromAll && deleteRow !== null) {
+                  const suppName = (month.supplements || [])[deleteRow]?.supplement_name;
+                  if (suppName) onRemoveFromAll(suppName);
+                } else {
+                  onRemoveRow(month.month_number, deleteRow);
+                }
+                setDeleteRow(null); setDeleteFromAll(false);
+              }}
+              className="h-9 px-4 text-[13px] font-semibold bg-red-600 text-white hover:bg-red-700 shadow-[0_1px_0_rgba(0,0,0,0.05)] border-0"
+            >
               {deleteFromAll ? 'Remove from all months' : 'Remove'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </section>
   );
 }
 
-
-/* ── Main Plan Editor ── */
+/* ─────────────────── Main Plan Editor ─────────────────── */
 export default function PlanEditorPage() {
   const { planId } = useParams();
   const navigate = useNavigate();
@@ -377,17 +499,13 @@ export default function PlanEditorPage() {
     const load = async () => {
       try {
         const [p, s, c] = await Promise.all([getPlan(planId), getSupplements('', true), getSuppliers()]);
-        // Sync plan supplements with latest master data
         let needsSave = false;
         const masterSupps = s.supplements || [];
         for (const month of (p.months || [])) {
           for (const supp of (month.supplements || [])) {
-            // Find master supplement by ID or name
             let master = supp.supplement_id ? masterSupps.find(m => m._id === supp.supplement_id) : null;
             if (!master) master = masterSupps.find(m => m.supplement_name?.toLowerCase() === supp.supplement_name?.toLowerCase());
-            
             if (master) {
-              // Sync fields that should always reflect master data
               const updates = {
                 units_per_bottle: master.units_per_bottle,
                 cost_per_bottle: master.cost_per_bottle,
@@ -396,14 +514,9 @@ export default function PlanEditorPage() {
                 refrigerate: master.refrigerate || false,
               };
               for (const [key, val] of Object.entries(updates)) {
-                if (val !== undefined && supp[key] !== val) {
-                  supp[key] = val;
-                  needsSave = true;
-                }
+                if (val !== undefined && supp[key] !== val) { supp[key] = val; needsSave = true; }
               }
             }
-            
-            // Backfill times from frequency if missing
             if (!supp.times || supp.times.length === 0) {
               const freq = supp.frequency_per_day || 1;
               if (freq >= 3) supp.times = ['AM', 'Afternoon', 'PM'];
@@ -417,11 +530,8 @@ export default function PlanEditorPage() {
         const freightMap = {};
         for (const co of (c.suppliers || [])) { if (co.freight_charge > 0) freightMap[co.name] = co.freight_charge; }
         setCompanyFreight(freightMap);
-        // Auto-save if we backfilled times
         if (needsSave && p.status !== 'finalized') {
-          try {
-            await updatePlan(planId, { patient_name: p.patient_name, date: p.date, months: p.months });
-          } catch {}
+          try { await updatePlan(planId, { patient_name: p.patient_name, date: p.date, months: p.months }); } catch {}
         }
       } catch (err) { toast.error('Failed to load plan'); navigate(-1); }
       finally { setLoading(false); }
@@ -432,8 +542,11 @@ export default function PlanEditorPage() {
   const savePlan = useCallback(async (planData) => {
     if (!planData || !planId || planData.status === 'finalized') return;
     setSaving(true);
-    try { const result = await updatePlan(planId, { patient_name: planData.patient_name, date: planData.date, months: planData.months }); setPlan(prev => ({ ...prev, ...result })); }
-    catch (err) { toast.error('Failed to save'); } finally { setSaving(false); }
+    try {
+      const result = await updatePlan(planId, { patient_name: planData.patient_name, date: planData.date, months: planData.months });
+      setPlan(prev => ({ ...prev, ...result }));
+    } catch (err) { toast.error('Failed to save'); }
+    finally { setSaving(false); }
   }, [planId]);
 
   const debouncedSave = useCallback((planData) => {
@@ -448,7 +561,6 @@ export default function PlanEditorPage() {
     setPlan({ ...newPlan }); debouncedSave(newPlan);
   };
 
-  // Map frequency to default time slots
   const freqToTimes = (freq) => {
     if (freq >= 3) return ['AM', 'Afternoon', 'PM'];
     if (freq === 2) return ['AM', 'PM'];
@@ -460,8 +572,7 @@ export default function PlanEditorPage() {
     return {
       supplement_id: supp._id, supplement_name: supp.supplement_name, company: supp.company || '',
       manufacturer: supp.manufacturer || supp.company || '',
-      supplier: supp.supplier || '',
-      unit_type: supp.unit_type || 'caps',
+      supplier: supp.supplier || '', unit_type: supp.unit_type || 'caps',
       quantity_per_dose: supp.default_quantity_per_dose || null, frequency_per_day: freq,
       dosage_display: supp.default_dosage_display || '', instructions: supp.default_instructions || '',
       with_food: supp.default_instructions?.toLowerCase().includes('food') || true,
@@ -486,7 +597,7 @@ export default function PlanEditorPage() {
   const removeRow = (monthNum, index) => {
     if (!plan || isFinalized) return;
     const np = { ...plan }; const m = np.months?.find(x => x.month_number === monthNum);
-    if (m) { m.supplements = (m.supplements || []).filter((_, i) => i !== index); }
+    if (m) m.supplements = (m.supplements || []).filter((_, i) => i !== index);
     recalcAndUpdate(np); toast.success('Supplement removed');
   };
   const removeFromAllMonths = (suppName) => {
@@ -497,8 +608,6 @@ export default function PlanEditorPage() {
     }
     recalcAndUpdate(np); toast.success(`Removed "${suppName}" from all months`);
   };
-
-
   const reorderSupplements = (monthNum, oldIdx, newIdx) => {
     if (!plan || isFinalized) return;
     const np = { ...plan }; const m = np.months?.find(x => x.month_number === monthNum);
@@ -508,31 +617,22 @@ export default function PlanEditorPage() {
     }
   };
 
-
   const updateField = (monthNum, suppIndex, field, value) => {
     if (!plan || isFinalized) return;
     const np = { ...plan }; const m = np.months?.find(x => x.month_number === monthNum);
     if (m && m.supplements[suppIndex]) {
       const s = m.supplements[suppIndex];
       s[field] = value;
-      
-      // Find unit type — check plan supplement first, then master list
-      const master = supplements.find(ms => ms._id === s.supplement_id) || 
+      const master = supplements.find(ms => ms._id === s.supplement_id) ||
                      supplements.find(ms => ms.supplement_name?.toLowerCase() === s.supplement_name?.toLowerCase());
       const unit = s.unit_type || master?.unit_type || 'caps';
-      
+
       if (field === 'quantity_per_dose' || field === 'frequency_per_day') {
-        // Steppers changed → rebuild dosage text + update times
         const qty = field === 'quantity_per_dose' ? value : s.quantity_per_dose;
         const freq = field === 'frequency_per_day' ? value : s.frequency_per_day;
-        if (qty && freq) {
-          s.dosage_display = buildDosageText(qty, freq, unit);
-        }
-        if (field === 'frequency_per_day' && value) {
-          s.times = freqToTimes(value);
-        }
+        if (qty && freq) s.dosage_display = buildDosageText(qty, freq, unit);
+        if (field === 'frequency_per_day' && value) s.times = freqToTimes(value);
       } else if (field === 'dosage_display') {
-        // Dosage text changed → try to parse into qty + freq + times
         const parsed = parseDosage(value);
         if (parsed) {
           s.quantity_per_dose = parsed.qty;
@@ -540,32 +640,45 @@ export default function PlanEditorPage() {
           s.times = freqToTimes(parsed.freq);
         }
       } else if (field === 'times') {
-        // Time chips toggled → update frequency + dosage text
         s.frequency_per_day = value.length;
-        if (s.quantity_per_dose) {
-          s.dosage_display = buildDosageText(s.quantity_per_dose, value.length, unit);
-        }
+        if (s.quantity_per_dose) s.dosage_display = buildDosageText(s.quantity_per_dose, value.length, unit);
       }
     }
     recalcAndUpdate(np);
   };
+
   const updatePatientName = (name) => {
     if (!plan || isFinalized || plan.patient_id) return;
     const np = { ...plan, patient_name: name }; setPlan(np); debouncedSave(np);
   };
 
   const goBack = () => {
-    if (plan?.patient_id) {
-      navigate(`/patients/${plan.patient_id}`);
-    } else if (window.history.length > 2) {
-      navigate(-1);
-    } else {
-      navigate('/');
-    }
+    if (plan?.patient_id) navigate(`/patients/${plan.patient_id}`);
+    else if (window.history.length > 2) navigate(-1);
+    else navigate('/');
   };
 
-  const handleExportPatient = async () => { setExporting(true); try { if (!isFinalized) await savePlan(plan); const b = await exportPatientPDF(planId); downloadBlob(b, `Patient - ${plan.patient_name || 'patient'} - ${plan.program_name || ''} ${plan.step_label || ''}.pdf`); toast.success('Patient PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
-  const handleExportHC = async () => { setExporting(true); try { if (!isFinalized) await savePlan(plan); const b = await exportHCPDF(planId); downloadBlob(b, `HC - ${plan.patient_name || 'patient'} - ${plan.program_name || ''} ${plan.step_label || ''}.pdf`); toast.success('HC PDF exported'); } catch { toast.error('Export failed'); } finally { setExporting(false); } };
+  const handleExportPatient = async () => {
+    setExporting(true);
+    try {
+      if (!isFinalized) await savePlan(plan);
+      const b = await exportPatientPDF(planId);
+      downloadBlob(b, `Patient - ${plan.patient_name || 'patient'} - ${plan.program_name || ''} ${plan.step_label || ''}.pdf`);
+      toast.success('Patient PDF exported');
+    } catch { toast.error('Export failed'); }
+    finally { setExporting(false); }
+  };
+  const handleExportHC = async () => {
+    setExporting(true);
+    try {
+      if (!isFinalized) await savePlan(plan);
+      const b = await exportHCPDF(planId);
+      downloadBlob(b, `HC - ${plan.patient_name || 'patient'} - ${plan.program_name || ''} ${plan.step_label || ''}.pdf`);
+      toast.success('HC PDF exported');
+    } catch { toast.error('Export failed'); }
+    finally { setExporting(false); }
+  };
+
   const [savingDrive, setSavingDrive] = useState(false);
   const handleSaveToDrive = async () => {
     setSavingDrive(true);
@@ -576,10 +689,16 @@ export default function PlanEditorPage() {
     } catch (err) { toast.error(err.message || 'Drive save failed'); }
     finally { setSavingDrive(false); }
   };
-  const handleFinalize = async () => { try { await savePlan(plan); const r = await finalizePlan(planId); setPlan(prev => ({ ...prev, ...r })); toast.success('Plan finalized'); setConfirmFinalize(false); } catch { toast.error('Failed to finalize'); } };
-  const handleReopen = async () => { try { const r = await reopenPlan(planId); setPlan(prev => ({ ...prev, ...r })); toast.success('Plan reopened'); } catch { toast.error('Failed to reopen'); } };
 
-  // Duplicate dialog
+  const handleFinalize = async () => {
+    try { await savePlan(plan); const r = await finalizePlan(planId); setPlan(prev => ({ ...prev, ...r })); toast.success('Plan finalized'); setConfirmFinalize(false); }
+    catch { toast.error('Failed to finalize'); }
+  };
+  const handleReopen = async () => {
+    try { const r = await reopenPlan(planId); setPlan(prev => ({ ...prev, ...r })); toast.success('Plan reopened'); }
+    catch { toast.error('Failed to reopen'); }
+  };
+
   const [dupOpen, setDupOpen] = useState(false);
   const [dupTarget, setDupTarget] = useState('same');
   const [dupPatients, setDupPatients] = useState([]);
@@ -617,9 +736,10 @@ export default function PlanEditorPage() {
     np.months = [...(np.months || []), { month_number: num, supplements: (last?.supplements || []).map(s => ({ ...s })), monthly_total_cost: 0 }];
     recalcAndUpdate(np);
   };
-  const removeMonth = (monthNum) => {
+  const removeLastMonth = () => {
     if (!plan || isFinalized || (plan.months?.length || 0) <= 1) return;
-    const np = { ...plan }; np.months = (np.months || []).filter(m => m.month_number !== monthNum);
+    const last = plan.months[plan.months.length - 1];
+    const np = { ...plan }; np.months = (np.months || []).filter(m => m.month_number !== last.month_number);
     recalcAndUpdate(np);
   };
 
@@ -630,222 +750,424 @@ export default function PlanEditorPage() {
     s.company?.toLowerCase().includes(globalSearchQuery.toLowerCase())
   );
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin" /></div>;
+  // ⌘S save shortcut
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        if (plan && !isFinalized) { e.preventDefault(); savePlan(plan); }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [plan, isFinalized, savePlan]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-3rem)]">
+        <div className="w-5 h-5 border-2 border-[color:var(--accent-teal)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
   if (!plan) return null;
 
+  const statusLabel = (plan.status || 'draft').toUpperCase();
+
   return (
-    <div className="p-10 max-w-[1560px] mx-auto">
+    <TooltipProvider delayDuration={200}>
+      <div className="min-h-[calc(100vh-3rem)] canvas">
 
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-[#94A3B8] mb-4">
-        <button onClick={() => navigate('/')} className="hover:text-[#334155] transition-colors">Dashboard</button>
-        <span>/</span>
-        {plan?.patient_id && (
-          <>
-            <button onClick={() => navigate(`/patients/${plan.patient_id}`)} className="hover:text-[#334155] transition-colors">{plan.patient_name}</button>
-            <span>/</span>
-          </>
-        )}
-        <span className="text-[#334155] font-medium">{plan?.program_name} - {plan?.step_label}</span>
-      </div>
-
-      {/* ── Top bar: name + meta ── */}
-      <div className="flex items-center gap-4 mb-4">
-        <Button variant="ghost" size="sm" onClick={goBack} className="text-[#94A3B8] hover:text-[#0B0D10] h-9 w-9 p-0 rounded-lg shrink-0">
-          <ArrowLeft size={18} />
-        </Button>
-        {plan.patient_id ? (
-          <button onClick={() => navigate(`/patients/${plan.patient_id}`)}
-            className="text-xl font-bold text-[#0B0D10] tracking-[-0.02em] hover:text-[#0D5F68] transition-colors" data-testid="plan-editor-patient-name">
-            {plan.patient_name}
-          </button>
-        ) : (
-          <Input value={plan.patient_name || ''} onChange={(e) => updatePatientName(e.target.value)}
-            className="text-xl font-bold border border-[#C8E6E0] bg-white rounded-lg h-9 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.02em] max-w-[260px]"
-            placeholder="Patient Name" data-testid="plan-editor-patient-name" disabled={isFinalized} />
-        )}
-        <span className="text-sm text-[#718096]">
-          {plan.program_name} / {plan.step_label || `Step ${plan.step_number}`} / {plan.date}
-          {plan.created_by_name ? ` / ${plan.created_by_name}` : ''}
-        </span>
-        <Badge className={`px-2.5 py-1 text-[10px] font-bold rounded-md ${isFinalized ? 'bg-[#0D5F68] text-white hover:bg-[#0D5F68]' : 'bg-[#FEF3C7] text-[#92400E] hover:bg-[#FEF3C7]'}`}>
-          {plan.status || 'draft'}
-        </Badge>
-        {saving && <span className="text-xs text-[#0D5F68] animate-pulse font-semibold">Saving...</span>}
-      </div>
-
-      {/* Banners */}
-      {isFinalized && (
-        <div className="mb-4 rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-center gap-3">
-          <Lock size={16} className="text-amber-600 shrink-0" />
-          <span className="text-sm text-amber-800 font-semibold">This plan is finalized.</span>
-          <div className="ml-auto flex gap-2">
-            <Button size="sm" onClick={handleReopen} className="gap-2 h-9 px-4 text-xs font-semibold bg-[#B26A00] hover:bg-[#9A5B00] text-white"><Unlock size={14} /> Reopen</Button>
-            <Button variant="outline" size="sm" onClick={openDuplicateDialog} className="gap-2 h-9 px-4 text-xs font-semibold"><Copy size={14} /> Duplicate</Button>
-          </div>
-        </div>
-      )}
-      {patientViewMode && (
-        <div className="mb-4 rounded-xl bg-[#EAF4F3] border border-[#C8E6E0] p-4 flex items-center gap-3">
-          <User size={16} className="text-[#0D5F68] shrink-0" />
-          <span className="text-sm text-[#0D5F68] font-semibold">Patient View — Costs hidden.</span>
-          <Button size="sm" onClick={() => setPatientViewMode(false)} className="ml-auto gap-2 h-9 px-4 text-xs font-semibold bg-[#0D5F68] hover:bg-[#0A4E55] text-white">Exit</Button>
-        </div>
-      )}
-
-      <div>
-        <div>
-          {/* Action row: add buttons left, Actions dropdown right */}
-          <div className="flex items-center gap-3 mb-6">
-            {!isFinalized && !patientViewMode && (
+        {/* Page header — sticky */}
+        <header className="chrome-blur hairline-b sticky top-0 z-30 px-8 pt-4 pb-3">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1.5 text-[11px] text-ink-subtle mb-1.5">
+            <button onClick={() => navigate('/')} className="hover:text-ink-3 transition-colors">Dashboard</button>
+            <span className="text-ink-faint">/</span>
+            {plan?.patient_id && (
               <>
-                <Popover open={globalSearchOpen} onOpenChange={setGlobalSearchOpen}>
-                  <PopoverTrigger asChild>
-                    <Button size="sm" className="gap-2 h-9 px-4 text-xs font-semibold bg-[#0D5F68] hover:bg-[#0A4E55] text-white shadow-sm"
-                      data-testid="plan-editor-add-all-months">
-                      <CopyPlus size={14} /> Add to all months
-                    </Button>
-                  </PopoverTrigger>
-                <PopoverContent className="w-[460px] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search supplements..." value={globalSearchQuery} onValueChange={setGlobalSearchQuery} />
-                    <CommandList><CommandEmpty>No supplements found.</CommandEmpty>
-                      <CommandGroup className="max-h-[300px] overflow-y-auto">
-                        {globalFiltered.slice(0, 30).map(supp => (
-                          <CommandItem key={supp._id} value={supp.supplement_name}
-                            onSelect={() => { addSupplementToAllMonths(supp); setGlobalSearchOpen(false); setGlobalSearchQuery(''); }}
-                            className="flex items-center justify-between cursor-pointer py-3 px-3">
-                            <div><div className="text-sm font-medium">{supp.supplement_name}</div><div className="text-xs text-muted-foreground">{supp.company}</div></div>
-                            <span className="text-xs font-mono text-muted-foreground ml-4">{formatCurrency(supp.cost_per_bottle)}</span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <Button variant="outline" size="sm" onClick={addMonth} className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-add-month">
-                <Plus size={14} /> Add Month
-              </Button>
-              <Button variant="outline" size="sm" onClick={addTwoWeeks} className="gap-2 h-9 px-4 text-xs font-semibold">
-                <Plus size={14} /> Add 2 Weeks
-              </Button>
-              {(plan.months?.length || 0) > 1 && (
-                <Button variant="ghost" size="sm" onClick={() => removeMonth(plan.months[plan.months.length - 1].month_number)}
-                  className="gap-2 h-9 px-4 text-xs font-medium text-[#C53B3B] hover:text-[#A52E2E] hover:bg-red-50">
-                  <Trash2 size={14} /> Remove Last
-                </Button>
-              )}
+                <button onClick={() => navigate(`/patients/${plan.patient_id}`)} className="hover:text-ink-3 transition-colors">
+                  {plan.patient_name}
+                </button>
+                <span className="text-ink-faint">/</span>
               </>
             )}
+            <span className="text-ink-3 font-medium">{plan?.program_name} — {plan?.step_label}</span>
+          </div>
 
-            {/* Actions area — far right */}
-            <div className="ml-auto flex items-center gap-2">
-              {!patientViewMode && (
-                <Button variant="outline" size="sm" onClick={() => setShowCosts(!showCosts)}
-                  className="gap-2 h-9 px-4 text-xs font-semibold" data-testid="plan-editor-toggle-costs">
-                  {showCosts ? <EyeOff size={14} /> : <Eye size={14} />} {showCosts ? 'Hide Costs' : 'Show Costs'}
-                </Button>
+          {/* Title row */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={goBack}
+              className="h-8 w-8 flex items-center justify-center rounded-md text-ink-subtle hover:text-ink hover:bg-[color:var(--surface-hover)] transition-colors shrink-0"
+              aria-label="Back"
+            >
+              <ArrowLeft size={16} />
+            </button>
+
+            {plan.patient_id ? (
+              <button
+                onClick={() => navigate(`/patients/${plan.patient_id}`)}
+                className="text-[20px] font-semibold text-ink tracking-[-0.02em] hover:text-[color:var(--accent-teal)] transition-colors truncate"
+                data-testid="plan-editor-patient-name"
+              >
+                {plan.patient_name}
+              </button>
+            ) : (
+              <Input
+                value={plan.patient_name || ''}
+                onChange={(e) => updatePatientName(e.target.value)}
+                className="text-[20px] font-semibold border-0 bg-transparent h-9 px-0 focus-visible:ring-0 focus-visible:ring-offset-0 tracking-[-0.02em] max-w-[280px] shadow-none"
+                placeholder="Patient name"
+                data-testid="plan-editor-patient-name"
+                disabled={isFinalized}
+              />
+            )}
+
+            {/* Meta */}
+            <div className="flex items-center gap-1.5 text-[12px] text-ink-muted min-w-0 truncate">
+              <span className="text-ink-faint">·</span>
+              <span className="truncate">{plan.program_name}</span>
+              <span className="text-ink-faint">·</span>
+              <span className="truncate">{plan.step_label || `Step ${plan.step_number}`}</span>
+              <span className="text-ink-faint">·</span>
+              <span className="font-mono tabular-nums">{plan.date}</span>
+            </div>
+
+            {/* Right cluster: status · total · saving · view toggles · actions */}
+            <div className="ml-auto flex items-center gap-2 shrink-0">
+              <div className={`inline-flex items-center gap-1.5 h-6 px-2 rounded-md text-[10.5px] font-semibold uppercase tracking-[0.08em] ${
+                isFinalized
+                  ? 'bg-[color:var(--accent-teal-wash)] text-[color:var(--accent-teal)]'
+                  : 'bg-amber-50 text-amber-800'
+              }`}>
+                <Circle size={6} fill="currentColor" strokeWidth={0} />
+                {statusLabel}
+              </div>
+
+              {effectiveShowCosts && (
+                <div
+                  className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md bg-[color:var(--surface-hover)] hairline border leading-none"
+                  data-testid="plan-editor-cost-summary"
+                >
+                  <span className="text-[10px] uppercase tracking-[0.08em] font-semibold text-ink-subtle leading-none">Total</span>
+                  <span
+                    className="font-mono tabular-nums text-[13px] font-semibold text-ink leading-none"
+                    data-testid="cost-summary-total-value"
+                  >
+                    {formatCurrency(plan.total_program_cost || 0)}
+                  </span>
+                </div>
               )}
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleSaveToDrive}
+                    disabled={savingDrive}
+                    data-testid="plan-editor-save-drive-pill"
+                    className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md bg-white hairline border text-[12px] font-medium text-ink-3 hover:bg-[color:var(--surface-hover)] hover:text-ink transition-colors disabled:opacity-60"
+                    aria-label="Save to Dropbox"
+                  >
+                    {savingDrive ? (
+                      <span className="w-3 h-3 border-[1.5px] border-[color:var(--accent-teal)] border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <CloudUpload size={13} className="text-[color:var(--accent-teal)]" />
+                    )}
+                    <span className="hidden md:inline">{savingDrive ? 'Saving…' : 'Save to Dropbox'}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Save to Dropbox</TooltipContent>
+              </Tooltip>
+
+              {saving && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center justify-center h-7 w-7" aria-label="Saving">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--accent-teal)] animate-pulse" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">Saving…</TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* View toggles — icon only */}
+              {!patientViewMode && (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setShowCosts(v => !v)}
+                        className="h-7 w-7 flex items-center justify-center rounded-md text-ink-muted hover:text-ink hover:bg-[color:var(--surface-hover)] transition-colors"
+                        data-testid="plan-editor-toggle-costs"
+                        aria-label={showCosts ? 'Hide costs' : 'Show costs'}
+                      >
+                        {showCosts ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">
+                      {showCosts ? 'Hide costs' : 'Show costs'}
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setPatientViewMode(true)}
+                        className="h-7 w-7 flex items-center justify-center rounded-md text-ink-muted hover:text-ink hover:bg-[color:var(--surface-hover)] transition-colors"
+                        data-testid="plan-editor-patient-view-toggle"
+                        aria-label="Patient view"
+                      >
+                        <User size={14} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">Patient view</TooltipContent>
+                  </Tooltip>
+                </>
+              )}
+
+              {/* Actions */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2 h-9 px-4 text-xs font-semibold">
-                    <MoreHorizontal size={14} /> Actions
-                  </Button>
+                  <button
+                    className="h-7 px-2.5 inline-flex items-center gap-1.5 rounded-md text-[12px] font-medium text-ink-3 border hairline bg-white hover:bg-[color:var(--surface-hover)] transition-colors"
+                    aria-label="Actions"
+                  >
+                    <MoreHorizontal size={13} />
+                    <span>Actions</span>
+                  </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  {!patientViewMode && (
-                    <>
-                      <DropdownMenuItem onClick={() => setPatientViewMode(true)} data-testid="plan-editor-patient-view-toggle">
-                        <User size={14} className="mr-2" /> Patient View
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-subtle">Export</DropdownMenuLabel>
                   <DropdownMenuItem onClick={handleExportPatient} disabled={exporting} data-testid="plan-editor-export-patient-pdf">
-                    <Download size={14} className="mr-2" /> Export Patient PDF
+                    <Download size={13} className="mr-2" /> Export patient PDF
                   </DropdownMenuItem>
                   {!patientViewMode && (
                     <DropdownMenuItem onClick={handleExportHC} disabled={exporting} data-testid="plan-editor-export-hc-pdf">
-                      <FileText size={14} className="mr-2" /> Export HC PDF
+                      <FileText size={13} className="mr-2" /> Export HC PDF
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={handleSaveToDrive} disabled={savingDrive} data-testid="plan-editor-save-drive">
-                    <svg width="14" height="14" viewBox="0 0 256 218" xmlns="http://www.w3.org/2000/svg" className="mr-2 shrink-0"><path d="M63.5 0L0 107l63.5 109h129L256 107 192.5 0h-129z" fill="#0061FF" transform="scale(0.98) translate(3,0)"/></svg>
-                    Save to Dropbox
+                    <Download size={13} className="mr-2" />
+                    {savingDrive ? 'Saving to Dropbox…' : 'Save to Dropbox'}
                   </DropdownMenuItem>
+
                   <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-subtle">Plan</DropdownMenuLabel>
                   <DropdownMenuItem onClick={openDuplicateDialog}>
-                    <Copy size={14} className="mr-2" /> Duplicate Plan
+                    <Copy size={13} className="mr-2" /> Duplicate plan
                   </DropdownMenuItem>
                   {!isFinalized && !patientViewMode && (
                     <>
                       <DropdownMenuItem onClick={() => savePlan(plan)} disabled={saving} data-testid="plan-editor-save-button">
-                        <Save size={14} className="mr-2" /> {saving ? 'Saving...' : 'Save Plan'}
+                        <Save size={13} className="mr-2" />
+                        {saving ? 'Saving…' : 'Save plan'}
+                        <kbd className="ml-auto text-[10px] font-mono text-ink-subtle">⌘S</kbd>
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setConfirmFinalize(true)} className="text-[#B26A00]" data-testid="plan-editor-finalize-button">
-                        <Lock size={14} className="mr-2" /> Finalize Plan
+                      <DropdownMenuItem onClick={() => setConfirmFinalize(true)} className="text-amber-800" data-testid="plan-editor-finalize-button">
+                        <Lock size={13} className="mr-2" /> Finalize plan
                       </DropdownMenuItem>
                     </>
+                  )}
+                  {isFinalized && (
+                    <DropdownMenuItem onClick={handleReopen} className="text-amber-800">
+                      <Unlock size={13} className="mr-2" /> Reopen plan
+                    </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
+        </header>
 
-          {(plan.months || []).map((month) => (
-            <MonthPage key={month.month_number} month={month}
-              showCosts={effectiveShowCosts} patientView={patientViewMode} isFinalized={isFinalized}
-              onUpdateField={updateField} onRemoveRow={removeRow} onRemoveFromAll={removeFromAllMonths} onReorder={reorderSupplements} onAddSupplement={addSupplementToMonth}
-              supplements={supplements} formatCurrency={formatCurrency} />
-          ))}
-        </div>
+        {/* Sub-toolbar */}
+        {!isFinalized && !patientViewMode && (
+          <div className="chrome-blur hairline-b sticky top-[80px] z-20 px-8 h-10 flex items-center gap-1">
+            <Popover open={globalSearchOpen} onOpenChange={setGlobalSearchOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md text-[12px] font-medium bg-[color:var(--accent-teal)] text-white hover:bg-[color:var(--accent-teal-hover)] transition-colors"
+                  data-testid="plan-editor-add-all-months"
+                >
+                  <CopyPlus size={12} />
+                  Add to all months
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[460px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search supplements…" value={globalSearchQuery} onValueChange={setGlobalSearchQuery} />
+                  <CommandList>
+                    <CommandEmpty>No supplements found.</CommandEmpty>
+                    <CommandGroup className="max-h-[300px] overflow-y-auto">
+                      {globalFiltered.slice(0, 30).map(supp => (
+                        <CommandItem
+                          key={supp._id}
+                          value={supp.supplement_name}
+                          onSelect={() => { addSupplementToAllMonths(supp); setGlobalSearchOpen(false); setGlobalSearchQuery(''); }}
+                          className="flex items-center justify-between cursor-pointer py-2.5 px-3"
+                        >
+                          <div>
+                            <div className="text-[13px] font-medium">{supp.supplement_name}</div>
+                            <div className="text-[11px] text-ink-subtle">{supp.company}</div>
+                          </div>
+                          <span className="text-[11px] font-mono text-ink-muted ml-4">{formatCurrency(supp.cost_per_bottle)}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
 
-        {/* Cost Summary — horizontal below months */}
-        {effectiveShowCosts && !patientViewMode && (
-          <div className="mt-6 rounded-xl border border-[#E2E8F0] bg-white card-elevated p-6" data-testid="plan-editor-cost-summary">
-            <div className="flex items-start justify-between flex-wrap gap-4">
-              <h3 className="text-[11px] font-semibold tracking-[0.05em] uppercase text-[#4A5568] pt-2">Cost Summary</h3>
-              <div className="flex items-center gap-6 flex-wrap">
-                {(plan.months || []).map(month => (
-                  <div key={month.month_number} className="text-right min-w-[80px]">
-                    <div className="text-xs text-[#4A5568] font-medium">
-                      {month.month_number === 0.5 ? '2 Weeks' : month.month_number % 1 !== 0 ? `M${Math.floor(month.month_number)}+2W` : `Month ${month.month_number}`}
-                    </div>
-                    <div className="font-mono tabular-nums text-sm font-bold text-[#0B0D10]">{formatCurrency(month.monthly_total_cost)}</div>
-                    <div className="font-mono tabular-nums text-[10px] text-[#94A3B8]">
-                      Supps {formatCurrency(month.supplement_cost || month.monthly_total_cost)}
-                      {(month.freight_total || 0) > 0 && ` · Ship ${formatCurrency(month.freight_total)}`}
-                    </div>
-                  </div>
-                ))}
-                <div className="w-px h-10 bg-[#E2E8F0]" />
-                <div className="text-right">
-                  <div className="text-xs text-[#4A5568] font-medium">Program Total</div>
-                  <div className="font-mono tabular-nums text-xl font-bold text-[#147D5A]" data-testid="cost-summary-total-value">
-                    {formatCurrency(plan.total_program_cost || 0)}
-                  </div>
-                </div>
-              </div>
+            <Separator orientation="vertical" className="h-4 mx-1.5" />
+
+            <button
+              onClick={addMonth}
+              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md text-[12px] font-medium text-ink-3 hover:bg-[color:var(--surface-hover)] hover:text-ink transition-colors"
+              data-testid="plan-editor-add-month"
+            >
+              <Plus size={12} /> Add month
+            </button>
+            <button
+              onClick={addTwoWeeks}
+              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md text-[12px] font-medium text-ink-3 hover:bg-[color:var(--surface-hover)] hover:text-ink transition-colors"
+            >
+              <Plus size={12} /> Add 2 weeks
+            </button>
+            {(plan.months?.length || 0) > 1 && (
+              <button
+                onClick={removeLastMonth}
+                className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md text-[12px] font-medium text-ink-subtle hover:bg-red-50 hover:text-red-600 transition-colors"
+              >
+                <Trash2 size={11} /> Remove last
+              </button>
+            )}
+
+            <div className="ml-auto flex items-center gap-1.5 text-[11px] text-ink-subtle">
+              <CalendarDays size={12} />
+              <span>{(plan.months || []).length} {(plan.months || []).length === 1 ? 'month' : 'months'}</span>
             </div>
-            <p className="text-[10px] text-[#94A3B8] mt-2">Cost visible to HC only. Patient PDFs exclude all cost info.</p>
           </div>
         )}
+
+        {/* Banners */}
+        {isFinalized && (
+          <div className="mx-8 mt-4 rounded-md bg-amber-50/60 border border-amber-200/70 px-4 py-3 flex items-center gap-3">
+            <Lock size={14} className="text-amber-700 shrink-0" />
+            <span className="text-[13px] text-amber-900 font-medium">This plan is finalized.</span>
+            <div className="ml-auto flex gap-2">
+              <Button size="sm" onClick={handleReopen} className="gap-1.5 h-7 px-3 text-[12px] font-medium bg-amber-700 hover:bg-amber-800 text-white">
+                <Unlock size={12} /> Reopen
+              </Button>
+              <Button variant="outline" size="sm" onClick={openDuplicateDialog} className="gap-1.5 h-7 px-3 text-[12px] font-medium">
+                <Copy size={12} /> Duplicate
+              </Button>
+            </div>
+          </div>
+        )}
+        {patientViewMode && (
+          <div className="mx-8 mt-4 rounded-md bg-[color:var(--accent-teal-wash)] border border-[color:var(--accent-teal)]/20 px-4 py-3 flex items-center gap-3">
+            <User size={14} className="text-[color:var(--accent-teal)] shrink-0" />
+            <span className="text-[13px] text-[color:var(--accent-teal)] font-medium">Patient view — costs hidden.</span>
+            <Button size="sm" onClick={() => setPatientViewMode(false)} className="ml-auto h-7 px-3 text-[12px] font-medium bg-[color:var(--accent-teal)] hover:bg-[color:var(--accent-teal-hover)] text-white">
+              Exit
+            </Button>
+          </div>
+        )}
+
+        {/* Months */}
+        <div className="px-8 py-6">
+          <div className="animate-fade-up">
+            {(plan.months || []).map((month) => (
+              <MonthSection
+                key={month.month_number}
+                month={month}
+                showCosts={effectiveShowCosts}
+                patientView={patientViewMode}
+                isFinalized={isFinalized}
+                onUpdateField={updateField}
+                onRemoveRow={removeRow}
+                onRemoveFromAll={removeFromAllMonths}
+                onReorder={reorderSupplements}
+                onAddSupplement={addSupplementToMonth}
+                supplements={supplements}
+                formatCurrency={formatCurrency}
+              />
+            ))}
+
+            {/* Program cost breakdown */}
+            {effectiveShowCosts && (plan.months || []).length > 0 && (() => {
+              const totalSupps = (plan.months || []).reduce(
+                (sum, m) => sum + (m.supplement_cost || m.monthly_total_cost || 0), 0
+              );
+              const totalShip = (plan.months || []).reduce(
+                (sum, m) => sum + (m.freight_total || 0), 0
+              );
+              const grand = plan.total_program_cost || 0;
+              return (
+                <div
+                  className="rounded-lg border hairline overflow-hidden shadow-[var(--shadow-xs)] mt-2"
+                  data-testid="plan-editor-program-summary"
+                >
+                  <div
+                    aria-hidden
+                    className="h-[2px] w-full"
+                    style={{ background: 'linear-gradient(90deg, #0D5F68 0%, #46989D 50%, #0D5F68 100%)' }}
+                  />
+                  <div
+                    className="flex items-stretch"
+                    style={{
+                      background: 'linear-gradient(90deg, rgba(13,95,104,0.09) 0%, rgba(70,152,157,0.13) 50%, rgba(13,95,104,0.09) 100%)',
+                    }}
+                  >
+                    <div className="flex-1 px-5 py-4">
+                      <div className="text-[10px] uppercase tracking-[0.1em] font-semibold text-[color:var(--accent-teal)] mb-2">
+                        Program breakdown
+                      </div>
+                      <div className="flex items-center gap-6 flex-wrap">
+                        <div>
+                          <div className="text-[11px] text-ink-subtle">Supplements</div>
+                          <div className="font-mono tabular-nums text-[15px] text-ink font-medium">
+                            {formatCurrency(totalSupps)}
+                          </div>
+                        </div>
+                        <div className="w-px h-8 bg-[color:var(--hairline)]" />
+                        <div>
+                          <div className="text-[11px] text-ink-subtle">Shipping</div>
+                          <div className="font-mono tabular-nums text-[15px] text-ink font-medium">
+                            {formatCurrency(totalShip)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="hairline-l px-6 py-4 flex flex-col items-end justify-center bg-white/40">
+                      <div className="text-[10px] uppercase tracking-[0.1em] font-semibold text-ink-subtle">Program total</div>
+                      <div className="font-mono tabular-nums text-[22px] font-semibold text-ink tracking-tight">
+                        {formatCurrency(grand)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-5 py-2 hairline-t text-[10.5px] text-ink-subtle">
+                    Cost visible to HC only · Patient PDFs exclude all cost info
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
       </div>
 
-      {/* Duplicate Dialog */}
+      {/* Duplicate dialog */}
       <Dialog open={dupOpen} onOpenChange={setDupOpen}>
         <DialogContent className="max-w-[440px] p-7">
           <DialogHeader>
-            <DialogTitle className="text-lg">Duplicate Plan</DialogTitle>
-            <DialogDescription className="text-sm mt-1">Choose where to place the duplicated plan.</DialogDescription>
+            <DialogTitle className="text-base font-semibold tracking-[-0.01em]">Duplicate plan</DialogTitle>
+            <DialogDescription className="text-[13px] mt-1 text-ink-muted">
+              Choose where to place the duplicated plan.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label className="text-sm font-semibold">Assign to</Label>
+              <Label className="text-[12px] font-medium text-ink-3">Assign to</Label>
               <Select value={dupTarget} onValueChange={setDupTarget}>
-                <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="same">Same patient</SelectItem>
                   <SelectItem value="existing">Existing patient</SelectItem>
@@ -855,9 +1177,9 @@ export default function PlanEditorPage() {
             </div>
             {dupTarget === 'existing' && (
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">Select patient</Label>
+                <Label className="text-[12px] font-medium text-ink-3">Select patient</Label>
                 <Select value={dupSelectedPatientId} onValueChange={setDupSelectedPatientId}>
-                  <SelectTrigger className="h-11"><SelectValue placeholder="Choose a patient..." /></SelectTrigger>
+                  <SelectTrigger className="h-10"><SelectValue placeholder="Choose a patient…" /></SelectTrigger>
                   <SelectContent>
                     {dupPatients.map(p => (
                       <SelectItem key={p._id} value={p._id}>{p.name}</SelectItem>
@@ -868,17 +1190,25 @@ export default function PlanEditorPage() {
             )}
             {dupTarget === 'new' && (
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">New patient name</Label>
-                <Input value={dupNewName} onChange={(e) => setDupNewName(e.target.value)}
-                  className="h-11" placeholder="e.g. Jane Smith" autoFocus />
+                <Label className="text-[12px] font-medium text-ink-3">New patient name</Label>
+                <Input
+                  value={dupNewName}
+                  onChange={(e) => setDupNewName(e.target.value)}
+                  className="h-10"
+                  placeholder="e.g. Jane Smith"
+                  autoFocus
+                />
               </div>
             )}
           </div>
-          <DialogFooter className="gap-3">
-            <Button variant="outline" onClick={() => setDupOpen(false)} className="h-10 px-5">Cancel</Button>
-            <Button onClick={handleDuplicate} disabled={dupLoading || (dupTarget === 'existing' && !dupSelectedPatientId) || (dupTarget === 'new' && !dupNewName.trim())}
-              className="h-10 px-6 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold">
-              {dupLoading ? 'Duplicating...' : 'Duplicate'}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDupOpen(false)} className="h-9 px-4 text-[13px]">Cancel</Button>
+            <Button
+              onClick={handleDuplicate}
+              disabled={dupLoading || (dupTarget === 'existing' && !dupSelectedPatientId) || (dupTarget === 'new' && !dupNewName.trim())}
+              className="h-9 px-4 bg-[color:var(--accent-teal)] hover:bg-[color:var(--accent-teal-hover)] text-white text-[13px] font-medium"
+            >
+              {dupLoading ? 'Duplicating…' : 'Duplicate'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -887,15 +1217,19 @@ export default function PlanEditorPage() {
       <AlertDialog open={confirmFinalize} onOpenChange={setConfirmFinalize}>
         <AlertDialogContent className="p-7">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg">Finalize this plan?</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm mt-2">Finalizing locks the plan. You can reopen later.</AlertDialogDescription>
+            <AlertDialogTitle className="text-base font-semibold tracking-[-0.01em]">Finalize this plan?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[13px] mt-2 text-ink-muted">
+              Finalizing locks the plan. You can reopen later.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6 gap-3">
-            <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleFinalize} className="bg-[#B26A00] hover:bg-[#9A5B00] text-white h-10 px-5 font-semibold">Finalize Plan</AlertDialogAction>
+          <AlertDialogFooter className="mt-6 gap-2">
+            <AlertDialogCancel className="h-9 px-4 text-[13px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinalize} className="bg-amber-700 hover:bg-amber-800 text-white h-9 px-4 text-[13px] font-medium">
+              Finalize plan
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </TooltipProvider>
   );
 }

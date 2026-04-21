@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,39 +6,75 @@
 
 @layer base {
   :root {
+    /* shadcn tokens — refined palette */
     --background: 0 0% 100%;
-    --foreground: 220 20% 5%;
+    --foreground: 220 22% 7%;
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 5%;
+    --card-foreground: 220 22% 7%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 5%;
+    --popover-foreground: 220 22% 7%;
     --primary: 187 79% 23%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 180 8% 96%;
-    --secondary-foreground: 220 20% 10%;
-    --muted: 180 8% 96%;
-    --muted-foreground: 190 9% 35%;
-    --accent: 174 35% 93%;
-    --accent-foreground: 220 20% 10%;
+    --secondary: 210 16% 97%;
+    --secondary-foreground: 220 22% 12%;
+    --muted: 210 16% 97%;
+    --muted-foreground: 215 12% 42%;
+    --accent: 174 35% 94%;
+    --accent-foreground: 220 22% 12%;
     --destructive: 0 68% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 184 12% 86%;
-    --input: 184 12% 86%;
+    --border: 215 20% 92%;
+    --input: 215 20% 92%;
     --ring: 187 79% 23%;
-    --radius: 0.75rem;
+    --radius: 0.5rem;
     --chart-1: 187 79% 23%;
     --chart-2: 174 35% 50%;
     --chart-3: 150 40% 45%;
     --chart-4: 190 30% 60%;
     --chart-5: 200 25% 70%;
 
-    --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    /* Premium custom tokens */
+    --font-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
     --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    --shadow-sm: 0 1px 2px rgba(11,13,16,0.06);
-    --shadow-md: 0 12px 30px rgba(11,13,16,0.10);
-    --hairline: 1px;
-    --focus: 0 0 0 4px rgba(13,95,104,0.18);
-    --table-zebra: rgba(238,241,241,0.45);
+
+    /* Surfaces — calm, layered */
+    --canvas: #FAFBFB;
+    --surface: #FFFFFF;
+    --surface-hover: #F5F7F8;
+    --surface-subtle: #F1F4F5;
+
+    /* Ink scale */
+    --ink: #0A0C0E;
+    --ink-2: #1E2528;
+    --ink-3: #3B4448;
+    --ink-muted: #6A757A;
+    --ink-subtle: #98A1A5;
+    --ink-faint: #C5CBCD;
+
+    /* Hairlines */
+    --hairline: rgba(14, 24, 28, 0.08);
+    --hairline-strong: rgba(14, 24, 28, 0.14);
+
+    /* Accent */
+    --accent-teal: #0D5F68;
+    --accent-teal-hover: #0A4E55;
+    --accent-teal-wash: #EAF4F3;
+    --accent-teal-wash-hover: #DCEDEB;
+
+    /* Elevation — restrained */
+    --shadow-xs: 0 1px 0 rgba(14, 24, 28, 0.04);
+    --shadow-sm: 0 1px 2px rgba(14, 24, 28, 0.05), 0 1px 3px rgba(14, 24, 28, 0.04);
+    --shadow-md: 0 4px 12px rgba(14, 24, 28, 0.06), 0 1px 3px rgba(14, 24, 28, 0.04);
+    --shadow-lg: 0 16px 40px rgba(14, 24, 28, 0.10), 0 2px 6px rgba(14, 24, 28, 0.04);
+    --shadow-inspector: -8px 0 24px rgba(14, 24, 28, 0.04);
+
+    /* Focus — tighter, Linear-style */
+    --focus: 0 0 0 3px rgba(13, 95, 104, 0.22);
+    --focus-subtle: 0 0 0 2px rgba(13, 95, 104, 0.18);
+
+    /* Motion */
+    --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
@@ -46,23 +82,117 @@
   * {
     @apply border-border;
   }
-  html, body {
+  html, body, #root {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    letter-spacing: -0.005em;
   }
   body {
-    @apply bg-background text-foreground;
+    background: var(--canvas);
+    color: var(--ink);
   }
   ::selection {
-    background: rgba(13,95,104,0.18);
+    background: rgba(13, 95, 104, 0.18);
+    color: var(--ink);
+  }
+
+  /* Refined scrollbars — Apple-like */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(14, 24, 28, 0.12);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(14, 24, 28, 0.22);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+  }
+
+  /* Focus-visible baseline — no default ring, rely on shadow */
+  :focus-visible {
+    outline: none;
   }
 }
 
-.font-mono {
-  font-family: var(--font-mono);
-}
+@layer utilities {
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
 
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
+  .hairline {
+    border-color: var(--hairline);
+  }
+  .hairline-b {
+    border-bottom: 1px solid var(--hairline);
+  }
+  .hairline-t {
+    border-top: 1px solid var(--hairline);
+  }
+  .hairline-r {
+    border-right: 1px solid var(--hairline);
+  }
+  .hairline-l {
+    border-left: 1px solid var(--hairline);
+  }
+
+  .surface {
+    background: var(--surface);
+  }
+  .surface-2 {
+    background: var(--surface-hover);
+  }
+  .canvas {
+    background: var(--canvas);
+  }
+
+  .text-ink { color: var(--ink); }
+  .text-ink-2 { color: var(--ink-2); }
+  .text-ink-3 { color: var(--ink-3); }
+  .text-ink-muted { color: var(--ink-muted); }
+  .text-ink-subtle { color: var(--ink-subtle); }
+
+  .chrome-blur {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+
+  .ring-focus {
+    box-shadow: var(--focus);
+  }
+
+  /* Subtle row zebra on hover */
+  .row-hover:hover {
+    background: var(--surface-hover);
+  }
+
+  /* Animations */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-up {
+    animation: fade-up 220ms var(--ease-out);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
 }

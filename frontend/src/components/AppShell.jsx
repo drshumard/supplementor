@@ -1,112 +1,187 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { LayoutDashboard, FilePlus, Pill, LogOut, Layers, Users, PanelLeftClose, PanelLeftOpen, UserRound, Building2 } from 'lucide-react';
+import {
+  LayoutDashboard, FilePlus, Pill, Layers, Users, UserRound, Building2, Search,
+} from 'lucide-react';
 import { UserButton } from '@clerk/react';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import {
+  CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from './ui/command';
 
 const navItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/', roles: ['admin', 'hc'] },
-  { label: 'Patients', icon: UserRound, path: '/patients', roles: ['admin', 'hc'] },
-  { label: 'New Plan', icon: FilePlus, path: '/plans/new', roles: ['admin', 'hc'] },
-  { label: 'Supplements', icon: Pill, path: '/admin/supplements', roles: ['admin'] },
-  { label: 'Templates', icon: Layers, path: '/admin/templates', roles: ['admin'] },
-  { label: 'Suppliers', icon: Building2, path: '/admin/suppliers', roles: ['admin'] },
-  { label: 'Users', icon: Users, path: '/admin/users', roles: ['admin'] },
+  { label: 'Dashboard',   icon: LayoutDashboard, path: '/',                   roles: ['admin', 'hc'] },
+  { label: 'Patients',    icon: UserRound,       path: '/patients',           roles: ['admin', 'hc'] },
+  { label: 'New plan',    icon: FilePlus,        path: '/plans/new',          roles: ['admin', 'hc'] },
 ];
 
+const adminItems = [
+  { label: 'Supplements', icon: Pill,            path: '/admin/supplements',  roles: ['admin'] },
+  { label: 'Templates',   icon: Layers,          path: '/admin/templates',    roles: ['admin'] },
+  { label: 'Suppliers',   icon: Building2,       path: '/admin/suppliers',    roles: ['admin'] },
+  { label: 'Users',       icon: Users,           path: '/admin/users',        roles: ['admin'] },
+];
+
+function RailItem({ item, active, onClick }) {
+  const Icon = item.icon;
+  return (
+    <Tooltip delayDuration={200}>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onClick}
+          data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
+          aria-label={item.label}
+          className={`relative w-10 h-10 flex items-center justify-center rounded-lg transition-colors duration-150 ${
+            active
+              ? 'text-[color:var(--accent-teal)] bg-[color:var(--accent-teal-wash)]'
+              : 'text-[color:var(--ink-muted)] hover:text-[color:var(--ink)] hover:bg-[color:var(--surface-hover)]'
+          }`}
+        >
+          {active && (
+            <span className="absolute -left-[11px] top-1.5 bottom-1.5 w-[2px] rounded-full bg-[color:var(--accent-teal)]" />
+          )}
+          <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={10} className="text-xs font-medium px-2.5 py-1.5">
+        {item.label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export default function AppShell({ children }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(true);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
-  const filteredNav = navItems.filter(n => n.roles.includes(user?.role));
+  const role = user?.role;
+  const primary = navItems.filter(n => n.roles.includes(role));
+  const admin = adminItems.filter(n => n.roles.includes(role));
+
+  const isActive = (path) =>
+    location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
+
+  // Global ⌘K / Ctrl+K
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const paletteGo = (path) => {
+    setPaletteOpen(false);
+    navigate(path);
+  };
 
   return (
-    <div className="flex h-screen bg-[#F7F8FA]" data-testid="app-shell">
-      {/* Sidebar */}
-      <motion.aside
-        initial={false}
-        animate={{ width: collapsed ? 72 : 260 }}
-        transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-        className="bg-white border-r border-[#E8ECF0] flex flex-col shrink-0 overflow-hidden shadow-[1px_0_3px_rgba(0,0,0,0.03)]"
-      >
-        {/* Logo */}
-        <div className="h-[72px] flex items-center px-5 border-b border-[#E8ECF0] justify-between">
-          <AnimatePresence mode="wait">
-            {!collapsed && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                <img src="https://portal-drshumard.b-cdn.net/logo.png" alt="Dr. Shumard" className="h-8 w-auto object-contain flex-shrink-0" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <Button variant="ghost" size="sm" onClick={() => setCollapsed(!collapsed)}
-            className="h-9 w-9 p-0 rounded-lg text-[#94A3B8] hover:text-[#0B0D10] hover:bg-[#F1F5F9] shrink-0" data-testid="sidebar-toggle">
-            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-          </Button>
-        </div>
+    <TooltipProvider delayDuration={150}>
+      <div className="flex h-screen canvas" data-testid="app-shell">
+        {/* ── Icon rail ── */}
+        <aside className="w-14 shrink-0 surface hairline-r flex flex-col items-center py-3">
+          {/* Logo mark */}
+          <button
+            onClick={() => navigate('/')}
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[color:var(--surface-hover)] transition-colors mb-3"
+            aria-label="Home"
+          >
+            <img
+              src="https://portal-drshumard.b-cdn.net/logo.png"
+              alt="Dr. Shumard"
+              className="h-6 w-auto object-contain"
+            />
+          </button>
 
-        {/* Nav */}
-        <nav className="flex-1 py-5 px-3 space-y-1">
-          {filteredNav.map(item => {
-            const active = location.pathname === item.path ||
-              (item.path !== '/' && location.pathname.startsWith(item.path));
-            return (
-              <div key={item.path} className="py-0.5">
-                <button
-                  onClick={() => navigate(item.path)}
-                  data-testid={`nav-${item.label.toLowerCase().replace(/\s/g, '-')}`}
-                  title={collapsed ? item.label : undefined}
-                  className={`w-full flex items-center gap-3 rounded-lg text-[13px] font-medium transition-colors duration-150 ${
-                    collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5'
-                  } ${
-                    active
-                      ? 'bg-[#EAF4F3] text-[#0D5F68] border-l-[3px] border-[#0D5F68] shadow-sm'
-                      : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#334155] border-l-[3px] border-transparent'
-                  }`}
-                >
-                  <item.icon size={19} strokeWidth={active ? 2 : 1.5} className="shrink-0" />
-                  <AnimatePresence mode="wait">
-                    {!collapsed && (
-                      <motion.span initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }} transition={{ duration: 0.15 }} className="whitespace-nowrap overflow-hidden">
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </button>
-              </div>
-            );
-          })}
-        </nav>
+          <div className="w-6 hairline-b mb-3" />
 
-        {/* User */}
-        <div className="p-3 border-t border-[#E8ECF0] bg-[#FAFBFC]">
-          <motion.div layout transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-            className={`flex flex-col items-center gap-2 ${collapsed ? 'py-2' : 'px-2 py-3'}`}>
-            <UserButton afterSignOutUrl="/" />
-            <AnimatePresence mode="wait">
-              {!collapsed && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.15 }} className="w-full text-center overflow-hidden">
-                  <div className="text-[13px] font-semibold truncate text-[#0B0D10]">{user?.name}</div>
-                  <Badge className={`mt-1 px-2 py-0.5 text-[10px] font-bold ${
-                    user?.role === 'admin' ? 'bg-[#0D5F68] text-white hover:bg-[#0D5F68]' : 'bg-[#147D5A] text-white hover:bg-[#147D5A]'
-                  }`}>{user?.role === 'admin' ? 'Admin' : 'HC'}</Badge>
-                </motion.div>
+          <nav className="flex flex-col gap-1">
+            {primary.map(item => (
+              <RailItem key={item.path} item={item} active={isActive(item.path)} onClick={() => navigate(item.path)} />
+            ))}
+          </nav>
+
+          {admin.length > 0 && (
+            <>
+              <div className="w-6 hairline-b my-3" />
+              <nav className="flex flex-col gap-1">
+                {admin.map(item => (
+                  <RailItem key={item.path} item={item} active={isActive(item.path)} onClick={() => navigate(item.path)} />
+                ))}
+              </nav>
+            </>
+          )}
+
+          <div className="mt-auto flex flex-col items-center gap-2">
+            <div className="scale-90">
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Main column ── */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Translucent top bar */}
+          <header className="h-12 shrink-0 chrome-blur hairline-b flex items-center px-4 gap-3 sticky top-0 z-40">
+            <div className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-ink">
+              Supplements Portal
+            </div>  
+
+            {/* ⌘K trigger — centered */}
+            <div className="flex-1 flex justify-center">
+              <button
+                onClick={() => setPaletteOpen(true)}
+                className="group inline-flex items-center gap-2.5 h-7 px-3 rounded-md border hairline bg-[color:var(--surface-hover)] hover:bg-[color:var(--surface-subtle)] text-[12px] text-ink-muted transition-colors min-w-[280px]"
+                data-testid="global-command-trigger"
+              >
+                <Search size={13} className="text-ink-subtle" />
+                <span>Search or jump to…</span>
+                <kbd className="ml-auto inline-flex items-center gap-0.5 text-[10px] font-mono text-ink-subtle">
+                  <span className="px-1 py-px rounded border hairline bg-white">⌘</span>
+                  <span className="px-1 py-px rounded border hairline bg-white">K</span>
+                </kbd>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {user && (
+                <span className="text-[11px] font-medium text-ink-muted hidden md:inline">
+                  {user.name}
+                  <span className="mx-1.5 text-ink-faint">·</span>
+                  <span className="uppercase tracking-[0.08em]">{user.role}</span>
+                </span>
               )}
-            </AnimatePresence>
-          </motion.div>
-        </div>
-      </motion.aside>
+            </div>
+          </header>
 
-      {/* Main */}
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </div>
+          {/* Page canvas */}
+          <main className="flex-1 overflow-auto">
+            {children}
+          </main>
+        </div>
+
+        {/* Command palette */}
+        <CommandDialog open={paletteOpen} onOpenChange={setPaletteOpen}>
+          <CommandInput placeholder="Search or jump to…" />
+          <CommandList>
+            <CommandEmpty>No matches.</CommandEmpty>
+            <CommandGroup heading="Navigation">
+              {[...primary, ...admin].map(item => (
+                <CommandItem key={item.path} onSelect={() => paletteGo(item.path)}>
+                  <item.icon size={14} className="mr-2 text-ink-muted" />
+                  {item.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </CommandDialog>
+      </div>
+    </TooltipProvider>
   );
 }

@@ -2,22 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { getPlans, getPlanCreators, deletePlan, duplicatePlan } from '../lib/api';
-import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Badge } from '../components/ui/badge';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '../components/ui/table';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../components/ui/select';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '../components/ui/alert-dialog';
-import { Plus, Search, Trash2, FileText, Copy, Users } from 'lucide-react';
+import { Plus, Search, Trash2, FileText, Copy, Users, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '../lib/utils';
+import PageHeader, { PageContainer } from '../components/PageHeader';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function DashboardPage() {
   const [plans, setPlans] = useState([]);
@@ -42,8 +35,7 @@ export default function DashboardPage() {
   }, [search, program, selectedCreator, user]);
 
   const fetchCreators = useCallback(async () => {
-    try { const res = await getPlanCreators(); setCreators(res.creators || []); }
-    catch {}
+    try { const res = await getPlanCreators(); setCreators(res.creators || []); } catch {}
   }, []);
 
   useEffect(() => { fetchPlans(); }, [fetchPlans]);
@@ -64,154 +56,187 @@ export default function DashboardPage() {
 
   const otherCreators = creators.filter(c => c.user_id !== user?._id);
 
+  const creatorTab = (active) =>
+    `h-7 px-3 rounded-md text-[12px] font-medium transition-colors flex items-center gap-1.5 ${
+      active
+        ? 'bg-[color:var(--accent-teal)] text-white shadow-[var(--shadow-xs)]'
+        : 'text-ink-muted hover:text-ink hover:bg-[color:var(--surface-hover)]'
+    }`;
+
+  const subtitle =
+    selectedCreator === 'mine' ? `My plans · ${total}` :
+    selectedCreator === 'all' ? `All plans · ${total}` :
+    `${creators.find(c => c.user_id === selectedCreator)?.name || '…'} · ${total}`;
+
   return (
-    <div className="p-10 max-w-[1560px] mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-[-0.02em] text-[#0B0D10]">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {selectedCreator === 'mine' ? 'My plans' : selectedCreator === 'all' ? 'All plans' : `Plans by ${creators.find(c => c.user_id === selectedCreator)?.name || '...'}`}
-            {' '}&middot; {total} plan{total !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <Button onClick={() => navigate('/plans/new')} data-testid="plans-create-new-button"
-          className="gap-2.5 h-12 px-7 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-bold shadow-sm text-sm">
-          <Plus size={18} /> New Plan
-        </Button>
-      </div>
-
-      {/* Creator tabs */}
-      <div className="flex items-center gap-2 mb-6">
-        <button onClick={() => setSelectedCreator('mine')}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-            selectedCreator === 'mine' ? 'bg-[#0D5F68] text-white' : 'bg-white text-[#64748B] hover:bg-[#F1F5F9] border border-[#E2E8F0]'
-          }`}>
-          My Plans
+    <PageContainer>
+      <PageHeader title="Dashboard" subtitle={subtitle}>
+        <button
+          onClick={() => navigate('/plans/new')}
+          data-testid="plans-create-new-button"
+          className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md text-[13px] font-medium bg-[color:var(--accent-teal)] text-white hover:bg-[color:var(--accent-teal-hover)] transition-colors shadow-[var(--shadow-xs)]"
+        >
+          <Plus size={14} /> New plan
         </button>
-        {otherCreators.map(c => (
-          <button key={c.user_id} onClick={() => setSelectedCreator(c.user_id)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${
-              selectedCreator === c.user_id ? 'bg-[#0D5F68] text-white' : 'bg-white text-[#64748B] hover:bg-[#F1F5F9] border border-[#E2E8F0]'
-            }`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-              selectedCreator === c.user_id ? 'bg-white/20 text-white' : 'bg-[#EAF4F3] text-[#0D5F68]'
-            }`}>
-              {c.name?.charAt(0) || '?'}
-            </div>
-            {c.name} ({c.plan_count})
+      </PageHeader>
+
+      <div className="px-8 py-6">
+        {/* Creator tabs */}
+        <div className="flex items-center gap-1 mb-4 p-1 rounded-lg bg-[color:var(--surface-hover)] hairline border w-fit">
+          <button onClick={() => setSelectedCreator('mine')} className={creatorTab(selectedCreator === 'mine')}>
+            My plans
           </button>
-        ))}
-        <button onClick={() => setSelectedCreator('all')}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${
-            selectedCreator === 'all' ? 'bg-[#0D5F68] text-white' : 'bg-white text-[#64748B] hover:bg-[#F1F5F9] border border-[#E2E8F0]'
-          }`}>
-          <Users size={14} /> All
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative flex-1 max-w-[360px]">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search patients..." value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            data-testid="plans-search-input" className="pl-11 h-12" />
+          {otherCreators.map(c => (
+            <button key={c.user_id} onClick={() => setSelectedCreator(c.user_id)} className={creatorTab(selectedCreator === c.user_id)}>
+              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-semibold ${
+                selectedCreator === c.user_id ? 'bg-white/20 text-white' : 'bg-[color:var(--accent-teal-wash)] text-[color:var(--accent-teal)]'
+              }`}>
+                {c.name?.charAt(0) || '?'}
+              </span>
+              {c.name}
+              <span className={`text-[10px] ${selectedCreator === c.user_id ? 'text-white/70' : 'text-ink-subtle'}`}>
+                {c.plan_count}
+              </span>
+            </button>
+          ))}
+          <button onClick={() => setSelectedCreator('all')} className={creatorTab(selectedCreator === 'all')}>
+            <Users size={12} /> All
+          </button>
         </div>
-        <Select value={program} onValueChange={setProgram}>
-          <SelectTrigger className="w-[200px] h-12" data-testid="plans-filter-program">
-            <SelectValue placeholder="All Programs" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Programs</SelectItem>
-            <SelectItem value="Detox 1">Detox 1</SelectItem>
-            <SelectItem value="Detox 2">Detox 2</SelectItem>
-            <SelectItem value="Maintenance">Maintenance</SelectItem>
-          </SelectContent>
-        </Select>
+
+        {/* Filters */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="relative flex-1 max-w-[360px]">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+            <Input
+              placeholder="Search patients…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              data-testid="plans-search-input"
+              className="pl-9 h-9 text-[13px] bg-white"
+            />
+          </div>
+          <Select value={program} onValueChange={setProgram}>
+            <SelectTrigger className="w-[180px] h-9 text-[13px] bg-white" data-testid="plans-filter-program">
+              <SelectValue placeholder="All programs" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All programs</SelectItem>
+              <SelectItem value="Detox 1">Detox 1</SelectItem>
+              <SelectItem value="Detox 2">Detox 2</SelectItem>
+              <SelectItem value="Maintenance">Maintenance</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Table */}
+        <div
+          className="rounded-lg border hairline surface overflow-hidden shadow-[var(--shadow-xs)]"
+          data-testid="plans-table"
+        >
+          <div
+            className="grid items-center h-9 px-5 hairline-b text-[10px] font-semibold tracking-[0.09em] uppercase text-[color:var(--accent-teal)]"
+            style={{
+              gridTemplateColumns: 'minmax(180px,1.4fr) 1fr 100px 72px 110px 110px 140px 90px',
+              background: 'linear-gradient(90deg, rgba(13,95,104,0.08) 0%, rgba(70,152,157,0.12) 50%, rgba(13,95,104,0.08) 100%)',
+            }}
+          >
+            <span>Patient</span>
+            <span>Program</span>
+            <span>Step</span>
+            <span className="text-center">Months</span>
+            <span className="text-right">Total</span>
+            <span>Status</span>
+            <span>Updated</span>
+            <span />
+          </div>
+
+          {loading ? (
+            <div className="h-40 flex items-center justify-center gap-2 text-[12px] text-ink-muted">
+              <div className="w-4 h-4 border-2 border-[color:var(--accent-teal)] border-t-transparent rounded-full animate-spin" />
+              Loading…
+            </div>
+          ) : plans.length === 0 ? (
+            <div className="h-48 flex flex-col items-center justify-center gap-3 text-ink-subtle">
+              <FileText size={28} strokeWidth={1.4} className="text-ink-faint" />
+              <p className="text-[13px] text-ink-muted">
+                {selectedCreator === 'mine' ? 'No plans yet' : 'No plans found'}
+              </p>
+              {selectedCreator === 'mine' && (
+                <button
+                  onClick={() => navigate('/plans/new')}
+                  className="h-8 px-3.5 rounded-md text-[12.5px] font-medium bg-[color:var(--accent-teal)] text-white hover:bg-[color:var(--accent-teal-hover)]"
+                >
+                  Create your first plan
+                </button>
+              )}
+            </div>
+          ) : (
+            plans.map(plan => (
+              <div
+                key={plan._id}
+                onClick={() => navigate(`/plans/${plan._id}`)}
+                className="grid items-center min-h-[44px] px-5 py-1.5 border-b border-[color:var(--hairline)] last:border-b-0 row-hover cursor-pointer transition-colors group"
+                style={{ gridTemplateColumns: 'minmax(180px,1.4fr) 1fr 100px 72px 110px 110px 140px 90px' }}
+              >
+                <span className="text-[13px] font-medium text-ink truncate">{plan.patient_name || 'Untitled'}</span>
+                <span className="text-[12.5px] text-ink-3 truncate">{plan.program_name}</span>
+                <span className="text-[12.5px] text-ink-3 truncate">{plan.step_label || `Step ${plan.step_number}`}</span>
+                <span className="font-mono tabular-nums text-[12.5px] text-ink-3 text-center">
+                  {plan.months?.length || 0}
+                </span>
+                <span className="font-mono tabular-nums text-[13px] font-semibold text-ink text-right whitespace-nowrap">
+                  {formatCurrency(plan.total_program_cost)}
+                </span>
+                <span>
+                  <span
+                    data-testid={`plan-status-${plan._id}`}
+                    className={`inline-flex items-center gap-1 h-5 px-1.5 rounded text-[10px] font-semibold uppercase tracking-[0.08em] ${
+                      plan.status === 'finalized'
+                        ? 'bg-[color:var(--accent-teal-wash)] text-[color:var(--accent-teal)]'
+                        : 'bg-amber-50 text-amber-800'
+                    }`}
+                  >
+                    <Circle size={5} fill="currentColor" strokeWidth={0} />
+                    {plan.status || 'draft'}
+                  </span>
+                </span>
+                <span className="text-[12px] text-ink-muted">
+                  {plan.updated_at ? new Date(plan.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                </span>
+                <span className="flex items-center justify-end gap-0.5">
+                  <button
+                    onClick={(e) => handleDuplicate(e, plan._id)}
+                    data-testid={`duplicate-plan-${plan._id}`}
+                    className="h-7 w-7 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-ink-subtle hover:text-[color:var(--accent-teal)] hover:bg-[color:var(--accent-teal-wash)]"
+                    title="Duplicate"
+                  >
+                    <Copy size={13} />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteId(plan._id); }}
+                    data-testid={`delete-plan-${plan._id}`}
+                    className="h-7 w-7 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-ink-subtle hover:text-red-600 hover:bg-red-50"
+                    title="Delete"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white card-elevated overflow-hidden" data-testid="plans-table">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-[#0D5F68] hover:bg-[#0D5F68] rounded-t-xl">
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 px-6">Patient</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Program</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Step</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[70px]">Months</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[130px]">Total Cost</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[120px]">Status</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5">Updated</TableHead>
-              <TableHead className="text-[11px] font-semibold tracking-[0.05em] uppercase text-white/80 py-3.5 w-[100px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={8} className="h-40 text-center text-muted-foreground">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-5 h-5 border-2 border-[#0D5F68] border-t-transparent rounded-full animate-spin" /> Loading...
-                </div>
-              </TableCell></TableRow>
-            ) : plans.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="h-40 text-center">
-                <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                  <FileText size={40} strokeWidth={1} />
-                  <p className="text-base">{selectedCreator === 'mine' ? 'No plans yet' : 'No plans found'}</p>
-                  {selectedCreator === 'mine' && (
-                    <Button onClick={() => navigate('/plans/new')} className="mt-2 h-11 px-5 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold">Create your first plan</Button>
-                  )}
-                </div>
-              </TableCell></TableRow>
-            ) : (
-              plans.map((plan) => (
-                <TableRow key={plan._id} className="cursor-pointer hover:bg-[#F0FAFA] transition-colors duration-150" onClick={() => navigate(`/plans/${plan._id}`)}>
-                  <TableCell className="font-semibold text-[#0B0D10] py-4 px-6 text-sm">{plan.patient_name || 'Untitled'}</TableCell>
-                  <TableCell className="text-sm text-[#334155] py-4">{plan.program_name}</TableCell>
-                  <TableCell className="text-sm text-[#334155] py-4">{plan.step_label || `Step ${plan.step_number}`}</TableCell>
-                  <TableCell className="text-sm font-mono tabular-nums py-4 text-[#334155]">{plan.months?.length || 0}</TableCell>
-                  <TableCell className="text-sm font-mono tabular-nums py-4 text-[#147D5A] font-semibold">{formatCurrency(plan.total_program_cost)}</TableCell>
-                  <TableCell className="py-4">
-                    <Badge data-testid={`plan-status-${plan._id}`}
-                      className={`px-2.5 py-1 text-[10px] font-bold rounded-md ${
-                        plan.status === 'finalized'
-                          ? 'bg-[#0D5F68] text-white hover:bg-[#0D5F68]'
-                          : 'bg-[#FEF3C7] text-[#92400E] hover:bg-[#FEF3C7]'
-                      }`}>
-                      {plan.status || 'draft'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-[#718096] py-4">
-                    {plan.updated_at ? new Date(plan.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
-                  </TableCell>
-                  <TableCell className="py-4">
-                    <div className="flex items-center gap-1.5">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#94A3B8] hover:text-[#0D5F68] hover:bg-[#EAF4F3] rounded-lg"
-                        onClick={(e) => handleDuplicate(e, plan._id)} title="Duplicate" data-testid={`duplicate-plan-${plan._id}`}><Copy size={14} /></Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#94A3B8] hover:text-[#C53B3B] hover:bg-red-50 rounded-lg"
-                        onClick={(e) => { e.stopPropagation(); setDeleteId(plan._id); }} data-testid={`delete-plan-${plan._id}`}><Trash2 size={14} /></Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Delete Dialog */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="p-7">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg">Delete this plan?</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm mt-2">This action cannot be undone.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="mt-6 gap-3">
-            <AlertDialogCancel className="h-10 px-5">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-[#C53B3B] text-white hover:bg-[#A52E2E] h-10 px-5 font-semibold">Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        title="Delete this plan?"
+        description="This action cannot be undone."
+        confirmLabel="Delete plan"
+        destructive
+        onConfirm={handleDelete}
+      />
+    </PageContainer>
   );
 }
