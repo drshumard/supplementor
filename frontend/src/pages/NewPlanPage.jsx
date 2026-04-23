@@ -77,55 +77,50 @@ export default function NewPlanPage() {
         step_label: `Step ${selectedStep}`,
         step_number: Number(selectedStep),
         template_id: selectedTemplate?._id || null,
-        months: (selectedTemplate?.months || []).length > 0
-          ? selectedTemplate.months.map(m => ({
-              month_number: m.month_number,
-              supplements: (m.supplements || []).map(s => ({
-                supplement_id: s.supplement_id || '',
-                supplement_name: s.supplement_name,
-                company: s.company || '',
-                supplier: s.supplier || '',
-                manufacturer: s.manufacturer || s.company || '',
-                unit_type: s.unit_type || 'caps',
-                quantity_per_dose: s.quantity_per_dose || null,
-                frequency_per_day: s.frequency_per_day || null,
-                dosage_display: s.dosage_display || '',
-                instructions: s.instructions || '',
-                with_food: true,
-                times: (s.frequency_per_day || 1) >= 3 ? ['AM', 'Afternoon', 'PM'] : (s.frequency_per_day || 1) === 2 ? ['AM', 'PM'] : ['AM'],
-                hc_notes: '',
-                units_per_bottle: s.units_per_bottle || null,
-                cost_per_bottle: s.cost_per_bottle || 0,
-                refrigerate: s.refrigerate || false,
-                bottles_needed: null,
-                calculated_cost: null,
-              })),
+        months: (() => {
+          const templateMonths = selectedTemplate?.months || [];
+          const templateSupps = templateMonths.length > 0
+            ? templateMonths[0].supplements || []
+            : selectedTemplate?.supplements || [];
+          
+          const mapSupp = (s) => ({
+            supplement_id: s.supplement_id || '',
+            supplement_name: s.supplement_name,
+            company: s.company || '',
+            supplier: s.supplier || '',
+            manufacturer: s.manufacturer || s.company || '',
+            unit_type: s.unit_type || 'caps',
+            quantity_per_dose: s.quantity_per_dose || null,
+            frequency_per_day: s.frequency_per_day || null,
+            dosage_display: s.dosage_display || '',
+            instructions: s.instructions || '',
+            with_food: true,
+            times: s.times || ((s.frequency_per_day || 1) >= 3 ? ['AM', 'Afternoon', 'PM'] : (s.frequency_per_day || 1) === 2 ? ['AM', 'PM'] : ['AM']),
+            hc_notes: '',
+            units_per_bottle: s.units_per_bottle || null,
+            cost_per_bottle: s.cost_per_bottle || 0,
+            refrigerate: s.refrigerate || false,
+            bottles_needed: null,
+            calculated_cost: null,
+          });
+
+          // If user's monthCount matches template months, use template month-by-month data
+          if (templateMonths.length > 0 && templateMonths.length === Math.ceil(monthCount)) {
+            return templateMonths.map((m, i) => ({
+              month_number: monthCount === 0.5 && i === 0 ? 0.5 : m.month_number,
+              supplements: (m.supplements || []).map(mapSupp),
               monthly_total_cost: 0,
-            }))
-          : Array.from({ length: Math.ceil(monthCount) }, (_, i) => ({
-              month_number: monthCount === 0.5 ? 0.5 : i + 1,
-              supplements: (selectedTemplate?.supplements || []).map(s => ({
-                supplement_id: s.supplement_id || '',
-                supplement_name: s.supplement_name,
-                company: s.company || '',
-                supplier: s.supplier || '',
-                manufacturer: s.manufacturer || s.company || '',
-                unit_type: s.unit_type || 'caps',
-                quantity_per_dose: s.quantity_per_dose || null,
-                frequency_per_day: s.frequency_per_day || null,
-                dosage_display: s.dosage_display || '',
-                instructions: s.instructions || '',
-                with_food: true,
-                times: (s.frequency_per_day || 1) >= 3 ? ['AM', 'Afternoon', 'PM'] : (s.frequency_per_day || 1) === 2 ? ['AM', 'PM'] : ['AM'],
-                hc_notes: '',
-                units_per_bottle: s.units_per_bottle || null,
-                cost_per_bottle: s.cost_per_bottle || 0,
-                refrigerate: s.refrigerate || false,
-                bottles_needed: null,
-                calculated_cost: null,
-              })),
-              monthly_total_cost: 0,
-            })),
+            }));
+          }
+
+          // Otherwise create the requested number of months using template's supplement list
+          const numMonths = Math.max(1, Math.ceil(monthCount));
+          return Array.from({ length: numMonths }, (_, i) => ({
+            month_number: monthCount === 0.5 && i === 0 ? 0.5 : i + 1,
+            supplements: templateSupps.map(mapSupp),
+            monthly_total_cost: 0,
+          }));
+        })(),
       };
       const result = await createPlan(data);
       toast.success('Plan created');
