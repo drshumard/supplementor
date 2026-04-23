@@ -31,7 +31,7 @@ export default function NewPlanPage() {
 
   useEffect(() => {
     if (!appUser) return;
-    getTemplates().then(r => setTemplates(r.templates || [])).catch(() => {});
+    getTemplates().then(r => setTemplates(r.templates || [])).catch(() => { });
   }, [appUser]);
 
   const selectedTemplate = templates.find(
@@ -60,26 +60,7 @@ export default function NewPlanPage() {
         const newPatient = await createPatient({ name: patientName.trim() });
         patientId = newPatient._id;
       }
-      const buildSupp = (s) => ({
-        supplement_id: s.supplement_id || '',
-        supplement_name: s.supplement_name,
-        company: s.company || '',
-        supplier: s.supplier || '',
-        manufacturer: s.manufacturer || s.company || '',
-        unit_type: s.unit_type || 'caps',
-        quantity_per_dose: s.quantity_per_dose || null,
-        frequency_per_day: s.frequency_per_day || null,
-        dosage_display: s.dosage_display || '',
-        instructions: s.instructions || '',
-        with_food: true,
-        times: (s.frequency_per_day || 1) >= 3 ? ['AM', 'Afternoon', 'PM'] : (s.frequency_per_day || 1) === 2 ? ['AM', 'PM'] : ['AM'],
-        hc_notes: '',
-        units_per_bottle: s.units_per_bottle || null,
-        cost_per_bottle: s.cost_per_bottle || 0,
-        refrigerate: s.refrigerate || false,
-        bottles_needed: null,
-        calculated_cost: null,
-      });
+
       const data = {
         patient_name: patientName.trim(),
         patient_id: patientId,
@@ -88,17 +69,50 @@ export default function NewPlanPage() {
         step_label: `Step ${selectedStep}`,
         step_number: Number(selectedStep),
         template_id: selectedTemplate?._id || null,
-        months: (selectedTemplate?.months || []).length > 0
-          ? selectedTemplate.months.map(m => ({
-              month_number: m.month_number,
-              supplements: (m.supplements || []).map(buildSupp),
+        months: (() => {
+          const templateMonths = selectedTemplate?.months || [];
+          const templateSupps = templateMonths.length > 0
+            ? templateMonths[0].supplements || []
+            : selectedTemplate?.supplements || [];
+
+          const mapSupp = (s) => ({
+            supplement_id: s.supplement_id || '',
+            supplement_name: s.supplement_name,
+            company: s.company || '',
+            supplier: s.supplier || '',
+            manufacturer: s.manufacturer || s.company || '',
+            unit_type: s.unit_type || 'caps',
+            quantity_per_dose: s.quantity_per_dose || null,
+            frequency_per_day: s.frequency_per_day || null,
+            dosage_display: s.dosage_display || '',
+            instructions: s.instructions || '',
+            with_food: true,
+            times: s.times || ((s.frequency_per_day || 1) >= 3 ? ['AM', 'Afternoon', 'PM'] : (s.frequency_per_day || 1) === 2 ? ['AM', 'PM'] : ['AM']),
+            hc_notes: '',
+            units_per_bottle: s.units_per_bottle || null,
+            cost_per_bottle: s.cost_per_bottle || 0,
+            refrigerate: s.refrigerate || false,
+            bottles_needed: null,
+            calculated_cost: null,
+          });
+
+          // If user's monthCount matches template months, use template month-by-month data
+          if (templateMonths.length > 0 && templateMonths.length === Math.ceil(monthCount)) {
+            return templateMonths.map((m, i) => ({
+              month_number: monthCount === 0.5 && i === 0 ? 0.5 : m.month_number,
+              supplements: (m.supplements || []).map(mapSupp),
               monthly_total_cost: 0,
-            }))
-          : Array.from({ length: Math.ceil(monthCount) }, (_, i) => ({
-              month_number: monthCount === 0.5 ? 0.5 : i + 1,
-              supplements: (selectedTemplate?.supplements || []).map(buildSupp),
-              monthly_total_cost: 0,
-            })),
+            }));
+          }
+
+          // Otherwise create the requested number of months using template's supplement list
+          const numMonths = Math.max(1, Math.ceil(monthCount));
+          return Array.from({ length: numMonths }, (_, i) => ({
+            month_number: monthCount === 0.5 && i === 0 ? 0.5 : i + 1,
+            supplements: templateSupps.map(mapSupp),
+            monthly_total_cost: 0,
+          }));
+        })(),
       };
       const result = await createPlan(data);
       toast.success('Plan created');
@@ -136,18 +150,16 @@ export default function NewPlanPage() {
           {wizardSteps.map((ws, i) => (
             <React.Fragment key={ws.num}>
               <div className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold transition-colors ${
-                  step > ws.num
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold transition-colors ${step > ws.num
                     ? 'bg-[color:var(--accent-teal)] text-white'
                     : step === ws.num
-                    ? 'bg-[color:var(--accent-teal-wash)] text-[color:var(--accent-teal)] ring-1 ring-[color:var(--accent-teal)]'
-                    : 'bg-[color:var(--surface-hover)] text-ink-subtle border hairline'
-                }`}>
+                      ? 'bg-[color:var(--accent-teal-wash)] text-[color:var(--accent-teal)] ring-1 ring-[color:var(--accent-teal)]'
+                      : 'bg-[color:var(--surface-hover)] text-ink-subtle border hairline'
+                  }`}>
                   {step > ws.num ? <Check size={12} strokeWidth={2.4} /> : ws.num}
                 </div>
-                <span className={`text-[12px] hidden sm:inline ${
-                  step === ws.num ? 'font-semibold text-ink' : 'font-medium text-ink-muted'
-                }`}>
+                <span className={`text-[12px] hidden sm:inline ${step === ws.num ? 'font-semibold text-ink' : 'font-medium text-ink-muted'
+                  }`}>
                   {ws.label}
                 </span>
               </div>
