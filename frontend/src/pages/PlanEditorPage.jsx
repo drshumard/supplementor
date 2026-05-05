@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, finalizePlan, reopenPlan, duplicatePlan, saveToDrive, getSuppliers } from '../lib/api';
+import { getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF, finalizePlan, reopenPlan, duplicatePlan, saveToDrive, getSuppliers, getTemplates, savePlanAsTemplate } from '../lib/api';
 import { formatCurrency, recalculatePlanCosts, downloadBlob } from '../lib/utils';
 import { parseDosage, buildDosageText } from '../lib/dosageParser';
 import { useAuth } from '../App';
@@ -34,7 +34,7 @@ import {
 import {
   ArrowLeft, Plus, Minus, Trash2, Download, FileText, Eye, EyeOff, Save,
   Snowflake, ChevronsUpDown, Lock, Unlock, Copy, User, CopyPlus, Calendar,
-  MoreHorizontal, GripVertical,
+  MoreHorizontal, GripVertical, Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -587,6 +587,42 @@ export default function PlanEditorPage() {
   const [dupNewName, setDupNewName] = useState('');
   const [dupLoading, setDupLoading] = useState(false);
 
+
+  // Save as template state
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [saveTemplateMode, setSaveTemplateMode] = useState('new');
+  const [saveTemplateName, setSaveTemplateName] = useState('');
+  const [saveTemplateStep, setSaveTemplateStep] = useState(1);
+  const [saveTemplateId, setSaveTemplateId] = useState('');
+  const [templatesList, setTemplatesList] = useState([]);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  const openSaveTemplate = () => {
+    setSaveTemplateMode('new');
+    setSaveTemplateName(plan?.program_name || '');
+    setSaveTemplateStep(plan?.step_number || 1);
+    setSaveTemplateId('');
+    setSaveTemplateOpen(true);
+    getTemplates().then(r => setTemplatesList(r.templates || [])).catch(() => {});
+  };
+
+  const handleSaveTemplate = async () => {
+    setSavingTemplate(true);
+    try {
+      const body = { plan_id: planId, mode: saveTemplateMode };
+      if (saveTemplateMode === 'new') {
+        body.program_name = saveTemplateName;
+        body.step_number = saveTemplateStep;
+      } else {
+        body.template_id = saveTemplateId;
+      }
+      const result = await savePlanAsTemplate(body);
+      toast.success(result.message);
+      setSaveTemplateOpen(false);
+    } catch (err) { toast.error(err.message || 'Failed to save template'); }
+    finally { setSavingTemplate(false); }
+  };
+
   const openDuplicateDialog = () => {
     setDupTarget('same'); setDupNewName(''); setDupSelectedPatientId(''); setDupOpen(true);
     import('../lib/api').then(api => api.getPatients('')).then(res => setDupPatients(res.patients || [])).catch(() => {});
@@ -778,6 +814,9 @@ export default function PlanEditorPage() {
                   <DropdownMenuItem onClick={openDuplicateDialog}>
                     <Copy size={14} className="mr-2" /> Duplicate Plan
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={openSaveTemplate}>
+                    <Layers size={14} className="mr-2" /> Save as Template
+                  </DropdownMenuItem>
                   {!isFinalized && !patientViewMode && (
                     <>
                       <DropdownMenuItem onClick={() => savePlan(plan)} disabled={saving} data-testid="plan-editor-save-button">
@@ -883,6 +922,61 @@ export default function PlanEditorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+
+      {/* Save as Template Dialog */}
+      <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
+        <DialogContent className="max-w-[440px] p-7">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Save as Template</DialogTitle>
+            <DialogDescription className="text-sm mt-1">Save this plan's supplements as a reusable protocol template.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Mode</Label>
+              <Select value={saveTemplateMode} onValueChange={setSaveTemplateMode}>
+                <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">Create new template</SelectItem>
+                  <SelectItem value="overwrite">Overwrite existing template</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {saveTemplateMode === 'new' ? (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Program Name</Label>
+                  <Input value={saveTemplateName} onChange={(e) => setSaveTemplateName(e.target.value)} className="h-11" placeholder="e.g. Detox 1" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Step Number</Label>
+                  <Input type="number" min={1} value={saveTemplateStep} onChange={(e) => setSaveTemplateStep(parseInt(e.target.value) || 1)} className="h-11 w-24 font-mono" />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">Select template to overwrite</Label>
+                <Select value={saveTemplateId} onValueChange={setSaveTemplateId}>
+                  <SelectTrigger className="h-11"><SelectValue placeholder="Choose template..." /></SelectTrigger>
+                  <SelectContent>
+                    {templatesList.map(t => (
+                      <SelectItem key={t._id} value={t._id}>{t.program_name} - Step {t.step_number}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-3">
+            <Button variant="outline" onClick={() => setSaveTemplateOpen(false)} className="h-10 px-5">Cancel</Button>
+            <Button onClick={handleSaveTemplate} disabled={savingTemplate || (saveTemplateMode === 'new' && !saveTemplateName.trim()) || (saveTemplateMode === 'overwrite' && !saveTemplateId)}
+              className="h-10 px-6 bg-[#0D5F68] hover:bg-[#0A4E55] text-white font-semibold">
+              {savingTemplate ? 'Saving...' : 'Save Template'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <AlertDialog open={confirmFinalize} onOpenChange={setConfirmFinalize}>
         <AlertDialogContent className="p-7">

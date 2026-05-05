@@ -73,6 +73,10 @@ export const createTemplate = (data) =>
 export const deleteTemplate = (id) =>
   request(`/templates/${id}`, { method: 'DELETE' });
 
+export const savePlanAsTemplate = (data) =>
+  request('/templates/save-from-plan', { method: 'POST', body: JSON.stringify(data) });
+
+
 
 // Plans
 export const getPlans = (search = '', program = '', status = '', createdBy = '') =>
