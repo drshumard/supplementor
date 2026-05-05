@@ -691,6 +691,90 @@ async def delete_template(template_id: str, user=Depends(require_admin)):
     return {"deleted": True}
 
 
+class SaveAsTemplateRequest(PydanticBaseModel):
+    plan_id: str
+    mode: str = "new"  # "new" or "overwrite"
+    program_name: str = ""
+    step_number: int = 1
+    template_id: str = ""
+
+
+@app.post("/api/templates/save-from-plan")
+async def save_plan_as_template(data: SaveAsTemplateRequest, user=Depends(require_admin)):
+    """Save a patient's plan as a new template or overwrite an existing one."""
+    if data.mode not in ("new", "overwrite"):
+        raise HTTPException(status_code=400, detail="mode must be 'new' or 'overwrite'")
+
+    try:
+        plan_oid = ObjectId(data.plan_id)
+    except (InvalidId, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid plan_id")
+
+    plan = await db.plans.find_one({"_id": plan_oid})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    months = []
+    for m in plan.get("months", []):
+        supps = []
+        for s in m.get("supplements", []):
+            supps.append({
+                "supplement_id": s.get("supplement_id", ""),
+                "supplement_name": s.get("supplement_name", ""),
+                "company": s.get("company", ""),
+                "supplier": s.get("supplier", ""),
+                "unit_type": s.get("unit_type", "caps"),
+                "quantity_per_dose": s.get("quantity_per_dose"),
+                "frequency_per_day": s.get("frequency_per_day"),
+                "dosage_display": s.get("dosage_display", ""),
+                "instructions": s.get("instructions", ""),
+                "units_per_bottle": s.get("units_per_bottle"),
+                "cost_per_bottle": s.get("cost_per_bottle", 0),
+                "refrigerate": s.get("refrigerate", False),
+                "times": s.get("times", ["AM"]),
+            })
+        months.append({"month_number": m.get("month_number", 1), "supplements": supps})
+
+    if data.mode == "overwrite":
+        if not data.template_id:
+            raise HTTPException(status_code=400, detail="template_id required to overwrite")
+        try:
+            tpl_oid = ObjectId(data.template_id)
+        except (InvalidId, TypeError):
+            raise HTTPException(status_code=400, detail="Invalid template_id")
+        existing = await db.templates.find_one({"_id": tpl_oid})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Template not found")
+        await db.templates.update_one(
+            {"_id": tpl_oid},
+            {"$set": {
+                "months": months,
+                "supplements": months[0]["supplements"] if months else [],
+                "default_months": len(months),
+                "updated_at": datetime.utcnow(),
+            }}
+        )
+        doc = await db.templates.find_one({"_id": tpl_oid})
+        return {"message": f"Template '{existing.get('program_name')} Step {existing.get('step_number')}' updated", "template": serialize_doc(doc)}
+
+    # mode == "new"
+    program_name = (data.program_name or "").strip()
+    if not program_name:
+        raise HTTPException(status_code=400, detail="Program name required for new template")
+    doc = {
+        "program_name": program_name,
+        "step_number": data.step_number,
+        "step_label": f"Step {data.step_number}",
+        "default_months": len(months),
+        "months": months,
+        "supplements": months[0]["supplements"] if months else [],
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+    }
+    result = await db.templates.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return {"message": f"Template '{program_name} Step {data.step_number}' created", "template": serialize_doc(doc)}
+
 
 @app.get("/api/templates/{template_id}")
 async def get_template(template_id: str, user=Depends(require_auth)):

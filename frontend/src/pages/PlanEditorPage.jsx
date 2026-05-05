@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   getPlan, updatePlan, getSupplements, exportPatientPDF, exportHCPDF,
   finalizePlan, reopenPlan, duplicatePlan, saveToDrive, getSuppliers,
+  getTemplates, savePlanAsTemplate,
 } from '../lib/api';
 import { formatCurrency, recalculatePlanCosts, downloadBlob } from '../lib/utils';
 import { parseDosage, buildDosageText } from '../lib/dosageParser';
@@ -45,6 +46,7 @@ import {
   ArrowLeft, Plus, Minus, Trash2, Download, FileText, Eye, EyeOff, Save,
   Snowflake, ChevronsUpDown, Lock, Unlock, Copy, User, CopyPlus,
   GripVertical, CalendarDays, Circle, MoreHorizontal, CloudUpload, AlertTriangle,
+  Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -722,6 +724,71 @@ export default function PlanEditorPage() {
     finally { setDupLoading(false); }
   };
 
+  // Save as Template
+  const [tplOpen, setTplOpen] = useState(false);
+  const [tplMode, setTplMode] = useState('new');
+  const [tplName, setTplName] = useState('');
+  const [tplStep, setTplStep] = useState(1);
+  const [tplId, setTplId] = useState('');
+  const [tplList, setTplList] = useState([]);
+  const [tplListLoading, setTplListLoading] = useState(false);
+  const [tplSaving, setTplSaving] = useState(false);
+  const tplFetchSeq = useRef(0);
+
+  // Dedupe by (program_name, step_number) — first occurrence wins, matching
+  // TemplatesPage's behavior so "overwrite" targets the same record the
+  // Templates UI edits. Avoids surfacing legacy duplicate documents.
+  const tplOptions = React.useMemo(() => {
+    const seen = new Set();
+    const out = [];
+    for (const t of tplList) {
+      const key = `${t.program_name}__${t.step_number}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(t);
+    }
+    return out;
+  }, [tplList]);
+
+  const openSaveTemplateDialog = () => {
+    setTplMode('new');
+    setTplName(plan?.program_name || '');
+    setTplStep(plan?.step_number || 1);
+    setTplId('');
+    setTplOpen(true);
+    setTplListLoading(true);
+    const seq = ++tplFetchSeq.current;
+    getTemplates()
+      .then(r => {
+        if (seq !== tplFetchSeq.current) return; // stale response
+        setTplList(r.templates || []);
+      })
+      .catch(() => {
+        if (seq !== tplFetchSeq.current) return;
+        setTplList([]);
+      })
+      .finally(() => {
+        if (seq !== tplFetchSeq.current) return;
+        setTplListLoading(false);
+      });
+  };
+  const handleSaveTemplate = async () => {
+    setTplSaving(true);
+    try {
+      const body = { plan_id: planId, mode: tplMode };
+      if (tplMode === 'new') {
+        body.program_name = tplName.trim();
+        body.step_number = tplStep;
+      } else {
+        body.template_id = tplId;
+      }
+      const r = await savePlanAsTemplate(body);
+      toast.success(r.message || 'Template saved');
+      setTplOpen(false);
+    } catch (err) { toast.error(err.message || 'Failed to save template'); }
+    finally { setTplSaving(false); }
+  };
+
   const addMonth = () => {
     if (!plan || isFinalized) return;
     const np = { ...plan }; const last = np.months?.[np.months.length - 1];
@@ -954,6 +1021,11 @@ export default function PlanEditorPage() {
                   <DropdownMenuItem onClick={openDuplicateDialog}>
                     <Copy size={13} className="mr-2" /> Duplicate plan
                   </DropdownMenuItem>
+                  {user?.role === 'admin' && (
+                    <DropdownMenuItem onClick={openSaveTemplateDialog} data-testid="plan-editor-save-as-template">
+                      <Layers size={13} className="mr-2" /> Save as template
+                    </DropdownMenuItem>
+                  )}
                   {!isFinalized && !patientViewMode && (
                     <>
                       <DropdownMenuItem onClick={() => savePlan(plan)} disabled={saving} data-testid="plan-editor-save-button">
@@ -1209,6 +1281,89 @@ export default function PlanEditorPage() {
               className="h-9 px-4 bg-[color:var(--accent-teal)] hover:bg-[color:var(--accent-teal-hover)] text-white text-[13px] font-medium"
             >
               {dupLoading ? 'Duplicating…' : 'Duplicate'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save as Template dialog */}
+      <Dialog open={tplOpen} onOpenChange={setTplOpen}>
+        <DialogContent className="max-w-[440px] p-7">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold tracking-[-0.01em]">Save as template</DialogTitle>
+            <DialogDescription className="text-[13px] mt-1 text-ink-muted">
+              Save this plan's supplements as a reusable protocol template.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-[12px] font-medium text-ink-3">Mode</Label>
+              <Select value={tplMode} onValueChange={setTplMode}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">Create new template</SelectItem>
+                  <SelectItem value="overwrite">Overwrite existing template</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {tplMode === 'new' ? (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-[12px] font-medium text-ink-3">Program name</Label>
+                  <Input
+                    value={tplName}
+                    onChange={(e) => setTplName(e.target.value)}
+                    className="h-10"
+                    placeholder="e.g. Detox 1"
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[12px] font-medium text-ink-3">Step number</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={tplStep}
+                    onChange={(e) => setTplStep(parseInt(e.target.value) || 1)}
+                    className="h-10 w-24 font-mono"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-[12px] font-medium text-ink-3">Template to overwrite</Label>
+                <Select value={tplId} onValueChange={setTplId} disabled={tplListLoading || tplOptions.length === 0}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder={
+                      tplListLoading ? 'Loading templates…'
+                      : tplOptions.length === 0 ? 'No templates yet'
+                      : 'Choose a template…'
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tplOptions.map(t => (
+                      <SelectItem key={t._id} value={t._id}>
+                        {t.program_name} — Step {t.step_number}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!tplListLoading && tplOptions.length === 0 && (
+                  <p className="text-[12px] text-ink-muted">
+                    No templates exist yet — switch to “Create new template”.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setTplOpen(false)} className="h-9 px-4 text-[13px]">Cancel</Button>
+            <Button
+              onClick={handleSaveTemplate}
+              disabled={tplSaving || (tplMode === 'new' && !tplName.trim()) || (tplMode === 'overwrite' && !tplId)}
+              className="h-9 px-4 bg-[color:var(--accent-teal)] hover:bg-[color:var(--accent-teal-hover)] text-white text-[13px] font-medium"
+            >
+              {tplSaving ? 'Saving…' : 'Save template'}
             </Button>
           </DialogFooter>
         </DialogContent>
