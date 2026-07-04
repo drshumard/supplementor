@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getTemplates, updateTemplate, createTemplate, deleteTemplate, getSupplements } from '../lib/api';
 import { formatCurrency } from '../lib/utils';
+import { parseDosage, buildDosageText } from '../lib/dosageParser';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
@@ -15,13 +16,71 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '../components/ui/dialog';
-import { Plus, Trash2, Save, Layers, Snowflake } from 'lucide-react';
+import { Plus, Minus, Trash2, Save, Layers, Snowflake } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHeader, { PageContainer } from '../components/PageHeader';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const DEFAULT_PROGRAMS = ['Detox 1', 'Detox 2', 'Maintenance'];
 const TIMES_ORDER = ['AM', 'Afternoon', 'PM'];
+const ROW_COLS = '96px minmax(150px,1fr) 56px 56px 140px minmax(140px,1fr) 44px 72px 28px';
+
+const freqToTimes = (freq) => {
+  if (freq >= 3) return ['AM', 'Afternoon', 'PM'];
+  if (freq === 2) return ['AM', 'PM'];
+  return ['AM'];
+};
+
+const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Backend timestamps are naive UTC — append Z so they parse as UTC, not local
+const parseTs = (d) => {
+  if (!d) return null;
+  const iso = typeof d === 'string' && !/(Z|[+-]\d{2}:?\d{2})$/.test(d) ? d + 'Z' : d;
+  return new Date(iso);
+};
+const fmtDate = (d) => {
+  const t = parseTs(d);
+  return t ? t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+};
+const fmtDateTime = (d) => {
+  const t = parseTs(d);
+  if (!t) return '—';
+  return `${t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, ${t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+};
+
+// Group by trimmed name (legacy docs may carry padding); duplicates of a step
+// sort newest-updated first — the same one NewPlanPage uses for new plans
+const templatesForProgram = (templates, program) =>
+  templates
+    .filter(t => (t.program_name || '').trim() === program)
+    .sort((a, b) => (a.step_number - b.step_number) || (b.updated_at || '').localeCompare(a.updated_at || ''));
+
+function NumberStepper({ value, onChange, min = 0 }) {
+  const num = value ?? 0;
+  return (
+    <div className="inline-flex items-center h-[24px] rounded-md border hairline overflow-hidden select-none bg-white">
+      <button
+        type="button"
+        disabled={num <= min}
+        onClick={() => onChange(Math.max(min, num - 1))}
+        className="w-5 h-full flex items-center justify-center text-ink-subtle hover:bg-[color:var(--surface-hover)] hover:text-ink disabled:opacity-30 transition-colors"
+      >
+        <Minus size={10} />
+      </button>
+      <span className="w-6 h-full flex items-center justify-center font-mono text-[11px] font-semibold text-ink tabular-nums">
+        {num}
+      </span>
+      <button
+        type="button"
+        onClick={() => onChange(num + 1)}
+        className="w-5 h-full flex items-center justify-center text-ink-subtle hover:bg-[color:var(--surface-hover)] hover:text-ink transition-colors"
+      >
+        <Plus size={10} />
+      </button>
+    </div>
+  );
+}
 
 function MonthAddSupplement({ monthNum, supplements, onAdd }) {
   const [open, setOpen] = useState(false);
@@ -71,7 +130,7 @@ function MonthAddSupplement({ monthNum, supplements, onAdd }) {
 
 const makeSuppEntry = (supp) => {
   const freq = supp.default_frequency_per_day || 1;
-  const times = freq >= 3 ? ['AM', 'Afternoon', 'PM'] : freq === 2 ? ['AM', 'PM'] : ['AM'];
+  const times = freqToTimes(freq);
   return {
     supplement_id: supp._id,
     supplement_name: supp.supplement_name,
@@ -93,7 +152,7 @@ export default function TemplatesPage() {
   const [templates, setTemplates] = useState([]);
   const [supplements, setSupplements] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState('');
-  const [selectedStep, setSelectedStep] = useState('1');
+  const [selectedId, setSelectedId] = useState('');
   const [currentTemplate, setCurrentTemplate] = useState(null);
   const [editMonths, setEditMonths] = useState(1);
   const [editSupps, setEditSupps] = useState([]);
@@ -101,15 +160,18 @@ export default function TemplatesPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [newTemplate, setNewTemplate] = useState({ program_name: '', step_number: 1, default_months: 1 });
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteSupp, setDeleteSupp] = useState(null);
   const [deleteFromAll, setDeleteFromAll] = useState(false);
 
-  const programNames = [...new Set([...DEFAULT_PROGRAMS, ...templates.map(t => t.program_name)])].sort();
-  const availableSteps = [...new Set(
-    templates.filter(t => t.program_name === selectedProgram).map(t => t.step_number)
-  )].sort((a, b) => a - b);
+  const programNames = [...new Set([...DEFAULT_PROGRAMS, ...templates.map(t => (t.program_name || '').trim())])].sort();
+  const programTemplates = templatesForProgram(templates, selectedProgram);
+  const stepCounts = programTemplates.reduce((acc, t) => {
+    acc[t.step_number] = (acc[t.step_number] || 0) + 1;
+    return acc;
+  }, {});
 
   const fetchData = useCallback(async () => {
     try {
@@ -128,11 +190,13 @@ export default function TemplatesPage() {
   }, [programNames, selectedProgram]);
 
   useEffect(() => {
-    const tmpl = templates.find(t => t.program_name === selectedProgram && t.step_number === Number(selectedStep));
-    setCurrentTemplate(tmpl || null);
+    const list = templatesForProgram(templates, selectedProgram);
+    const tmpl = list.find(t => t._id === selectedId) || list[0] || null;
+    if ((tmpl?._id || '') !== selectedId) setSelectedId(tmpl?._id || '');
+    setCurrentTemplate(tmpl);
     setEditMonths(tmpl?.default_months || 1);
     setEditSupps(tmpl?.months || []);
-  }, [selectedProgram, selectedStep, templates]);
+  }, [selectedProgram, selectedId, templates]);
 
   const addTemplateSupp = (monthNum, supp) => {
     const entry = makeSuppEntry(supp);
@@ -153,7 +217,28 @@ export default function TemplatesPage() {
     setEditSupps(prev => prev.map(m => {
       if (m.month_number !== monthNum) return m;
       const supps = [...(m.supplements || [])];
-      if (supps[idx]) supps[idx] = { ...supps[idx], [field]: value };
+      if (!supps[idx]) return m;
+      const s = { ...supps[idx], [field]: value };
+      const unit = s.unit_type || 'caps';
+      if (field === 'quantity_per_dose' || field === 'frequency_per_day') {
+        if (s.quantity_per_dose && s.frequency_per_day) {
+          s.dosage_display = buildDosageText(s.quantity_per_dose, s.frequency_per_day, unit);
+        }
+        if (field === 'frequency_per_day' && value) s.times = freqToTimes(value);
+      } else if (field === 'dosage_display') {
+        const parsed = parseDosage(value);
+        if (parsed) {
+          s.quantity_per_dose = parsed.qty;
+          if (parsed.freq !== s.frequency_per_day) {
+            s.frequency_per_day = parsed.freq;
+            s.times = freqToTimes(parsed.freq);
+          }
+        }
+      } else if (field === 'times') {
+        s.frequency_per_day = value.length;
+        if (s.quantity_per_dose) s.dosage_display = buildDosageText(s.quantity_per_dose, value.length, unit);
+      }
+      supps[idx] = s;
       return { ...m, supplements: supps };
     }));
   };
@@ -178,22 +263,24 @@ export default function TemplatesPage() {
     setSaving(true);
     try {
       await updateTemplate(currentTemplate._id, { default_months: editMonths, months: editSupps });
-      toast.success('Template saved'); fetchData();
+      toast.success('Template saved'); await fetchData();
     } catch (err) { toast.error('Save failed'); }
     finally { setSaving(false); }
   };
 
   const handleCreate = async () => {
     if (!newTemplate.program_name.trim()) { toast.error('Program name is required'); return; }
+    setCreating(true);
     try {
-      await createTemplate(newTemplate);
+      const doc = await createTemplate({ ...newTemplate, program_name: newTemplate.program_name.trim() });
       toast.success('Template created');
-      setSelectedProgram(newTemplate.program_name.trim());
-      setSelectedStep(String(newTemplate.step_number));
       setAddOpen(false);
       setNewTemplate({ program_name: '', step_number: 1, default_months: 1 });
-      fetchData();
+      await fetchData();
+      setSelectedProgram(doc.program_name);
+      setSelectedId(doc._id);
     } catch (err) { toast.error(err.message || 'Create failed'); }
+    finally { setCreating(false); }
   };
 
   const handleDeleteTemplate = async () => {
@@ -218,7 +305,7 @@ export default function TemplatesPage() {
       <PageHeader
         title="Protocol templates"
         subtitle={currentTemplate
-          ? `${currentTemplate.program_name} · Step ${currentTemplate.step_number} · ${totalSupps} supplement${totalSupps !== 1 ? 's' : ''}`
+          ? `${currentTemplate.program_name} · Step ${currentTemplate.step_number} · ${totalSupps} supplement${totalSupps !== 1 ? 's' : ''} · Created ${fmtDate(currentTemplate.created_at)} · Updated ${fmtDate(currentTemplate.updated_at)}`
           : 'Manage default supplement lists for each program and step'}
       >
         {currentTemplate && (
@@ -261,13 +348,16 @@ export default function TemplatesPage() {
           </div>
           <div className="space-y-1">
             <Label className="text-[11px] font-medium text-ink-subtle uppercase tracking-[0.06em]">Step</Label>
-            <Select value={selectedStep} onValueChange={setSelectedStep}>
-              <SelectTrigger className="w-[140px] h-9 text-[13px] bg-white" data-testid="admin-templates-step-select">
-                <SelectValue />
+            <Select value={selectedId} onValueChange={setSelectedId}>
+              <SelectTrigger className="w-[220px] h-9 text-[13px] bg-white" data-testid="admin-templates-step-select">
+                <SelectValue placeholder="No templates" />
               </SelectTrigger>
               <SelectContent>
-                {[...new Set([1, 2, 3, ...availableSteps])].sort((a, b) => a - b).map(s => (
-                  <SelectItem key={s} value={String(s)}>Step {s}</SelectItem>
+                {programTemplates.map(t => (
+                  <SelectItem key={t._id} value={t._id}>
+                    Step {t.step_number}
+                    {stepCounts[t.step_number] > 1 ? ` · created ${fmtDateTime(t.created_at)}` : ''}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -349,7 +439,22 @@ export default function TemplatesPage() {
                   {suppCount === 0 ? (
                     <div className="py-8 text-center text-[12.5px] text-ink-muted">No supplements yet</div>
                   ) : (
-                    (month.supplements || []).map((supp, idx) => {
+                    <>
+                    <div
+                      className="grid items-center px-5 h-8 hairline-b gap-3 text-[10px] font-semibold tracking-[0.09em] uppercase text-ink-subtle bg-[color:var(--surface-subtle)]"
+                      style={{ gridTemplateColumns: ROW_COLS }}
+                    >
+                      <span>Times</span>
+                      <span>Supplement</span>
+                      <span className="text-center">Qty</span>
+                      <span className="text-center">Freq</span>
+                      <span>Dosage</span>
+                      <span>Instructions</span>
+                      <span className="text-center">Btls</span>
+                      <span className="text-right">Cost</span>
+                      <span />
+                    </div>
+                    {(month.supplements || []).map((supp, idx) => {
                       const qty = supp.quantity_per_dose || 0;
                       const freq = supp.frequency_per_day || 0;
                       const upb = supp.units_per_bottle || 0;
@@ -359,7 +464,7 @@ export default function TemplatesPage() {
                         <div
                           key={idx}
                           className="grid items-center min-h-[44px] px-5 py-1.5 border-b border-[color:var(--hairline)] last:border-b-0 row-hover transition-colors group gap-3"
-                          style={{ gridTemplateColumns: '96px minmax(180px,1fr) 140px 160px 56px 72px 28px' }}
+                          style={{ gridTemplateColumns: ROW_COLS }}
                         >
                           <div className="flex gap-0.5 justify-start">
                             {['AM', 'Aft', 'PM'].map((label, ti) => {
@@ -388,13 +493,45 @@ export default function TemplatesPage() {
                             })}
                           </div>
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-[13px] font-medium text-ink truncate">{supp.supplement_name}</span>
+                            <span className="text-[13px] font-medium text-ink leading-tight break-words">{supp.supplement_name}</span>
                             {supp.refrigerate && (
                               <Snowflake size={11} className="text-[color:var(--accent-teal)] shrink-0" />
                             )}
                           </div>
-                          <span className="text-[12px] text-ink-muted truncate">{supp.dosage_display || '—'}</span>
-                          <span className="text-[12px] text-ink-muted truncate">{supp.instructions || '—'}</span>
+                          <div className="flex justify-center">
+                            <NumberStepper
+                              value={supp.quantity_per_dose}
+                              min={1}
+                              onChange={(v) => updateTemplateSupp(month.month_number, idx, 'quantity_per_dose', v)}
+                            />
+                          </div>
+                          <div className="flex justify-center">
+                            <NumberStepper
+                              value={supp.frequency_per_day}
+                              min={1}
+                              onChange={(v) => updateTemplateSupp(month.month_number, idx, 'frequency_per_day', v)}
+                            />
+                          </div>
+                          <div
+                            contentEditable
+                            suppressContentEditableWarning
+                            className="text-[12px] text-ink-muted outline-none min-h-[18px] break-words cursor-text rounded px-1 -mx-1 leading-tight focus:bg-white focus:text-ink-3 focus:shadow-[var(--focus-subtle)]"
+                            onBlur={(e) => {
+                              const v = e.target.textContent;
+                              if (v !== (supp.dosage_display || '')) updateTemplateSupp(month.month_number, idx, 'dosage_display', v);
+                            }}
+                            dangerouslySetInnerHTML={{ __html: escapeHtml(supp.dosage_display || '') }}
+                          />
+                          <div
+                            contentEditable
+                            suppressContentEditableWarning
+                            className="text-[12px] text-ink-muted outline-none min-h-[18px] break-words cursor-text rounded px-1 -mx-1 leading-tight focus:bg-white focus:text-ink-3 focus:shadow-[var(--focus-subtle)]"
+                            onBlur={(e) => {
+                              const v = e.target.textContent;
+                              if (v !== (supp.instructions || '')) updateTemplateSupp(month.month_number, idx, 'instructions', v);
+                            }}
+                            dangerouslySetInnerHTML={{ __html: escapeHtml(supp.instructions || '') }}
+                          />
                           <span className="font-mono tabular-nums text-[12px] text-ink-3 text-center">{bottles}</span>
                           <span className="font-mono tabular-nums text-[12px] font-semibold text-ink text-right">
                             {formatCurrency(supp.cost_per_bottle)}
@@ -410,7 +547,8 @@ export default function TemplatesPage() {
                           </button>
                         </div>
                       );
-                    })
+                    })}
+                    </>
                   )}
 
                   <div className="px-5 py-2.5 hairline-t bg-[color:var(--surface-hover)]">
@@ -488,9 +626,10 @@ export default function TemplatesPage() {
             </button>
             <button
               onClick={handleCreate}
-              className="h-9 px-4 rounded-md text-[13px] font-semibold bg-[color:var(--accent-teal)] hover:bg-[color:var(--accent-teal-hover)] text-white"
+              disabled={creating}
+              className="h-9 px-4 rounded-md text-[13px] font-semibold bg-[color:var(--accent-teal)] hover:bg-[color:var(--accent-teal-hover)] text-white disabled:opacity-60"
             >
-              Create
+              {creating ? 'Creating…' : 'Create'}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -531,7 +670,7 @@ export default function TemplatesPage() {
         onOpenChange={setConfirmDelete}
         title="Delete this template?"
         description={currentTemplate
-          ? `This will delete "${currentTemplate.program_name} Step ${currentTemplate.step_number}" and all its supplements.`
+          ? `This will delete "${currentTemplate.program_name} Step ${currentTemplate.step_number}" (created ${fmtDate(currentTemplate.created_at)}) and all its supplements.`
           : ''}
         confirmLabel="Delete template"
         destructive

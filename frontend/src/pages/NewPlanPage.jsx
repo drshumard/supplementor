@@ -34,12 +34,18 @@ export default function NewPlanPage() {
     getTemplates().then(r => setTemplates(r.templates || [])).catch(() => { });
   }, [appUser]);
 
-  const selectedTemplate = templates.find(
-    t => t.program_name === selectedProgram && t.step_number === Number(selectedStep)
-  );
+  // If duplicates exist for a program+step, use the most recently updated one
+  const selectedTemplate = templates
+    .filter(t => (t.program_name || '').trim() === selectedProgram && t.step_number === Number(selectedStep))
+    .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''))[0];
+  const templateSuppCount = selectedTemplate
+    ? (selectedTemplate.months?.length
+      ? new Set(selectedTemplate.months.flatMap(m => (m.supplements || []).map(s => s.supplement_name))).size
+      : selectedTemplate.supplements?.length || 0)
+    : 0;
 
-  const programList = [...new Set([...DEFAULT_PROGRAMS, ...templates.map(t => t.program_name)])].sort();
-  const stepList = [...new Set([...DEFAULT_STEPS, ...templates.filter(t => t.program_name === selectedProgram).map(t => t.step_number)])].sort((a, b) => a - b);
+  const programList = [...new Set([...DEFAULT_PROGRAMS, ...templates.map(t => (t.program_name || '').trim())])].sort();
+  const stepList = [...new Set([...DEFAULT_STEPS, ...templates.filter(t => (t.program_name || '').trim() === selectedProgram).map(t => t.step_number)])].sort((a, b) => a - b);
 
   useEffect(() => {
     if (selectedTemplate) setMonthCount(selectedTemplate.default_months || 1);
@@ -105,11 +111,15 @@ export default function NewPlanPage() {
             }));
           }
 
-          // Otherwise create the requested number of months using template's supplement list
+          // Otherwise create the requested number of months, mapping template
+          // months index-wise (extra months repeat the template's last month)
           const numMonths = Math.max(1, Math.ceil(monthCount));
           return Array.from({ length: numMonths }, (_, i) => ({
             month_number: monthCount === 0.5 && i === 0 ? 0.5 : i + 1,
-            supplements: templateSupps.map(mapSupp),
+            supplements: (templateMonths.length > 0
+              ? templateMonths[Math.min(i, templateMonths.length - 1)].supplements || []
+              : templateSupps
+            ).map(mapSupp),
             monthly_total_cost: 0,
           }));
         })(),
@@ -206,9 +216,9 @@ export default function NewPlanPage() {
                   <div className="text-[12.5px] text-ink-muted p-3.5 bg-[color:var(--accent-teal-wash)] rounded-md border border-[color:var(--accent-teal)]/10">
                     Template has{' '}
                     <span className="font-semibold text-[color:var(--accent-teal)]">
-                      {selectedTemplate.supplements?.length || 0}
+                      {templateSuppCount}
                     </span>{' '}
-                    default supplement{selectedTemplate.supplements?.length !== 1 ? 's' : ''} and{' '}
+                    default supplement{templateSuppCount !== 1 ? 's' : ''} and{' '}
                     <span className="font-semibold text-[color:var(--accent-teal)]">
                       {selectedTemplate.default_months}
                     </span>{' '}
@@ -270,7 +280,7 @@ export default function NewPlanPage() {
                     ['Program', selectedProgram],
                     ['Step', `Step ${selectedStep}`],
                     ['Months', monthCount],
-                    ['Template supplements', selectedTemplate?.supplements?.length || 0],
+                    ['Template supplements', templateSuppCount],
                   ].map(([label, value]) => (
                     <div key={label} className="space-y-0.5">
                       <div className="text-[10px] uppercase tracking-[0.09em] font-semibold text-ink-subtle">

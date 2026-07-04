@@ -50,6 +50,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Backend timestamps are naive UTC — append Z so they parse as UTC, not local
+const fmtTplDate = (d) => {
+  if (!d) return '—';
+  const iso = typeof d === 'string' && !/(Z|[+-]\d{2}:?\d{2})$/.test(d) ? d + 'Z' : d;
+  const t = new Date(iso);
+  return `${t.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, ${t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+};
+
 /* ─────────────────── NumberStepper ─────────────────── */
 function NumberStepper({ value, onChange, disabled, min = 0 }) {
   const num = value ?? 0;
@@ -735,19 +743,18 @@ export default function PlanEditorPage() {
   const [tplSaving, setTplSaving] = useState(false);
   const tplFetchSeq = useRef(0);
 
-  // Dedupe by (program_name, step_number) — first occurrence wins, matching
-  // TemplatesPage's behavior so "overwrite" targets the same record the
-  // Templates UI edits. Avoids surfacing legacy duplicate documents.
+  // List every template document — legacy duplicates of a (program, step)
+  // are shown with their creation time so a specific one can be targeted
   const tplOptions = React.useMemo(() => {
-    const seen = new Set();
-    const out = [];
+    const counts = {};
     for (const t of tplList) {
-      const key = `${t.program_name}__${t.step_number}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(t);
+      const key = `${(t.program_name || '').trim()}__${t.step_number}`;
+      counts[key] = (counts[key] || 0) + 1;
     }
-    return out;
+    return tplList.map(t => ({
+      ...t,
+      _isDupe: counts[`${(t.program_name || '').trim()}__${t.step_number}`] > 1,
+    }));
   }, [tplList]);
 
   const openSaveTemplateDialog = () => {
@@ -1344,6 +1351,7 @@ export default function PlanEditorPage() {
                     {tplOptions.map(t => (
                       <SelectItem key={t._id} value={t._id}>
                         {t.program_name} — Step {t.step_number}
+                        {t._isDupe ? ` · created ${fmtTplDate(t.created_at)}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>

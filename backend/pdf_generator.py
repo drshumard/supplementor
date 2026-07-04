@@ -7,6 +7,9 @@ import math
 import re
 from fpdf import FPDF
 
+from calculations import recalculate_plan_costs
+from month_notes import supp_in_month, strip_month_note
+
 LOGO_PATH = os.path.join(os.path.dirname(__file__), "logo.png")
 
 # Teal palette
@@ -335,7 +338,22 @@ def generate_patient_pdf(plan_data: dict) -> bytes:
     pdf = ProtocolPDF()
     pdf.alias_nb_pages()
 
+    # Hide supplements whose legacy "Starts Month N" / "Month N only" note
+    # places them in a different month (older plans carry these). When
+    # anything is hidden, the stored bottle counts were computed for the
+    # unfiltered months — recompute them for what the patient actually takes.
     months = plan_data.get("months") or []
+    filtered = [
+        {**m, "supplements": [
+            strip_month_note(s) for s in m.get("supplements", [])
+            if supp_in_month(s, m.get("month_number", 1))
+        ]}
+        for m in months
+    ]
+    if any(len(f["supplements"]) != len(m.get("supplements", [])) for f, m in zip(filtered, months)):
+        recalculate_plan_costs({"months": filtered})
+    months = filtered
+
     for month in months:
         pdf.add_page()
         _draw_header(pdf, plan_data)

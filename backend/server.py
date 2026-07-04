@@ -2,6 +2,7 @@
 Supplement Protocol Web App — FastAPI Backend
 """
 import os
+import re
 import math
 import json
 import base64
@@ -32,6 +33,7 @@ from models import (
     SupplierCreate, SupplierUpdate
 )
 from calculations import recalculate_plan_costs
+from month_notes import supp_in_month, strip_month_note
 from pdf_generator import generate_patient_pdf, generate_hc_pdf
 from seed_data import SUPPLEMENTS, TEMPLATES
 
@@ -633,9 +635,15 @@ async def list_templates(program_name: str = "", user=Depends(require_auth)):
                 mn = 0.5 if default_months == 0.5 and i == 0 else i + 1
                 months.append({"month_number": mn, "supplements": [dict(s) for s in flat_supps]})
             tmpl["months"] = months
-        
+
         # Refresh supplement data from master in all months
         for month in tmpl.get("months", []):
+            # Apply legacy "Starts Month N" / "Month N only" notes: keep the
+            # supplement only in months it belongs to, then drop the note text
+            mn = month.get("month_number", 1)
+            month["supplements"] = [
+                strip_month_note(s) for s in month.get("supplements", []) if supp_in_month(s, mn)
+            ]
             for supp in month.get("supplements", []):
                 ref = master.get(supp.get("supplement_id")) or master.get((supp.get("supplement_name") or "").lower())
                 if ref:
@@ -662,15 +670,32 @@ async def list_templates(program_name: str = "", user=Depends(require_auth)):
     return {"templates": templates}
 
 
+async def _find_duplicate_template(program_name: str, step_number: int):
+    """Find an existing template with the same program name (trimmed,
+    case-insensitive) and step number."""
+    return await db.templates.find_one({
+        "program_name": {"$regex": f"^\\s*{re.escape(program_name)}\\s*$", "$options": "i"},
+        "step_number": step_number,
+    })
+
+
 @app.post("/api/templates")
 async def create_template(data: TemplateCreate, user=Depends(require_admin)):
+    program_name = (data.program_name or "").strip()
+    if not program_name:
+        raise HTTPException(status_code=400, detail="Program name is required")
+    if await _find_duplicate_template(program_name, data.step_number):
+        raise HTTPException(
+            status_code=409,
+            detail=f"A template for '{program_name}' Step {data.step_number} already exists",
+        )
     num = max(1, int(data.default_months)) if data.default_months >= 1 else 1
     months = []
     for i in range(num):
         mn = 0.5 if data.default_months == 0.5 and i == 0 else i + 1
         months.append({"month_number": mn, "supplements": []})
     doc = {
-        "program_name": data.program_name,
+        "program_name": program_name,
         "step_number": data.step_number,
         "step_label": f"Step {data.step_number}",
         "default_months": data.default_months,
@@ -761,6 +786,11 @@ async def save_plan_as_template(data: SaveAsTemplateRequest, user=Depends(requir
     program_name = (data.program_name or "").strip()
     if not program_name:
         raise HTTPException(status_code=400, detail="Program name required for new template")
+    if await _find_duplicate_template(program_name, data.step_number):
+        raise HTTPException(
+            status_code=409,
+            detail=f"A template for '{program_name}' Step {data.step_number} already exists — use overwrite instead",
+        )
     doc = {
         "program_name": program_name,
         "step_number": data.step_number,
@@ -798,9 +828,15 @@ async def get_template(template_id: str, user=Depends(require_auth)):
             mn = 0.5 if default_months == 0.5 and i == 0 else i + 1
             months.append({"month_number": mn, "supplements": [dict(s) for s in flat_supps]})
         tmpl["months"] = months
-    
+
     # Refresh all months from master
     for month in tmpl.get("months", []):
+        # Apply legacy "Starts Month N" / "Month N only" notes: keep the
+        # supplement only in months it belongs to, then drop the note text
+        mn = month.get("month_number", 1)
+        month["supplements"] = [
+            strip_month_note(s) for s in month.get("supplements", []) if supp_in_month(s, mn)
+        ]
         for supp in month.get("supplements", []):
             ref = master.get(supp.get("supplement_id")) or master.get((supp.get("supplement_name") or "").lower())
             if ref:
