@@ -2,6 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getTemplates, updateTemplate, createTemplate, deleteTemplate, getSupplements } from '../lib/api';
 import { formatCurrency } from '../lib/utils';
 import { parseDosage, buildDosageText } from '../lib/dosageParser';
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
@@ -16,14 +23,14 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '../components/ui/dialog';
-import { Plus, Minus, Trash2, Save, Layers, Snowflake } from 'lucide-react';
+import { Plus, Minus, Trash2, Save, Layers, Snowflake, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHeader, { PageContainer } from '../components/PageHeader';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const DEFAULT_PROGRAMS = ['Detox 1', 'Detox 2', 'Maintenance'];
 const TIMES_ORDER = ['AM', 'Afternoon', 'PM'];
-const ROW_COLS = '96px minmax(150px,1fr) 56px 56px 140px minmax(140px,1fr) 44px 72px 28px';
+const ROW_COLS = '14px 96px minmax(150px,1fr) 56px 56px 140px minmax(140px,1fr) 44px 72px 28px';
 
 const freqToTimes = (freq) => {
   if (freq >= 3) return ['AM', 'Afternoon', 'PM'];
@@ -78,6 +85,22 @@ function NumberStepper({ value, onChange, min = 0 }) {
       >
         <Plus size={10} />
       </button>
+    </div>
+  );
+}
+
+function SortableRow({ id, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative',
+    zIndex: isDragging ? 10 : 'auto',
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
     </div>
   );
 }
@@ -166,6 +189,8 @@ export default function TemplatesPage() {
   const [deleteSupp, setDeleteSupp] = useState(null);
   const [deleteFromAll, setDeleteFromAll] = useState(false);
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
   const programNames = [...new Set([...DEFAULT_PROGRAMS, ...templates.map(t => (t.program_name || '').trim())])].sort();
   const programTemplates = templatesForProgram(templates, selectedProgram);
   const stepCounts = programTemplates.reduce((acc, t) => {
@@ -240,6 +265,13 @@ export default function TemplatesPage() {
       }
       supps[idx] = s;
       return { ...m, supplements: supps };
+    }));
+  };
+
+  const reorderTemplateSupp = (monthNum, oldIdx, newIdx) => {
+    setEditSupps(prev => prev.map(m => {
+      if (m.month_number !== monthNum) return m;
+      return { ...m, supplements: arrayMove(m.supplements || [], oldIdx, newIdx) };
     }));
   };
 
@@ -417,6 +449,13 @@ export default function TemplatesPage() {
           <div className="space-y-4">
             {editSupps.map((month) => {
               const suppCount = (month.supplements || []).length;
+              const suppIds = (month.supplements || []).map((_, i) => `supp-${month.month_number}-${i}`);
+              const handleDragEnd = ({ active, over }) => {
+                if (!over || active.id === over.id) return;
+                const oldIdx = suppIds.indexOf(active.id);
+                const newIdx = suppIds.indexOf(over.id);
+                if (oldIdx !== -1 && newIdx !== -1) reorderTemplateSupp(month.month_number, oldIdx, newIdx);
+              };
               return (
                 <div
                   key={month.month_number}
@@ -444,6 +483,7 @@ export default function TemplatesPage() {
                       className="grid items-center px-5 h-8 hairline-b gap-3 text-[10px] font-semibold tracking-[0.09em] uppercase text-ink-subtle bg-[color:var(--surface-subtle)]"
                       style={{ gridTemplateColumns: ROW_COLS }}
                     >
+                      <span />
                       <span>Times</span>
                       <span>Supplement</span>
                       <span className="text-center">Qty</span>
@@ -454,6 +494,8 @@ export default function TemplatesPage() {
                       <span className="text-right">Cost</span>
                       <span />
                     </div>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={suppIds} strategy={verticalListSortingStrategy}>
                     {(month.supplements || []).map((supp, idx) => {
                       const qty = supp.quantity_per_dose || 0;
                       const freq = supp.frequency_per_day || 0;
@@ -461,11 +503,14 @@ export default function TemplatesPage() {
                       const bottles = (qty > 0 && freq > 0 && upb > 0) ? Math.ceil((qty * freq * 30) / upb) : '—';
                       const times = supp.times || ['AM'];
                       return (
+                        <SortableRow key={suppIds[idx]} id={suppIds[idx]}>
                         <div
-                          key={idx}
-                          className="grid items-center min-h-[44px] px-5 py-1.5 border-b border-[color:var(--hairline)] last:border-b-0 row-hover transition-colors group gap-3"
+                          className="grid items-center min-h-[44px] px-5 py-1.5 border-b border-[color:var(--hairline)] row-hover transition-colors group gap-3"
                           style={{ gridTemplateColumns: ROW_COLS }}
                         >
+                          <div className="flex items-center justify-center cursor-grab active:cursor-grabbing drag-handle">
+                            <GripVertical size={12} className="text-ink-faint group-hover:text-ink-subtle" />
+                          </div>
                           <div className="flex gap-0.5 justify-start">
                             {['AM', 'Aft', 'PM'].map((label, ti) => {
                               const fullName = TIMES_ORDER[ti];
@@ -546,8 +591,11 @@ export default function TemplatesPage() {
                             <Trash2 size={12} />
                           </button>
                         </div>
+                        </SortableRow>
                       );
                     })}
+                    </SortableContext>
+                    </DndContext>
                     </>
                   )}
 

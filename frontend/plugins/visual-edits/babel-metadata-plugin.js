@@ -932,8 +932,9 @@ const babelMetadataPlugin = ({ types: t }) => {
           }
           if (!localName) return;
 
-          // Search for usages of this component
-          importPath.parentPath.parentPath.traverse({
+          // Search for usages of this component. Standalone-parsed ASTs (from
+          // FILE_AST_CACHE) have no File parent above Program, so fall back.
+          (importPath.parentPath.parentPath || importPath.parentPath).traverse({
             JSXOpeningElement(jsxPath) {
               if (result) return;
 
