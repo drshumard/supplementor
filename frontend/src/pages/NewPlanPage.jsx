@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getTemplates, createPlan, createPatient } from '../lib/api';
+import { getTemplates, createPlan, createPatient, getPatients, searchPbClients } from '../lib/api';
 import { useAuth } from '../App';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../components/ui/select';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHeader, { PageContainer } from '../components/PageHeader';
 
@@ -25,6 +25,11 @@ export default function NewPlanPage() {
   const prePatientName = searchParams.get('patient_name') || '';
   const [patientName, setPatientName] = useState(prePatientName);
   const [planDate, setPlanDate] = useState(new Date().toISOString().split('T')[0]);
+  const [pbQuery, setPbQuery] = useState('');
+  const [pbResults, setPbResults] = useState([]);
+  const [pbLoading, setPbLoading] = useState(false);
+  const [pbError, setPbError] = useState(false);
+  const [pbPicked, setPbPicked] = useState(null);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
   const { user: appUser } = useAuth();
@@ -33,6 +38,35 @@ export default function NewPlanPage() {
     if (!appUser) return;
     getTemplates().then(r => setTemplates(r.templates || [])).catch(() => { });
   }, [appUser]);
+
+  // Debounced portal patient search (step 3; skipped when the patient came via query params)
+  useEffect(() => {
+    if (step !== 3 || prePatientId || pbQuery.trim().length < 2) { setPbResults([]); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setPbLoading(true);
+      try {
+        const res = await searchPbClients(pbQuery.trim());
+        if (cancelled) return;
+        setPbResults(res.clients || []);
+        setPbError(false);
+      } catch (err) {
+        if (cancelled) return;
+        setPbResults([]);
+        setPbError(true);
+      } finally {
+        if (!cancelled) setPbLoading(false);
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [pbQuery, step, prePatientId]);
+
+  const pickPbClient = (c) => {
+    setPatientName([c.first_name, c.last_name].filter(Boolean).join(' '));
+    setPbPicked(c);
+    setPbQuery('');
+    setPbResults([]);
+  };
 
   // If duplicates exist for a program+step, use the most recently updated one
   const selectedTemplate = templates
@@ -63,8 +97,21 @@ export default function NewPlanPage() {
     try {
       let patientId = prePatientId || null;
       if (!patientId && patientName.trim()) {
-        const newPatient = await createPatient({ name: patientName.trim() });
-        patientId = newPatient._id;
+        // Reuse the existing local patient when the picked portal client's email matches
+        let existing = null;
+        if (pbPicked?.email) {
+          const res = await getPatients(pbPicked.email).catch(() => null);
+          existing = (res?.patients || []).find(p => (p.email || '').toLowerCase() === pbPicked.email.toLowerCase()) || null;
+        }
+        if (existing) {
+          patientId = existing._id;
+        } else {
+          const newPatient = await createPatient({
+            name: patientName.trim(),
+            ...(pbPicked ? { email: pbPicked.email || '', phone: pbPicked.phone || '' } : {}),
+          });
+          patientId = newPatient._id;
+        }
       }
 
       const data = {
@@ -246,16 +293,60 @@ export default function NewPlanPage() {
 
             {step === 3 && (
               <div className="space-y-5">
+                {!prePatientId && (
+                  <div className="space-y-1.5">
+                    <Label className="text-[12px] font-medium text-ink-3">Search portal patients</Label>
+                    <div className="relative">
+                      <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+                      <Input
+                        value={pbQuery}
+                        onChange={(e) => setPbQuery(e.target.value)}
+                        placeholder="Search Practice Better by name or email…"
+                        data-testid="wizard-pb-search"
+                        className="pl-9 h-10 text-[13px]"
+                        autoFocus
+                      />
+                    </div>
+                    {(pbLoading || pbError) && (
+                      <p className="text-[11.5px] text-ink-subtle">
+                        {pbLoading ? 'Searching…' : 'Portal search unavailable — enter the name manually'}
+                      </p>
+                    )}
+                    {pbResults.length > 0 && (
+                      <div className="rounded-md border hairline overflow-hidden max-h-[176px] overflow-y-auto">
+                        {pbResults.map((c) => (
+                          <button
+                            key={c.record_id}
+                            type="button"
+                            onClick={() => pickPbClient(c)}
+                            data-testid="wizard-pb-result"
+                            className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-[color:var(--surface-hover)] border-b border-[color:var(--hairline)] last:border-b-0"
+                          >
+                            <span className="text-[12.5px] font-medium text-ink truncate">
+                              {[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unnamed'}
+                            </span>
+                            <span className="text-[11.5px] text-ink-muted truncate max-w-[45%]">{c.email || ''}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label className="text-[12px] font-medium text-ink-3">Patient name</Label>
                   <Input
                     value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
+                    onChange={(e) => { setPatientName(e.target.value); setPbPicked(null); }}
                     placeholder="Enter patient name"
                     data-testid="wizard-patient-name-input"
                     className="h-10 text-[13px]"
-                    autoFocus
+                    autoFocus={!!prePatientId}
                   />
+                  {pbPicked && (
+                    <p className="text-[11.5px] text-ink-subtle">
+                      From portal{pbPicked.email ? `: ${pbPicked.email}` : ''} — email and phone will be saved to the patient
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-[12px] font-medium text-ink-3">Date</Label>
