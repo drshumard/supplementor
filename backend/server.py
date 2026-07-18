@@ -1,6 +1,7 @@
 """
 Supplement Protocol Web App — FastAPI Backend
 """
+import asyncio
 import os
 import re
 import math
@@ -458,6 +459,41 @@ async def delete_patient(patient_id: str, user=Depends(require_admin)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Patient not found")
     return {"deleted": True}
+
+
+
+# ─── Wellness Portal Lookup ──────────────────────────────────────────────────
+
+PORTAL_BACKEND_URL = os.environ.get("PORTAL_BACKEND_URL", "").rstrip("/")
+PORTAL_SERVICE_KEY = os.environ.get("PORTAL_SERVICE_KEY", "")
+
+
+@app.get("/api/pb-clients")
+async def search_pb_clients(search: str = "", limit: int = 10, authorization: str = Header(None)):
+    """Search the wellness portal's Practice Better client cache — backs the patient
+    picker in the Add Patient dialog. The key stays server-side; the browser only ever
+    talks to this endpoint with its normal Clerk session."""
+    user = await get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if not PORTAL_BACKEND_URL or not PORTAL_SERVICE_KEY:
+        raise HTTPException(status_code=503, detail="Portal lookup not configured")
+
+    def _fetch():
+        return requests.get(
+            f"{PORTAL_BACKEND_URL}/api/service/pb-clients",
+            params={"search": search, "limit": limit},
+            headers={"X-API-Key": PORTAL_SERVICE_KEY},
+            timeout=10,
+        )
+
+    try:
+        resp = await asyncio.to_thread(_fetch)
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="Portal lookup failed")
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail="Portal lookup failed")
+    return resp.json()
 
 
 

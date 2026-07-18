@@ -152,6 +152,9 @@ export const getPatient = (id) =>
 export const createPatient = (data) =>
   request('/patients', { method: 'POST', body: JSON.stringify(data) });
 
+export const searchPbClients = (search = '') =>
+  request(`/pb-clients?search=${encodeURIComponent(search)}&limit=10`);
+
 export const updatePatient = (id, data) =>
   request(`/patients/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 

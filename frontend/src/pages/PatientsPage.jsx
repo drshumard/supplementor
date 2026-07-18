@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPatients, createPatient, deletePatient } from '../lib/api';
+import { getPatients, createPatient, deletePatient, searchPbClients } from '../lib/api';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
@@ -20,6 +20,10 @@ export default function PatientsPage() {
   const [newPatient, setNewPatient] = useState({ name: '', email: '', phone: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [pbQuery, setPbQuery] = useState('');
+  const [pbResults, setPbResults] = useState([]);
+  const [pbLoading, setPbLoading] = useState(false);
+  const [pbError, setPbError] = useState(false);
   const navigate = useNavigate();
 
   const fetchData = useCallback(async () => {
@@ -33,6 +37,44 @@ export default function PatientsPage() {
   }, [search]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Reset portal search whenever the Add dialog closes
+  useEffect(() => {
+    if (!addOpen) { setPbQuery(''); setPbResults([]); setPbError(false); setPbLoading(false); }
+  }, [addOpen]);
+
+  // Debounced portal patient search
+  useEffect(() => {
+    if (!addOpen || pbQuery.trim().length < 2) { setPbResults([]); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setPbLoading(true);
+      try {
+        const res = await searchPbClients(pbQuery.trim());
+        if (cancelled) return;
+        setPbResults(res.clients || []);
+        setPbError(false);
+      } catch (err) {
+        if (cancelled) return;
+        setPbResults([]);
+        setPbError(true);
+      } finally {
+        if (!cancelled) setPbLoading(false);
+      }
+    }, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [pbQuery, addOpen]);
+
+  const pickPbClient = (c) => {
+    setNewPatient({
+      ...newPatient,
+      name: [c.first_name, c.last_name].filter(Boolean).join(' '),
+      email: c.email || '',
+      phone: c.phone || '',
+    });
+    setPbQuery('');
+    setPbResults([]);
+  };
 
   const handleAdd = async () => {
     if (!newPatient.name.trim()) { toast.error('Patient name is required'); return; }
@@ -154,10 +196,47 @@ export default function PatientsPage() {
           <DialogHeader className="px-6 pt-6 pb-4 space-y-1">
             <DialogTitle className="text-[15px] font-semibold tracking-[-0.01em] text-ink">Add patient</DialogTitle>
             <DialogDescription className="text-[13px] text-ink-muted">
-              Add a new patient to create plans for.
+              Search the portal's patient list to prefill, or enter details manually.
             </DialogDescription>
           </DialogHeader>
           <div className="px-6 pb-5 grid gap-3.5">
+            <div className="space-y-1.5">
+              <Label className="text-[12px] font-medium text-ink-3">Search portal patients</Label>
+              <div className="relative">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle" />
+                <Input
+                  value={pbQuery}
+                  onChange={(e) => setPbQuery(e.target.value)}
+                  className="pl-9 h-9 text-[13px]"
+                  placeholder="Search Practice Better by name or email…"
+                  data-testid="patient-pb-search"
+                  autoFocus
+                />
+              </div>
+              {(pbLoading || pbError) && (
+                <p className="text-[11.5px] text-ink-subtle">
+                  {pbLoading ? 'Searching…' : 'Portal search unavailable — enter details manually'}
+                </p>
+              )}
+              {pbResults.length > 0 && (
+                <div className="rounded-md border hairline overflow-hidden max-h-[176px] overflow-y-auto">
+                  {pbResults.map((c) => (
+                    <button
+                      key={c.record_id}
+                      type="button"
+                      onClick={() => pickPbClient(c)}
+                      data-testid="patient-pb-result"
+                      className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left hover:bg-[color:var(--surface-hover)] border-b border-[color:var(--hairline)] last:border-b-0"
+                    >
+                      <span className="text-[12.5px] font-medium text-ink truncate">
+                        {[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unnamed'}
+                      </span>
+                      <span className="text-[11.5px] text-ink-muted truncate max-w-[45%]">{c.email || ''}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="space-y-1.5">
               <Label className="text-[12px] font-medium text-ink-3">Full name <span className="text-red-600">*</span></Label>
               <Input
@@ -166,7 +245,6 @@ export default function PatientsPage() {
                 className="h-9 text-[13px]"
                 placeholder="e.g. John Smith"
                 data-testid="patient-form-name"
-                autoFocus
               />
             </div>
             <div className="space-y-1.5">
